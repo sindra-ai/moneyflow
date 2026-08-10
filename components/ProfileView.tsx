@@ -2,6 +2,7 @@
 
 import React, { useMemo, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import type { ThemeMode } from "@/lib/types";
 import { money, toGbp } from "@/lib/format";
 import { Camera, Moon, Refresh, Sun, User, Wallet } from "./icons";
@@ -41,6 +42,7 @@ const THEMES: { key: ThemeMode; label: string }[] = [
 
 export default function ProfileView() {
   const { store, items, setProfile, setSettings, setTheme, resetSeed } = useStore();
+  const { user, signOut } = useAuth();
   const { profile, settings } = store;
   const fileRef = useRef<HTMLInputElement>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -224,8 +226,41 @@ export default function ProfileView() {
         </button>
       </div>
 
+      <div className="section-head" style={{ marginTop: 22 }}>
+        <h2>Account</h2>
+      </div>
+      <div className="glass list-card">
+        <div className="list-item">
+          <div className="li-left">
+            <div className="li-ic">
+              <User size={18} />
+            </div>
+            <div>
+              <div className="li-title">Signed in</div>
+              <div className="li-sub">{user?.email ?? "—"}</div>
+            </div>
+          </div>
+          <button className="theme-seg" style={{ display: "block" }} onClick={() => signOut()}>
+            <span
+              style={{
+                padding: "8px 14px",
+                borderRadius: 10,
+                fontSize: 13,
+                fontWeight: 650,
+                color: "var(--danger)",
+                background: "var(--glass-strong)",
+                border: "1px solid var(--glass-border)",
+                display: "inline-block",
+              }}
+            >
+              Sign out
+            </span>
+          </button>
+        </div>
+      </div>
+
       <p className="muted" style={{ textAlign: "center", marginTop: 24 }}>
-        MoneyFlow · saved on this device
+        MoneyFlow · synced to your account
       </p>
     </div>
   );

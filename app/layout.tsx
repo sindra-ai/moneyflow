@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/lib/auth";
 import { StoreProvider } from "@/lib/store";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -38,7 +39,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" data-theme="dark" suppressHydrationWarning>
       <body className={jakarta.variable}>
-        <StoreProvider>{children}</StoreProvider>
+        <AuthProvider>
+          <StoreProvider>{children}</StoreProvider>
+        </AuthProvider>
       </body>
     </html>
   );

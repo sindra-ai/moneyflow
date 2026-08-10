@@ -980,6 +980,58 @@ textarea {
   font-size: 13px;
 }
 
+/* ---------- Auth / login ---------- */
+.auth {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 18px calc(24px + var(--safe-bottom));
+}
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  padding: 34px 24px 26px;
+  text-align: center;
+}
+.auth-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.auth-logo svg {
+  border-radius: 16px;
+  box-shadow: 0 12px 30px -10px rgba(124, 156, 255, 0.7);
+}
+.auth-title {
+  margin: 0 0 6px;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.auth-sub {
+  margin: 0 0 22px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+.auth-card form {
+  text-align: left;
+}
+.auth-error {
+  font-size: 13px;
+  color: var(--danger);
+  margin: 2px 2px 12px;
+  font-weight: 600;
+}
+.auth-toggle {
+  margin-top: 16px;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--accent);
+}
+
 /* splash */
 .splash {
   min-height: 100dvh;

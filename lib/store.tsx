@@ -12,6 +12,8 @@ import React, {
 import type { Outgoing, Profile, Settings, Store, ThemeMode } from "./types";
 import { defaultStore, newId, seedMonth } from "./seed";
 import { monthKey } from "./format";
+import { supabase } from "./supabase";
+import { useAuth } from "./auth";
 
 const STORAGE_KEY = "moneyflow:v1";
 
@@ -74,6 +76,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [systemDark, setSystemDark] = useState(true);
 
+  const { user } = useAuth();
+  const cloudLoaded = useRef(false);
+  const lastSync = useRef<string | null>(null);
+  const storeRef = useRef(store);
+  storeRef.current = store;
+
   // Hydrate from localStorage after mount (avoids SSR mismatch).
   useEffect(() => {
     setStore(loadStore(initialKey));
@@ -97,6 +105,80 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       /* storage full / unavailable — ignore */
     }
   }, [store, hydrated]);
+
+  // --- Cloud sync (Supabase) ---
+  // On login, pull the user's saved state from the cloud; if they have none
+  // yet, seed the cloud from whatever is on this device.
+  useEffect(() => {
+    if (!hydrated || !user) {
+      cloudLoaded.current = false;
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("user_state")
+        .select("data, updated_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled || error) return;
+      const cloud = data?.data as Store | undefined;
+      if (cloud && cloud.months) {
+        setStore(cloud);
+        lastSync.current = (data?.updated_at as string) ?? null;
+      } else {
+        const now = new Date().toISOString();
+        await supabase
+          .from("user_state")
+          .upsert({ user_id: user.id, data: storeRef.current, updated_at: now });
+        lastSync.current = now;
+      }
+      cloudLoaded.current = true;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, hydrated]);
+
+  // Push local changes up to the cloud (debounced) once it has loaded.
+  useEffect(() => {
+    if (!user || !cloudLoaded.current) return;
+    const t = window.setTimeout(async () => {
+      const now = new Date().toISOString();
+      const { error } = await supabase
+        .from("user_state")
+        .upsert({ user_id: user.id, data: store, updated_at: now });
+      if (!error) lastSync.current = now;
+    }, 700);
+    return () => window.clearTimeout(t);
+  }, [store, user]);
+
+  // Re-pull the latest whenever the app regains focus, so each device stays
+  // accurate when you open it.
+  useEffect(() => {
+    if (!user) return;
+    const refetch = async () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible")
+        return;
+      const { data, error } = await supabase
+        .from("user_state")
+        .select("data, updated_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error || !data) return;
+      const cloud = data.data as Store | undefined;
+      if (cloud && cloud.months && data.updated_at !== lastSync.current) {
+        setStore(cloud);
+        lastSync.current = data.updated_at as string;
+      }
+    };
+    document.addEventListener("visibilitychange", refetch);
+    window.addEventListener("focus", refetch);
+    return () => {
+      document.removeEventListener("visibilitychange", refetch);
+      window.removeEventListener("focus", refetch);
+    };
+  }, [user]);
 
   // Track system colour scheme.
   useEffect(() => {

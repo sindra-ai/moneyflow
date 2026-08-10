@@ -3,12 +3,14 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import type { Outgoing } from "@/lib/types";
 import HomeView from "./HomeView";
 import CalendarView from "./CalendarView";
 import ProfileView from "./ProfileView";
 import BottomNav, { Tab } from "./BottomNav";
 import ItemEditor from "./ItemEditor";
+import LoginScreen from "./LoginScreen";
 
 export type EditorTarget =
   | { mode: "add"; presetDay?: number | null }
@@ -16,6 +18,7 @@ export type EditorTarget =
 
 export default function AppShell() {
   const { hydrated } = useStore();
+  const { session, loading } = useAuth();
   const [tab, setTab] = useState<Tab>("home");
   const [editor, setEditor] = useState<EditorTarget | null>(null);
 
@@ -30,10 +33,12 @@ export default function AppShell() {
         <div className="blob b3" />
       </div>
 
-      {!hydrated ? (
+      {loading || !hydrated ? (
         <div className="splash">
           <div className="spinner" />
         </div>
+      ) : !session ? (
+        <LoginScreen />
       ) : (
         <>
           <motion.div
