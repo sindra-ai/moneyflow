@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { money, toGbp } from "@/lib/format";
@@ -8,7 +8,7 @@ import type { Outgoing } from "@/lib/types";
 import MonthSwitcher from "./MonthSwitcher";
 import ItemRow from "./ItemRow";
 import Logo from "./Logo";
-import { Moon, Plus, Sun, Wallet } from "./icons";
+import { Moon, Sun, Wallet } from "./icons";
 
 export default function HomeView({
   openAdd,
@@ -45,6 +45,24 @@ export default function HomeView({
   const pct = totals.count ? Math.round((totals.paidCount / totals.count) * 100) : 0;
   const allClear = totals.count > 0 && totals.left <= 0.001;
 
+  // Collapse the balance card as the bills list is scrolled (with hysteresis
+  // so it doesn't flicker at the threshold).
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const collapsedRef = useRef(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const onListScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const y = el.scrollTop;
+    let next = collapsedRef.current;
+    if (!next && y > 44) next = true;
+    else if (next && y < 12) next = false;
+    if (next !== collapsedRef.current) {
+      collapsedRef.current = next;
+      setCollapsed(next);
+    }
+  };
+
   const commitSalary = () => {
     const n = parseFloat(salaryText.replace(/[^0-9.]/g, ""));
     setSalary(Number.isFinite(n) ? n : 0);
@@ -69,40 +87,42 @@ export default function HomeView({
 
         <MonthSwitcher />
 
-        <section className="hero glass">
+        <section className={"hero glass" + (collapsed ? " collapsed" : "")}>
           <div className="cap">{allClear ? "All paid — nice" : "Left to pay"}</div>
           <div className={"big tnum" + (allClear ? " zero" : "")}>
             {money(allClear ? (totals.surplus > 0 ? totals.surplus : 0) : totals.left)}
           </div>
 
-          <div className="hero-row">
-            <div className="stat">
-              <div className="k">Salary in</div>
-              <div className="v tnum">{money(salary)}</div>
-            </div>
-            <div className="stat">
-              <div className="k">Left over after all bills</div>
-              <div className={"v tnum " + (totals.surplus >= 0 ? "pos" : "neg")}>
-                {money(totals.surplus)}
+          <div className="hero-extra">
+            <div className="hero-row">
+              <div className="stat">
+                <div className="k">Salary in</div>
+                <div className="v tnum">{money(salary)}</div>
+              </div>
+              <div className="stat">
+                <div className="k">Left over after all bills</div>
+                <div className={"v tnum " + (totals.surplus >= 0 ? "pos" : "neg")}>
+                  {money(totals.surplus)}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="progress-wrap">
-            <div className="progress-top">
-              <span>
-                {totals.paidCount} of {totals.count} paid
-              </span>
-              <span>{pct}%</span>
-            </div>
-            <div className="track">
-              <div className="fill" style={{ width: `${pct}%` }} />
+            <div className="progress-wrap">
+              <div className="progress-top">
+                <span>
+                  {totals.paidCount} of {totals.count} paid
+                </span>
+                <span>{pct}%</span>
+              </div>
+              <div className="track">
+                <div className="fill" style={{ width: `${pct}%` }} />
+              </div>
             </div>
           </div>
         </section>
       </div>
 
-      <div className="view-scroll">
+      <div className="view-scroll" ref={scrollRef} onScroll={onListScroll}>
       <div className="salary-card glass-soft">
         <div className="left">
           <div className="badge">
@@ -155,9 +175,6 @@ export default function HomeView({
         </div>
       )}
 
-      <button className="add-btn" onClick={() => openAdd()}>
-        <Plus size={20} /> Add outgoing
-      </button>
       </div>
     </>
   );

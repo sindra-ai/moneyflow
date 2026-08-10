@@ -11,6 +11,7 @@ import ProfileView from "./ProfileView";
 import BottomNav, { Tab } from "./BottomNav";
 import ItemEditor from "./ItemEditor";
 import LoginScreen from "./LoginScreen";
+import { Plus } from "./icons";
 
 export type EditorTarget =
   | { mode: "add"; presetDay?: number | null }
@@ -52,6 +53,16 @@ export default function AppShell() {
             {tab === "calendar" && <CalendarView openAdd={openAdd} openEdit={openEdit} />}
             {tab === "profile" && <ProfileView />}
           </motion.div>
+
+          {(tab === "home" || tab === "calendar") && (
+            <button
+              className="fab"
+              aria-label="Add outgoing"
+              onClick={() => openAdd()}
+            >
+              <Plus size={26} strokeWidth={2.6} />
+            </button>
+          )}
 
           <BottomNav tab={tab} onChange={setTab} />
 
