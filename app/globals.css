@@ -582,6 +582,22 @@ textarea {
   box-shadow: var(--shadow-card);
   overflow: hidden;
 }
+.drag-handle {
+  flex: none;
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  width: 22px;
+  margin: -11px 2px -11px -6px;
+  color: var(--text-faint);
+  cursor: grab;
+  touch-action: none;
+  transition: color 0.15s;
+}
+.drag-handle:active {
+  cursor: grabbing;
+  color: var(--text-dim);
+}
 .row-tile {
   flex: none;
   width: 44px;

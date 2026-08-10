@@ -112,3 +112,14 @@ export const Refresh = (p: P) => (
     <path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v4h-4" />
   </svg>
 );
+
+export const Grip = ({ size = 20, ...rest }: P) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" {...rest}>
+    <circle cx="9" cy="6" r="1.6" />
+    <circle cx="15" cy="6" r="1.6" />
+    <circle cx="9" cy="12" r="1.6" />
+    <circle cx="15" cy="12" r="1.6" />
+    <circle cx="9" cy="18" r="1.6" />
+    <circle cx="15" cy="18" r="1.6" />
+  </svg>
+);

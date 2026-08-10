@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence } from "framer-motion";
+import { Reorder } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { money, toGbp } from "@/lib/format";
 import { useCountUp } from "@/lib/useCountUp";
 import type { Outgoing } from "@/lib/types";
 import type { Tab } from "./BottomNav";
 import MonthSwitcher from "./MonthSwitcher";
-import ItemRow from "./ItemRow";
+import ReorderRow from "./ReorderRow";
 import Logo from "./Logo";
 import QuickActions from "./QuickActions";
 import ProgressRing from "./ProgressRing";
@@ -23,7 +23,7 @@ export default function HomeView({
   openEdit: (item: Outgoing) => void;
   onTab: (tab: Tab) => void;
 }) {
-  const { items, salary, setSalary, togglePaid, markAll, store, resolvedTheme, setTheme } =
+  const { items, salary, setSalary, togglePaid, markAll, reorderItems, store, resolvedTheme, setTheme } =
     useStore();
   const settings = store.settings;
 
@@ -185,18 +185,22 @@ export default function HomeView({
           <p>No outgoings yet. Add your first bill below.</p>
         </div>
       ) : (
-        <div className="list">
-          <AnimatePresence initial={false}>
-            {items.map((it) => (
-              <ItemRow
-                key={it.id}
-                item={it}
-                onToggle={() => togglePaid(it.id)}
-                onEdit={() => openEdit(it)}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
+        <Reorder.Group
+          as="div"
+          axis="y"
+          className="list"
+          values={items}
+          onReorder={reorderItems}
+        >
+          {items.map((it) => (
+            <ReorderRow
+              key={it.id}
+              item={it}
+              onToggle={() => togglePaid(it.id)}
+              onEdit={() => openEdit(it)}
+            />
+          ))}
+        </Reorder.Group>
       )}
 
       </div>

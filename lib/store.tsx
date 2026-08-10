@@ -62,6 +62,7 @@ interface StoreContextValue {
   deleteItem: (id: string) => void;
   togglePaid: (id: string) => void;
   markAll: (paid: boolean) => void;
+  reorderItems: (items: Outgoing[]) => void;
   setProfile: (patch: Partial<Profile>) => void;
   setSettings: (patch: Partial<Settings>) => void;
   setTheme: (theme: ThemeMode) => void;
@@ -279,6 +280,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [mutateMonth]
   );
 
+  const reorderItems = useCallback(
+    (items: Outgoing[]) => mutateMonth((m) => ({ ...m, items })),
+    [mutateMonth]
+  );
+
   const setProfile = useCallback(
     (patch: Partial<Profile>) =>
       setStore((prev) => ({ ...prev, profile: { ...prev.profile, ...patch } })),
@@ -316,6 +322,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     deleteItem,
     togglePaid,
     markAll,
+    reorderItems,
     setProfile,
     setSettings,
     setTheme,
