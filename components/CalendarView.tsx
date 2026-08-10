@@ -74,6 +74,34 @@ export default function CalendarView({
     ...Array.from({ length: total }, (_, i) => i + 1),
   ];
 
+  // The single week (row) containing the selected day — shown when collapsed.
+  const selRow = Math.floor((lead + selected - 1) / 7);
+  const weekCells: (number | null)[] = Array.from({ length: 7 }, (_, col) => {
+    const day = selRow * 7 + col - lead + 1;
+    return day >= 1 && day <= total ? day : null;
+  });
+
+  const renderCell = (day: number | null, key: string) => {
+    if (day === null) return <div key={key} className="cal-cell empty" />;
+    const dayItems = byDay.get(day) ?? [];
+    const isToday = currentKey === todayKey && day === todayDay;
+    const cls =
+      "cal-cell" +
+      (dayItems.length ? " has" : "") +
+      (selected === day ? " sel" : "") +
+      (isToday ? " today" : "");
+    return (
+      <button key={key} className={cls} onClick={() => setSelected(day)}>
+        <span className="d tnum">{day}</span>
+        <span className="cal-dots">
+          {dayItems.slice(0, 3).map((it) => (
+            <i key={it.id} style={{ background: it.paid ? "var(--text-faint)" : it.accent }} />
+          ))}
+        </span>
+      </button>
+    );
+  };
+
   return (
     <>
       <div className="view-fixed">
@@ -94,30 +122,11 @@ export default function CalendarView({
             </div>
           ))}
         </div>
-        <div className="cal-grid">
-          {cells.map((day, i) => {
-            if (day === null) return <div key={`e${i}`} className="cal-cell empty" />;
-            const dayItems = byDay.get(day) ?? [];
-            const isToday = currentKey === todayKey && day === todayDay;
-            const cls =
-              "cal-cell" +
-              (dayItems.length ? " has" : "") +
-              (selected === day ? " sel" : "") +
-              (isToday ? " today" : "");
-            return (
-              <button key={day} className={cls} onClick={() => setSelected(day)}>
-                <span className="d tnum">{day}</span>
-                <span className="cal-dots">
-                  {dayItems.slice(0, 3).map((it) => (
-                    <i
-                      key={it.id}
-                      style={{ background: it.paid ? "var(--text-faint)" : it.accent }}
-                    />
-                  ))}
-                </span>
-              </button>
-            );
-          })}
+        <div className="cal-grid cal-week">
+          {weekCells.map((day, i) => renderCell(day, `w${i}`))}
+        </div>
+        <div className="cal-grid cal-full">
+          {cells.map((day, i) => renderCell(day, `c${i}`))}
         </div>
         </section>
       </div>

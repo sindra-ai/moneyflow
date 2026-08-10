@@ -81,7 +81,7 @@ export default function HomeView({
       <div className="view-fixed">
         <header className="topbar">
           <div className="brand">
-            <Logo size={40} />
+            <Logo size={44} />
           </div>
           <button
             className="icon-btn"

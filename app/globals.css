@@ -234,16 +234,13 @@ textarea {
 }
 .logo-mark {
   display: inline-block;
-  border-radius: 27%;
-  overflow: hidden;
   flex: none;
-  box-shadow: 0 8px 22px -8px rgba(124, 156, 255, 0.6);
 }
 .logo-mark img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 .icon-btn {
   display: grid;
@@ -973,20 +970,36 @@ textarea {
 }
 
 /* ---------- Calendar ---------- */
-/* calendar card collapses on scroll like the balance card */
+/* On scroll the month grid collapses to a single condensed week row,
+   smoothly (the card height follows the inner max-height transition). */
 .cal-card {
   overflow: hidden;
-  max-height: 620px;
-  transition: max-height 0.38s var(--ease), opacity 0.24s var(--ease),
-    margin 0.28s var(--ease), padding 0.28s var(--ease), border-width 0.2s;
 }
-.cal-card.collapsed {
+.cal-card .cal-week,
+.cal-card .cal-full {
+  overflow: hidden;
+  transition: max-height 0.4s var(--ease), opacity 0.28s var(--ease),
+    margin-top 0.32s var(--ease);
+}
+.cal-card .cal-week {
   max-height: 0;
   opacity: 0;
-  margin-bottom: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-  border-width: 0;
+  margin-top: 0;
+}
+.cal-card .cal-full {
+  max-height: 660px;
+  opacity: 1;
+  margin-top: 6px;
+}
+.cal-card.collapsed .cal-week {
+  max-height: 74px;
+  opacity: 1;
+  margin-top: 6px;
+}
+.cal-card.collapsed .cal-full {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
 }
 .cal-grid {
   display: grid;
