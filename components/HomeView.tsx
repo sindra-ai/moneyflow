@@ -12,7 +12,7 @@ import ItemRow from "./ItemRow";
 import Logo from "./Logo";
 import QuickActions from "./QuickActions";
 import ProgressRing from "./ProgressRing";
-import { Moon, Sun, Wallet } from "./icons";
+import { Check, Moon, Sun, Wallet } from "./icons";
 
 export default function HomeView({
   openAdd,
@@ -95,7 +95,15 @@ export default function HomeView({
         <MonthSwitcher />
 
         <section className={"hero" + (collapsed ? " collapsed" : "")}>
-          <div className="cap">{allClear ? "All paid — nice" : "Left to pay"}</div>
+          <div className="cap">
+            {allClear ? (
+              <span className="cap-done">
+                <Check size={12} strokeWidth={3.4} /> All paid
+              </span>
+            ) : (
+              "Left to pay"
+            )}
+          </div>
           <div className={"big tnum" + (allClear ? " zero" : "")}>
             {money(displayValue)}
           </div>

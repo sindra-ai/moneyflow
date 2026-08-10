@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
 import type { Outgoing } from "@/lib/types";
@@ -51,6 +51,23 @@ export default function CalendarView({
     currentKey === todayKey ? todayDay : 1
   );
 
+  // Collapse the calendar as the lists below are scrolled (with hysteresis).
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const collapsedRef = useRef(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const onListScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const y = el.scrollTop;
+    let next = collapsedRef.current;
+    if (!next && y > 44) next = true;
+    else if (next && y < 12) next = false;
+    if (next !== collapsedRef.current) {
+      collapsedRef.current = next;
+      setCollapsed(next);
+    }
+  };
+
   const selectedItems = byDay.get(selected) ?? [];
   const cells: (number | null)[] = [
     ...Array(lead).fill(null),
@@ -58,14 +75,18 @@ export default function CalendarView({
   ];
 
   return (
-    <div className="view-scroll">
-      <header className="topbar">
-        <h1>Payment Calendar</h1>
-      </header>
+    <>
+      <div className="view-fixed">
+        <header className="topbar">
+          <h1>Payment Calendar</h1>
+        </header>
 
-      <MonthSwitcher />
+        <MonthSwitcher />
 
-      <section className="hero glass" style={{ paddingBottom: 18 }}>
+        <section
+          className={"hero glass cal-card" + (collapsed ? " collapsed" : "")}
+          style={{ paddingBottom: 18 }}
+        >
         <div className="cal-grid" style={{ marginTop: 0 }}>
           {DOW.map((d, i) => (
             <div className="cal-dow" key={i}>
@@ -98,8 +119,10 @@ export default function CalendarView({
             );
           })}
         </div>
-      </section>
+        </section>
+      </div>
 
+      <div className="view-scroll" ref={scrollRef} onScroll={onListScroll}>
       <div className="section-head">
         <h2 className="tnum">{ordinal(selected)}</h2>
         <span className="count">
@@ -153,6 +176,7 @@ export default function CalendarView({
           </div>
         </>
       )}
-    </div>
+      </div>
+    </>
   );
 }

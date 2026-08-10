@@ -21,8 +21,8 @@ export const metadata: Metadata = {
     title: "MoneyFlow",
   },
   icons: {
-    icon: "/icons/icon.svg",
-    apple: "/icons/icon.svg",
+    icon: "/icons/icon-192.png",
+    apple: "/icons/apple-touch-icon.png",
   },
 };
 

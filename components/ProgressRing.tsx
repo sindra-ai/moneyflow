@@ -2,7 +2,7 @@ import React from "react";
 
 export default function ProgressRing({
   pct,
-  size = 52,
+  size = 58,
   stroke = 5,
 }: {
   pct: number;
