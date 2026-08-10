@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
 import type { Currency, Outgoing } from "@/lib/types";
 import { ACCENTS } from "@/lib/seed";
@@ -19,6 +19,12 @@ export default function ItemEditor({
   const existing = isEdit ? target.item : null;
 
   const [closing, setClosing] = useState(false);
+
+  // Drag-to-dismiss state
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const dragStart = useRef<{ y: number; active: boolean }>({ y: 0, active: false });
+  const [dragY, setDragY] = useState(0);
+  const [released, setReleased] = useState(false);
 
   const [name, setName] = useState(existing?.name ?? "");
   const [amount, setAmount] = useState(
@@ -46,13 +52,33 @@ export default function ItemEditor({
     };
   }, []);
 
-  // Slide the sheet out, then unmount when the animation ends. A timeout
-  // fallback guarantees the sheet still closes if animationend never fires
-  // (e.g. reduced-motion or a backgrounded tab).
+  // Slide the sheet down and off, then unmount. Used by the close button,
+  // the scrim tap, and a completed drag-dismiss.
   const requestClose = () => {
     if (closing) return;
     setClosing(true);
-    window.setTimeout(onClose, 380);
+    setReleased(true);
+    setDragY((sheetRef.current?.offsetHeight ?? 600) + 60);
+    window.setTimeout(onClose, 340); // fallback if transitionend doesn't fire
+  };
+
+  // --- Drag-to-dismiss (touch) on the sheet handle ---
+  const onDragStart = (e: React.TouchEvent) => {
+    if (closing) return;
+    dragStart.current = { y: e.touches[0].clientY, active: true };
+    setReleased(false);
+  };
+  const onDragMove = (e: React.TouchEvent) => {
+    if (!dragStart.current.active) return;
+    const dy = e.touches[0].clientY - dragStart.current.y;
+    setDragY(Math.max(0, dy));
+  };
+  const onDragEnd = () => {
+    if (!dragStart.current.active) return;
+    dragStart.current.active = false;
+    setReleased(true);
+    if (dragY > 110) requestClose();
+    else setDragY(0); // snap back
   };
 
   const nameValid = name.trim().length > 0;
@@ -92,18 +118,29 @@ export default function ItemEditor({
       onClick={requestClose}
     >
       <div
+        ref={sheetRef}
         className="sheet"
+        style={{
+          transform: `translateY(${dragY}px)`,
+          transition: released ? "transform 0.32s cubic-bezier(0.22, 1, 0.36, 1)" : "none",
+        }}
         onClick={(e) => e.stopPropagation()}
-        onAnimationEnd={(e) => {
-          // Unmount only after the slide-OUT animation finishes.
-          if (closing && e.animationName.startsWith("sheetOut")) onClose();
+        onTransitionEnd={() => {
+          if (closing) onClose();
         }}
         role="dialog"
         aria-modal="true"
         aria-label={isEdit ? "Edit outgoing" : "Add outgoing"}
       >
-        <div className="grabber" />
-        <h3>{isEdit ? "Edit outgoing" : "New outgoing"}</h3>
+        <div
+          className="sheet-handle"
+          onTouchStart={onDragStart}
+          onTouchMove={onDragMove}
+          onTouchEnd={onDragEnd}
+        >
+          <div className="grabber" />
+          <h3>{isEdit ? "Edit outgoing" : "New outgoing"}</h3>
+        </div>
 
         <div className="field">
           <label htmlFor="f-name">Name</label>

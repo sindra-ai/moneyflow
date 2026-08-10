@@ -7,6 +7,7 @@ import { money, toGbp } from "@/lib/format";
 import type { Outgoing } from "@/lib/types";
 import MonthSwitcher from "./MonthSwitcher";
 import ItemRow from "./ItemRow";
+import Logo from "./Logo";
 import { Moon, Plus, Sun, Wallet } from "./icons";
 
 export default function HomeView({
@@ -53,7 +54,10 @@ export default function HomeView({
     <>
       <div className="view-fixed">
         <header className="topbar">
-          <h1>Monthly Outgoings</h1>
+          <div className="brand">
+            <Logo size={30} />
+            <span className="brand-name">MoneyFlow</span>
+          </div>
           <button
             className="icon-btn"
             aria-label="Toggle theme"

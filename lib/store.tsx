@@ -78,6 +78,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setStore(loadStore(initialKey));
     setHydrated(true);
+    // Ask the browser to keep our data durable (resists automatic eviction,
+    // e.g. iOS Safari clearing storage for sites unused for 7 days).
+    try {
+      navigator.storage?.persist?.();
+    } catch {
+      /* not supported — ignore */
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

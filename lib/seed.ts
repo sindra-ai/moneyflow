@@ -37,7 +37,7 @@ const SEED_ITEMS: SeedItem[] = [
   { name: "Figma + Webflow", amount: 56, currency: "GBP", dueDay: null, note: "", paid: false },
   { name: "CreditSpring", amount: 234, currency: "GBP", dueDay: null, note: "June", paid: false },
   { name: "Bumper", amount: 85.55, currency: "GBP", dueDay: null, note: "", paid: false },
-  { name: "Cashasap", amount: 20, currency: "GBP", dueDay: null, note: "Cleared", paid: true },
+  { name: "Cashasap", amount: 20, currency: "GBP", dueDay: null, note: "", paid: false },
   { name: "Loans2Go", amount: 156.44, currency: "GBP", dueDay: 28, note: "", paid: false },
   { name: "The Money Platform", amount: 500, currency: "GBP", dueDay: null, note: "", paid: false },
   { name: "Geeth", amount: 266, currency: "GBP", dueDay: null, note: "$350", paid: false },

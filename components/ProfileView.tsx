@@ -80,20 +80,18 @@ export default function ProfileView() {
 
       <section className="glass profile-head">
         <div className="avatar" onClick={() => fileRef.current?.click()}>
-          {profile.avatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={profile.avatar}
-              alt="Avatar"
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
-          ) : initials ? (
-            <span>{initials}</span>
-          ) : (
-            <User size={38} />
-          )}
+          <span className="avatar-img">
+            {profile.avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatar} alt="Avatar" />
+            ) : initials ? (
+              <span>{initials}</span>
+            ) : (
+              <User size={38} />
+            )}
+          </span>
           <span className="avatar-edit">
-            <Camera size={16} />
+            <Camera size={15} />
           </span>
         </div>
         <input
