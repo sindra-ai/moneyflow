@@ -97,7 +97,7 @@ textarea {
 /* ---------- App frame + animated background ---------- */
 .app {
   position: relative;
-  min-height: 100dvh;
+  height: 100dvh;
   max-width: 480px;
   margin: 0 auto;
   overflow: hidden;
@@ -165,8 +165,25 @@ textarea {
 
 .scene {
   position: relative;
-  min-height: 100dvh;
-  padding: calc(var(--safe-top) + 14px) 18px calc(112px + var(--safe-bottom));
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: calc(var(--safe-top) + 14px) 0 0;
+}
+/* Pinned top region (does not scroll) */
+.view-fixed {
+  flex: none;
+  padding: 0 18px;
+}
+/* Scrollable region below the pinned header */
+.view-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 0 18px calc(112px + var(--safe-bottom));
 }
 
 /* ---------- Glass primitives ---------- */

@@ -58,7 +58,7 @@ export default function CalendarView({
   ];
 
   return (
-    <>
+    <div className="view-scroll">
       <header className="topbar">
         <h1>Payment Calendar</h1>
       </header>
@@ -153,6 +153,6 @@ export default function CalendarView({
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }

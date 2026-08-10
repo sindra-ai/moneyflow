@@ -51,51 +51,54 @@ export default function HomeView({
 
   return (
     <>
-      <header className="topbar">
-        <h1>Monthly Outgoings</h1>
-        <button
-          className="icon-btn"
-          aria-label="Toggle theme"
-          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-        >
-          {resolvedTheme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
-      </header>
+      <div className="view-fixed">
+        <header className="topbar">
+          <h1>Monthly Outgoings</h1>
+          <button
+            className="icon-btn"
+            aria-label="Toggle theme"
+            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+          >
+            {resolvedTheme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+        </header>
 
-      <MonthSwitcher />
+        <MonthSwitcher />
 
-      <section className="hero glass">
-        <div className="cap">{allClear ? "All paid — nice" : "Left to pay"}</div>
-        <div className={"big tnum" + (allClear ? " zero" : "")}>
-          {money(allClear ? totals.surplus > 0 ? totals.surplus : 0 : totals.left)}
-        </div>
-
-        <div className="hero-row">
-          <div className="stat">
-            <div className="k">Salary in</div>
-            <div className="v tnum">{money(salary)}</div>
+        <section className="hero glass">
+          <div className="cap">{allClear ? "All paid — nice" : "Left to pay"}</div>
+          <div className={"big tnum" + (allClear ? " zero" : "")}>
+            {money(allClear ? (totals.surplus > 0 ? totals.surplus : 0) : totals.left)}
           </div>
-          <div className="stat">
-            <div className="k">Left over after all bills</div>
-            <div className={"v tnum " + (totals.surplus >= 0 ? "pos" : "neg")}>
-              {money(totals.surplus)}
+
+          <div className="hero-row">
+            <div className="stat">
+              <div className="k">Salary in</div>
+              <div className="v tnum">{money(salary)}</div>
+            </div>
+            <div className="stat">
+              <div className="k">Left over after all bills</div>
+              <div className={"v tnum " + (totals.surplus >= 0 ? "pos" : "neg")}>
+                {money(totals.surplus)}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="progress-wrap">
-          <div className="progress-top">
-            <span>
-              {totals.paidCount} of {totals.count} paid
-            </span>
-            <span>{pct}%</span>
+          <div className="progress-wrap">
+            <div className="progress-top">
+              <span>
+                {totals.paidCount} of {totals.count} paid
+              </span>
+              <span>{pct}%</span>
+            </div>
+            <div className="track">
+              <div className="fill" style={{ width: `${pct}%` }} />
+            </div>
           </div>
-          <div className="track">
-            <div className="fill" style={{ width: `${pct}%` }} />
-          </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
+      <div className="view-scroll">
       <div className="salary-card glass-soft">
         <div className="left">
           <div className="badge">
@@ -151,6 +154,7 @@ export default function HomeView({
       <button className="add-btn" onClick={() => openAdd()}>
         <Plus size={20} /> Add outgoing
       </button>
+      </div>
     </>
   );
 }

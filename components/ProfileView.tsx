@@ -73,7 +73,7 @@ export default function ProfileView() {
       .toUpperCase() || "";
 
   return (
-    <>
+    <div className="view-scroll">
       <header className="topbar">
         <h1>Profile</h1>
       </header>
@@ -229,6 +229,6 @@ export default function ProfileView() {
       <p className="muted" style={{ textAlign: "center", marginTop: 24 }}>
         MoneyFlow · saved on this device
       </p>
-    </>
+    </div>
   );
 }
