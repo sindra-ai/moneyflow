@@ -424,10 +424,9 @@ textarea {
   color: var(--text-dim);
 }
 .hero .big.zero {
-  background: linear-gradient(120deg, var(--good), var(--accent));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  background: none;
+  -webkit-text-fill-color: var(--good);
+  color: var(--good);
 }
 .hero-row {
   display: flex;
@@ -716,42 +715,34 @@ textarea {
   transform: scale(0.98);
 }
 
-/* ---------- Floating add button ---------- */
-.fab {
-  position: absolute;
-  right: 18px;
-  bottom: calc(84px + var(--safe-bottom));
-  z-index: 45;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  color: #08122b;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  box-shadow: 0 14px 30px -8px rgba(124, 156, 255, 0.85), var(--shadow);
-  transition: transform 0.15s var(--ease), box-shadow 0.2s;
-}
-.fab:active {
-  transform: scale(0.9);
-}
-
 /* ---------- Bottom nav ---------- */
 .nav {
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(16px + var(--safe-bottom));
+  bottom: calc(18px + var(--safe-bottom));
   z-index: 40;
   display: flex;
-  gap: 4px;
+  gap: 2px;
   padding: 7px;
   border-radius: 99px;
-  background: var(--nav-bg);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
-  box-shadow: var(--shadow);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.03)),
+    var(--nav-bg);
+  border: 1px solid var(--glass-hi);
+  backdrop-filter: blur(34px) saturate(190%);
+  -webkit-backdrop-filter: blur(34px) saturate(190%);
+  box-shadow: 0 18px 44px -14px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -8px 16px rgba(0, 0, 0, 0.14);
+  overflow: hidden;
+}
+.nav::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(130% 90% at 28% -30%, rgba(255, 255, 255, 0.45), transparent 62%);
+  opacity: 0.7;
+  pointer-events: none;
 }
 .nav button {
   position: relative;
@@ -773,8 +764,9 @@ textarea {
   position: absolute;
   inset: 0;
   border-radius: 99px;
-  background: var(--glass-strong);
-  border: 1px solid var(--glass-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.08));
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 4px 12px -4px rgba(0, 0, 0, 0.45);
   z-index: -1;
 }
 
