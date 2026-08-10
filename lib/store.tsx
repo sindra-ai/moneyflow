@@ -61,6 +61,7 @@ interface StoreContextValue {
   updateItem: (id: string, patch: Partial<Outgoing>) => void;
   deleteItem: (id: string) => void;
   togglePaid: (id: string) => void;
+  markAll: (paid: boolean) => void;
   setProfile: (patch: Partial<Profile>) => void;
   setSettings: (patch: Partial<Settings>) => void;
   setTheme: (theme: ThemeMode) => void;
@@ -272,6 +273,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [mutateMonth]
   );
 
+  const markAll = useCallback(
+    (paid: boolean) =>
+      mutateMonth((m) => ({ ...m, items: m.items.map((it) => ({ ...it, paid })) })),
+    [mutateMonth]
+  );
+
   const setProfile = useCallback(
     (patch: Partial<Profile>) =>
       setStore((prev) => ({ ...prev, profile: { ...prev.profile, ...patch } })),
@@ -308,6 +315,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     updateItem,
     deleteItem,
     togglePaid,
+    markAll,
     setProfile,
     setSettings,
     setTheme,

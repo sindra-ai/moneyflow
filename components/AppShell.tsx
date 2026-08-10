@@ -49,7 +49,9 @@ export default function AppShell() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           >
-            {tab === "home" && <HomeView openAdd={openAdd} openEdit={openEdit} />}
+            {tab === "home" && (
+              <HomeView openAdd={openAdd} openEdit={openEdit} onTab={setTab} />
+            )}
             {tab === "calendar" && <CalendarView openAdd={openAdd} openEdit={openEdit} />}
             {tab === "profile" && <ProfileView />}
           </motion.div>

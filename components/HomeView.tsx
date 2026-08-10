@@ -4,20 +4,26 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { money, toGbp } from "@/lib/format";
+import { useCountUp } from "@/lib/useCountUp";
 import type { Outgoing } from "@/lib/types";
+import type { Tab } from "./BottomNav";
 import MonthSwitcher from "./MonthSwitcher";
 import ItemRow from "./ItemRow";
 import Logo from "./Logo";
+import QuickActions from "./QuickActions";
+import ProgressRing from "./ProgressRing";
 import { Moon, Sun, Wallet } from "./icons";
 
 export default function HomeView({
   openAdd,
   openEdit,
+  onTab,
 }: {
   openAdd: (day?: number | null) => void;
   openEdit: (item: Outgoing) => void;
+  onTab: (tab: Tab) => void;
 }) {
-  const { items, salary, setSalary, togglePaid, store, resolvedTheme, setTheme } =
+  const { items, salary, setSalary, togglePaid, markAll, store, resolvedTheme, setTheme } =
     useStore();
   const settings = store.settings;
 
@@ -44,6 +50,8 @@ export default function HomeView({
 
   const pct = totals.count ? Math.round((totals.paidCount / totals.count) * 100) : 0;
   const allClear = totals.count > 0 && totals.left <= 0.001;
+  const heroValue = allClear ? (totals.surplus > 0 ? totals.surplus : 0) : totals.left;
+  const displayValue = useCountUp(heroValue);
 
   // Collapse the balance card as the bills list is scrolled (with hysteresis
   // so it doesn't flicker at the threshold).
@@ -87,10 +95,10 @@ export default function HomeView({
 
         <MonthSwitcher />
 
-        <section className={"hero glass" + (collapsed ? " collapsed" : "")}>
+        <section className={"hero" + (collapsed ? " collapsed" : "")}>
           <div className="cap">{allClear ? "All paid — nice" : "Left to pay"}</div>
           <div className={"big tnum" + (allClear ? " zero" : "")}>
-            {money(allClear ? (totals.surplus > 0 ? totals.surplus : 0) : totals.left)}
+            {money(displayValue)}
           </div>
 
           <div className="hero-extra">
@@ -100,26 +108,35 @@ export default function HomeView({
                 <div className="v tnum">{money(salary)}</div>
               </div>
               <div className="stat">
-                <div className="k">Left over after all bills</div>
+                <div className="k">Left over</div>
                 <div className={"v tnum " + (totals.surplus >= 0 ? "pos" : "neg")}>
                   {money(totals.surplus)}
                 </div>
               </div>
             </div>
 
-            <div className="progress-wrap">
-              <div className="progress-top">
-                <span>
+            <div className="hero-progress">
+              <ProgressRing pct={pct} />
+              <div className="hp-text">
+                <div className="hp-num tnum">
                   {totals.paidCount} of {totals.count} paid
-                </span>
-                <span>{pct}%</span>
-              </div>
-              <div className="track">
-                <div className="fill" style={{ width: `${pct}%` }} />
+                </div>
+                <div className="hp-sub tnum">
+                  {allClear ? "You're all clear" : money(totals.left) + " still to go"}
+                </div>
               </div>
             </div>
           </div>
         </section>
+
+        <div className={"quick-wrap" + (collapsed ? " collapsed" : "")}>
+          <QuickActions
+            onAdd={() => openAdd()}
+            onPayAll={() => markAll(true)}
+            onReset={() => markAll(false)}
+            onCalendar={() => onTab("calendar")}
+          />
+        </div>
       </div>
 
       <div className="view-scroll" ref={scrollRef} onScroll={onListScroll}>
