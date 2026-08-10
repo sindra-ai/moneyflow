@@ -5,8 +5,7 @@ import { useAuth } from "@/lib/auth";
 import Logo from "./Logo";
 
 export default function LoginScreen() {
-  const { signIn, signUp } = useAuth();
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -21,8 +20,7 @@ export default function LoginScreen() {
     if (!canSubmit) return;
     setBusy(true);
     setError(null);
-    const fn = mode === "login" ? signIn : signUp;
-    const { error } = await fn(email, password);
+    const { error } = await signIn(email, password);
     setBusy(false);
     if (error) setError(prettyError(error));
   };
@@ -34,11 +32,7 @@ export default function LoginScreen() {
           <Logo size={52} />
         </div>
         <h1 className="auth-title">MoneyFlow</h1>
-        <p className="auth-sub">
-          {mode === "login"
-            ? "Log in to sync your outgoings across every device."
-            : "Create an account so your data is saved and synced everywhere."}
-        </p>
+        <p className="auth-sub">Log in to your account to sync across every device.</p>
 
         <form onSubmit={submit}>
           <div className="field">
@@ -60,9 +54,9 @@ export default function LoginScreen() {
               id="auth-pass"
               className="input"
               type="password"
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              autoComplete="current-password"
               value={password}
-              placeholder="At least 6 characters"
+              placeholder="Your password"
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
@@ -75,21 +69,11 @@ export default function LoginScreen() {
             disabled={!canSubmit}
             style={{ opacity: canSubmit ? 1 : 0.5 }}
           >
-            {busy ? "Please wait…" : mode === "login" ? "Log in" : "Create account"}
+            {busy ? "Please wait…" : "Log in"}
           </button>
         </form>
 
-        <button
-          className="auth-toggle"
-          onClick={() => {
-            setMode((m) => (m === "login" ? "signup" : "login"));
-            setError(null);
-          }}
-        >
-          {mode === "login"
-            ? "New here? Create an account"
-            : "Already have an account? Log in"}
-        </button>
+        <p className="auth-note">Private app · invite-only</p>
       </div>
     </div>
   );
@@ -98,8 +82,6 @@ export default function LoginScreen() {
 function prettyError(msg: string): string {
   const m = msg.toLowerCase();
   if (m.includes("invalid login")) return "Wrong email or password.";
-  if (m.includes("already registered") || m.includes("already been registered"))
-    return "That email already has an account — try logging in.";
-  if (m.includes("password")) return "Password must be at least 6 characters.";
+  if (m.includes("not confirmed")) return "Account not confirmed yet.";
   return msg;
 }
