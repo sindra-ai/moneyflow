@@ -14,7 +14,7 @@ import {
 } from "@/lib/format";
 import MonthSwitcher from "./MonthSwitcher";
 import ItemRow from "./ItemRow";
-import { Plus } from "./icons";
+import { ChevronDown, Plus } from "./icons";
 
 const DOW = ["M", "T", "W", "T", "F", "S", "S"];
 
@@ -50,12 +50,20 @@ export default function CalendarView({
   const [selected, setSelected] = useState<number>(
     currentKey === todayKey ? todayDay : 1
   );
+  const [monthOpen, setMonthOpen] = useState(true);
 
   const selectedItems = byDay.get(selected) ?? [];
   const cells: (number | null)[] = [
     ...Array(lead).fill(null),
     ...Array.from({ length: total }, (_, i) => i + 1),
   ];
+
+  // The single week (row) containing the selected day — shown when collapsed.
+  const selRow = Math.floor((lead + selected - 1) / 7);
+  const weekCells: (number | null)[] = Array.from({ length: 7 }, (_, col) => {
+    const day = selRow * 7 + col - lead + 1;
+    return day >= 1 && day <= total ? day : null;
+  });
 
   const renderCell = (day: number | null, key: string) => {
     if (day === null) return <div key={key} className="cal-cell empty" />;
@@ -88,7 +96,10 @@ export default function CalendarView({
       </div>
 
       <div className="view-scroll">
-        <section className="hero glass" style={{ paddingBottom: 18 }}>
+        <section
+          className={"hero glass cal-card" + (monthOpen ? "" : " collapsed")}
+          style={{ paddingBottom: 10 }}
+        >
           <div className="cal-grid" style={{ marginTop: 0 }}>
             {DOW.map((d, i) => (
               <div className="cal-dow" key={i}>
@@ -96,7 +107,25 @@ export default function CalendarView({
               </div>
             ))}
           </div>
-          <div className="cal-grid">{cells.map((day, i) => renderCell(day, `c${i}`))}</div>
+          <div className="cal-grid cal-week">
+            {weekCells.map((day, i) => renderCell(day, `w${i}`))}
+          </div>
+          <div className="cal-grid cal-full">
+            {cells.map((day, i) => renderCell(day, `c${i}`))}
+          </div>
+          <button
+            className="cal-toggle"
+            onClick={() => setMonthOpen((v) => !v)}
+            aria-label={monthOpen ? "Collapse to week" : "Expand to month"}
+          >
+            <ChevronDown
+              size={18}
+              style={{
+                transform: monthOpen ? "rotate(180deg)" : "none",
+                transition: "transform 0.3s var(--ease)",
+              }}
+            />
+          </button>
         </section>
 
         <div className="section-head">

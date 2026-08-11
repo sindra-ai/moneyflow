@@ -1057,6 +1057,19 @@ textarea {
   opacity: 0;
   margin-top: 0;
 }
+.cal-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 8px 0 2px;
+  margin-top: 4px;
+  color: var(--text-faint);
+  transition: color 0.15s;
+}
+.cal-toggle:active {
+  color: var(--text-dim);
+}
 .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
