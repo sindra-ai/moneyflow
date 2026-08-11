@@ -16,30 +16,45 @@ export default function ReorderRow({
 }) {
   const controls = useDragControls();
   const timer = useRef<number | null>(null);
-  const start = useRef({ x: 0, y: 0 });
 
-  const clear = () => {
-    if (timer.current) {
-      window.clearTimeout(timer.current);
-      timer.current = null;
-    }
-  };
-
-  // Press-and-hold anywhere on the row to pick it up; a quick tap or a swipe
-  // (which moves before the timer) does not start a drag.
+  // Press-and-hold anywhere on the row to pick it up. Any scroll or movement
+  // before the hold completes cancels it — so a hold never hijacks a scroll
+  // (which was leaving the scroll container stuck).
   const onPointerDown = (e: React.PointerEvent) => {
-    start.current = { x: e.clientX, y: e.clientY };
-    clear();
-    timer.current = window.setTimeout(() => controls.start(e), 260);
-  };
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!timer.current) return;
-    if (
-      Math.abs(e.clientX - start.current.x) > 8 ||
-      Math.abs(e.clientY - start.current.y) > 8
-    ) {
-      clear();
-    }
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const sx = e.clientX;
+    const sy = e.clientY;
+    const scroller = (e.currentTarget as HTMLElement).closest(".view-scroll");
+
+    const cancel = () => {
+      if (timer.current) {
+        window.clearTimeout(timer.current);
+        timer.current = null;
+      }
+      window.removeEventListener("pointermove", onMove, true);
+      window.removeEventListener("touchmove", onTouchMove, true);
+      window.removeEventListener("pointerup", cancel, true);
+      window.removeEventListener("pointercancel", cancel, true);
+      scroller?.removeEventListener("scroll", cancel);
+    };
+    const onMove = (ev: PointerEvent) => {
+      if (Math.abs(ev.clientX - sx) > 8 || Math.abs(ev.clientY - sy) > 8) cancel();
+    };
+    const onTouchMove = (ev: TouchEvent) => {
+      const t = ev.touches[0];
+      if (t && (Math.abs(t.clientX - sx) > 8 || Math.abs(t.clientY - sy) > 8)) cancel();
+    };
+
+    window.addEventListener("pointermove", onMove, true);
+    window.addEventListener("touchmove", onTouchMove, true);
+    window.addEventListener("pointerup", cancel, true);
+    window.addEventListener("pointercancel", cancel, true);
+    scroller?.addEventListener("scroll", cancel, { passive: true });
+
+    timer.current = window.setTimeout(() => {
+      cancel();
+      controls.start(e);
+    }, 260);
   };
 
   return (
@@ -51,10 +66,6 @@ export default function ReorderRow({
       className={"row" + (item.paid ? " paid" : "")}
       style={{ touchAction: "pan-y" }}
       onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={clear}
-      onPointerCancel={clear}
-      onPointerLeave={clear}
       whileDrag={{
         scale: 1.03,
         boxShadow: "0 20px 44px -14px rgba(0,0,0,0.7)",
