@@ -7,6 +7,7 @@ import { HAPTIC } from '@/lib/haptics';
 import type { Outgoing } from '@/lib/types';
 import { Logo } from './Logo';
 import LoginScreen from './LoginScreen';
+import { LockScreen } from './LockScreen';
 import { BottomNav, type Tab } from './BottomNav';
 import { HomeView } from './HomeView';
 import { CalendarView } from './CalendarView';
@@ -15,10 +16,11 @@ import { ItemEditor, type EditorTarget } from './ItemEditor';
 import { Moon, Sun } from './icons';
 
 export function AppShell() {
-  const { ready, resolvedTheme, setSettings, addItem, updateItem, deleteItem } = useStore();
+  const { ready, store, resolvedTheme, setSettings, addItem, updateItem, deleteItem } = useStore();
   const { session, loading } = useAuth();
   const [tab, setTab] = useState<Tab>('home');
   const [editor, setEditor] = useState<EditorTarget | null>(null);
+  const [unlocked, setUnlocked] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   // Auth gate — keep v1's cloud login in front of the new UI.
@@ -36,6 +38,17 @@ export function AppShell() {
       <div className="boot">
         <Logo size={56} />
       </div>
+    );
+  }
+
+  // App-lock gate — PIN (and optional Face ID) before the data is shown.
+  if (store.settings.lockEnabled && store.settings.lockPin && !unlocked) {
+    return (
+      <LockScreen
+        mode="unlock"
+        expectedHash={store.settings.lockPin}
+        onDone={() => setUnlocked(true)}
+      />
     );
   }
 
