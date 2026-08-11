@@ -1,9 +1,10 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
 import { HAPTIC } from '@/lib/haptics';
+import { registerSW, runDueCheck } from '@/lib/reminders';
 import type { Outgoing } from '@/lib/types';
 import { Logo } from './Logo';
 import LoginScreen from './LoginScreen';
@@ -22,6 +23,28 @@ export function AppShell() {
   const [editor, setEditor] = useState<EditorTarget | null>(null);
   const [unlocked, setUnlocked] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const storeRef = useRef(store);
+  storeRef.current = store;
+
+  // Register the notification service worker once.
+  useEffect(() => {
+    void registerSW();
+  }, []);
+
+  // Surface any bills due soon shortly after load (giving cloud sync a moment
+  // to land) and whenever the app is brought back to the foreground.
+  useEffect(() => {
+    if (!ready || !session) return;
+    const t = window.setTimeout(() => void runDueCheck(storeRef.current), 1500);
+    const onVis = () => {
+      if (document.visibilityState === 'visible') void runDueCheck(storeRef.current);
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.clearTimeout(t);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, [ready, session]);
 
   // Auth gate — keep v1's cloud login in front of the new UI.
   if (loading) {

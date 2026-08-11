@@ -12,6 +12,7 @@ import {
   getBiometricCredId,
   registerBiometric,
 } from '@/lib/lock';
+import { registerSW, reminderPermission, requestReminderPermission } from '@/lib/reminders';
 import type { ThemeMode } from '@/lib/types';
 import { LockScreen } from './LockScreen';
 import { Sparkline } from './Sparkline';
@@ -72,6 +73,34 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
     void biometricAvailable().then(setBioAvail);
     setBioOn(!!getBiometricCredId());
   }, []);
+
+  // Reminders
+  const [remOn, setRemOn] = useState(false);
+  const [remDenied, setRemDenied] = useState(false);
+  useEffect(() => {
+    const p = reminderPermission();
+    setRemOn(store.settings.reminders && p === 'granted');
+    setRemDenied(p === 'denied');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const toggleReminders = async () => {
+    HAPTIC.light();
+    if (remOn) {
+      setRemOn(false);
+      setSettings({ reminders: false });
+      return;
+    }
+    const ok = await requestReminderPermission();
+    if (ok) {
+      await registerSW();
+      setRemOn(true);
+      setSettings({ reminders: true });
+      HAPTIC.success();
+    } else {
+      setRemDenied(reminderPermission() === 'denied');
+    }
+  };
 
   const toggleLock = () => {
     HAPTIC.light();
@@ -294,6 +323,25 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
             aria-label="Starting savings balance"
           />
         </div>
+      </div>
+
+      <div className="sec">
+        <h3>Notifications</h3>
+      </div>
+      <div className="list">
+        <button className="li" onClick={() => void toggleReminders()}>
+          <div>
+            <div className="li-k">Due-date reminders</div>
+            <div className="li-s">
+              {remDenied
+                ? 'Blocked — enable notifications for this app in your settings'
+                : 'A heads-up when a bill is due in the next couple of days'}
+            </div>
+          </div>
+          <span className="switch" data-on={remOn} aria-hidden="true">
+            <i />
+          </span>
+        </button>
       </div>
 
       <div className="sec">
