@@ -167,6 +167,7 @@ interface StoreContextValue {
   setAllPaid: (paid: boolean) => void;
   reorder: (from: number, to: number) => void;
   resetToSample: () => void;
+  snapshot: () => void;
   undo: () => void;
 }
 
@@ -475,6 +476,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setAllPaid: markAll,
     reorder,
     resetToSample: resetSeed,
+    snapshot,
     undo,
   };
 

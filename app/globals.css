@@ -1913,3 +1913,248 @@ input {
   color: var(--ink-3);
 }
 
+
+/* ============================================================= AI chat == */
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-open {
+  color: var(--a2);
+}
+
+.ai-panel {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translate(-50%, 100%);
+  width: 100%;
+  max-width: 480px;
+  height: min(86dvh, 760px);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: var(--glass);
+  backdrop-filter: blur(30px) saturate(1.5);
+  -webkit-backdrop-filter: blur(30px) saturate(1.5);
+  border-top: 1px solid var(--glass-edge);
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 -30px 60px -24px rgba(0, 0, 0, 0.7);
+  transition: transform 0.46s var(--spring);
+}
+
+.ai-panel[data-on='true'] {
+  transform: translate(-50%, 0);
+}
+
+.ai-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 12px 20px;
+  border-bottom: 1px solid var(--hair);
+}
+
+.ai-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font: var(--t-head);
+  letter-spacing: -0.02em;
+}
+
+.ai-title svg {
+  color: var(--a2);
+}
+
+.ai-thread {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scrollbar-width: none;
+}
+
+.ai-thread::-webkit-scrollbar {
+  display: none;
+}
+
+.ai-intro {
+  margin: auto 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 6px;
+}
+
+.ai-orb {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--accent);
+  box-shadow: 0 16px 40px -12px var(--a2);
+}
+
+.ai-intro p {
+  font: var(--t-body);
+  color: var(--ink-2);
+  max-width: 24ch;
+}
+
+.ai-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.ai-chips button {
+  padding: 12px 14px;
+  border-radius: var(--r-sm);
+  background: var(--fill-1);
+  border: 1px solid var(--hair);
+  color: var(--ink);
+  font: var(--t-meta);
+  font-weight: 600;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.ai-chips button:active {
+  background: var(--fill-3);
+}
+
+.ai-msg {
+  max-width: 84%;
+  padding: 11px 14px;
+  border-radius: 18px;
+  font: var(--t-body);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ai-msg.user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: var(--on-accent);
+  border-bottom-right-radius: 6px;
+}
+
+.ai-msg.assistant {
+  align-self: flex-start;
+  background: var(--fill-2);
+  color: var(--ink);
+  border-bottom-left-radius: 6px;
+}
+
+.ai-typing {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.ai-typing i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  animation: blink 1.2s var(--ease) infinite;
+}
+
+.ai-typing i:nth-child(2) {
+  animation-delay: 0.18s;
+}
+.ai-typing i:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+.ai-note {
+  align-self: stretch;
+  padding: 16px;
+  border-radius: var(--r-md);
+  background: var(--fill-1);
+  border: 1px solid var(--hair);
+}
+
+.ai-note b {
+  font: var(--t-head);
+}
+
+.ai-note p {
+  margin-top: 6px;
+  font: var(--t-meta);
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+.ai-note code {
+  font-family: ui-monospace, monospace;
+  background: var(--fill-3);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+.ai-bar {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 16px calc(12px + var(--safe-b));
+  border-top: 1px solid var(--hair);
+}
+
+.ai-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 13px 16px;
+  border-radius: var(--pill);
+  background: var(--fill-2);
+  font: var(--t-body);
+}
+
+.ai-send {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  transition: transform 0.2s var(--spring), opacity 0.2s;
+}
+
+.ai-send:active {
+  transform: scale(0.9);
+}
+
+.ai-send:disabled {
+  opacity: 0.4;
+}

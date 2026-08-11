@@ -13,13 +13,15 @@ import { HomeView } from './HomeView';
 import { CalendarView } from './CalendarView';
 import { ProfileView } from './ProfileView';
 import { ItemEditor, type EditorTarget } from './ItemEditor';
-import { Moon, Sun } from './icons';
+import { AiChat } from './AiChat';
+import { Moon, Sparkle, Sun } from './icons';
 
 export function AppShell() {
   const { ready, store, resolvedTheme, setSettings, addItem, updateItem, deleteItem } = useStore();
   const { session, loading } = useAuth();
   const [tab, setTab] = useState<Tab>('home');
   const [editor, setEditor] = useState<EditorTarget | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const storeRef = useRef(store);
   storeRef.current = store;
@@ -74,16 +76,28 @@ export function AppShell() {
             <div className="mark">
               <Logo size={30} />
             </div>
-            <button
-              className="ghost-btn"
-              aria-label={resolvedTheme === 'dark' ? 'Switch to light' : 'Switch to dark'}
-              onClick={() => {
-                HAPTIC.light();
-                setSettings({ theme: resolvedTheme === 'dark' ? 'light' : 'dark' });
-              }}
-            >
-              {resolvedTheme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
+            <div className="top-actions">
+              <button
+                className="ghost-btn ai-open"
+                aria-label="Ask MoneyFlow"
+                onClick={() => {
+                  HAPTIC.light();
+                  setAiOpen(true);
+                }}
+              >
+                <Sparkle size={18} />
+              </button>
+              <button
+                className="ghost-btn"
+                aria-label={resolvedTheme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+                onClick={() => {
+                  HAPTIC.light();
+                  setSettings({ theme: resolvedTheme === 'dark' ? 'light' : 'dark' });
+                }}
+              >
+                {resolvedTheme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -109,6 +123,8 @@ export function AppShell() {
           onDelete={deleteItem}
         />
       )}
+
+      {aiOpen && <AiChat onClose={() => setAiOpen(false)} />}
     </>
   );
 }
