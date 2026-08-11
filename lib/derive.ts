@@ -78,6 +78,37 @@ function totalOf(m: MonthData): number {
   return m.items.reduce((sum, it) => sum + (it.amount || 0), 0);
 }
 
+/* -------------------------------------------------------------- payday */
+
+/** Whole days from today to the next occurrence of `payday` (day of month). */
+export function daysUntilPayday(payday: number): number {
+  const now = new Date();
+  const day = now.getDate();
+  const target = Math.min(payday, daysInMonth(monthKeyOf(now)));
+  if (day <= target) return target - day;
+  // Rolled past this month's payday — count to next month's.
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const nextTarget = Math.min(payday, daysInMonth(monthKeyOf(next)));
+  return daysInMonth(monthKeyOf(now)) - day + nextTarget;
+}
+
+/* ------------------------------------------------------------ savings */
+
+/**
+ * Starting balance plus every already-finished month's left-over
+ * (salary − outgoings). The current and future months don't count yet.
+ */
+export function savingsSoFar(store: Store, currentKey: string): number {
+  let sum = store.settings.savingsStart || 0;
+  for (const key of Object.keys(store.months)) {
+    if (key >= currentKey) continue;
+    const m = store.months[key];
+    const total = m.items.reduce((s, it) => s + (it.amount || 0), 0);
+    sum += m.salary - total;
+  }
+  return sum;
+}
+
 /** Totals for the n months ending at `monthKey`, oldest first. */
 export function history(store: Store, monthKey: string, n = 6): Point[] {
   const out: Point[] = [];

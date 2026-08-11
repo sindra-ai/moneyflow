@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { computeTotals, useStore } from '@/lib/store';
+import { computeTotals, monthKeyOf, useStore } from '@/lib/store';
 import { money, moneyCompact, moneyParts } from '@/lib/format';
-import { history, pacing } from '@/lib/derive';
+import { daysUntilPayday, history, pacing } from '@/lib/derive';
 import { useCountUp } from '@/lib/useCountUp';
 import { HAPTIC } from '@/lib/haptics';
 import type { Outgoing } from '@/lib/types';
@@ -28,7 +28,15 @@ export function HomeView({ scrollerRef, onAdd, onEdit }: Props) {
 
   const [min, setMin] = useState(false);
   const [mode, setMode] = useState<'order' | 'due'>('order');
+  const [q, setQ] = useState('');
   const [party, setParty] = useState(false);
+
+  const isCurrent = monthKey === monthKeyOf();
+  const untilPay = isCurrent ? daysUntilPayday(store.settings.payday ?? 25) : null;
+  const query = q.trim().toLowerCase();
+  const filtered = query
+    ? month.items.filter((i) => i.name.toLowerCase().includes(query))
+    : month.items;
   const lock = useRef(0);
   const wasAllPaid = useRef(totals.count > 0 && totals.paidCount === totals.count);
 
@@ -130,6 +138,13 @@ export function HomeView({ scrollerRef, onAdd, onEdit }: Props) {
       <div className="scroll" ref={scrollerRef} onScroll={onScroll}>
         <SalaryDuo leftOver={totals.leftOver} />
 
+        {untilPay !== null && (
+          <div className="payday">
+            <span className="payday-dot" aria-hidden="true" />
+            {untilPay === 0 ? 'Payday today 🎉' : `Payday in ${untilPay} day${untilPay === 1 ? '' : 's'}`}
+          </div>
+        )}
+
         <div className="quick">
           <button className="key" onClick={onAdd}>
             <Plus size={17} />
@@ -157,17 +172,34 @@ export function HomeView({ scrollerRef, onAdd, onEdit }: Props) {
           </div>
         </div>
 
+        {month.items.length > 6 && (
+          <input
+            className="in search"
+            value={q}
+            placeholder="Search outgoings"
+            autoComplete="off"
+            aria-label="Search outgoings"
+            onChange={(e) => setQ(e.target.value)}
+          />
+        )}
+
         {month.items.length === 0 ? (
           <div className="blank">
             <h4>Nothing going out</h4>
             <p>Add your first bill, loan or subscription and it&apos;ll show up here.</p>
           </div>
+        ) : filtered.length === 0 ? (
+          <div className="blank">
+            <h4>No matches</h4>
+            <p>Nothing here matches &ldquo;{q.trim()}&rdquo;.</p>
+          </div>
         ) : (
           <Ledger
-            items={month.items}
+            items={filtered}
             mode={mode}
             monthKey={monthKey}
             scrollerRef={scrollerRef}
+            disableDrag={query.length > 0}
             onToggle={handleToggle}
             onEdit={onEdit}
             onDelete={handleDelete}

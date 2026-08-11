@@ -29,6 +29,8 @@ interface Props {
   mode: 'order' | 'due';
   monthKey: string;
   scrollerRef: RefObject<HTMLElement>;
+  /** turn off press-and-hold reorder (e.g. while a search filter is active) */
+  disableDrag?: boolean;
   onToggle: (item: Outgoing) => void;
   onEdit: (item: Outgoing) => void;
   onDelete: (item: Outgoing) => void;
@@ -40,6 +42,7 @@ export function Ledger({
   mode,
   monthKey,
   scrollerRef,
+  disableDrag = false,
   onToggle,
   onEdit,
   onDelete,
@@ -63,7 +66,7 @@ export function Ledger({
   dragRef.current = drag;
   swipeRef.current = swipe;
 
-  const canDrag = mode === 'order';
+  const canDrag = mode === 'order' && !disableDrag;
 
   const clearHold = useCallback(() => {
     if (hold.current) {

@@ -4,7 +4,7 @@ import { useRef, useState, type RefObject } from 'react';
 import { computeTotals, useStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
 import { initial, money, monthLabel } from '@/lib/format';
-import { history } from '@/lib/derive';
+import { history, savingsSoFar } from '@/lib/derive';
 import { HAPTIC } from '@/lib/haptics';
 import type { ThemeMode } from '@/lib/types';
 import { Sparkline } from './Sparkline';
@@ -52,6 +52,9 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
   const totals = computeTotals(month);
   const fileRef = useRef<HTMLInputElement>(null);
   const [confirm, setConfirm] = useState(false);
+  const savings = savingsSoFar(store, monthKey);
+  const [payday, setPayday] = useState(String(store.settings.payday ?? 25));
+  const [savingsStart, setSavingsStart] = useState(String(store.settings.savingsStart ?? 0));
 
   // Spend per category for the breakdown bars, largest first.
   const breakdown = (() => {
@@ -189,6 +192,55 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
           </div>
         </>
       )}
+
+      <div className="sec">
+        <h3>Savings</h3>
+      </div>
+      <div className="save-card">
+        <div className="save-k">Saved so far</div>
+        <div className={`save-v n ${savings >= 0 ? 'up' : 'down'}`}>{money(savings)}</div>
+        <div className="save-s">Starting balance plus every past month&apos;s left over</div>
+      </div>
+      <div className="list">
+        <div className="li">
+          <div>
+            <div className="li-k">Payday</div>
+            <div className="li-s">Day of the month your salary lands</div>
+          </div>
+          <input
+            className="rate n"
+            inputMode="numeric"
+            value={payday}
+            onChange={(e) => setPayday(e.target.value)}
+            onBlur={() => {
+              const v = Math.round(parseFloat(payday.replace(/[^0-9]/g, '')));
+              const next = Number.isFinite(v) ? Math.min(28, Math.max(1, v)) : 25;
+              setSettings({ payday: next });
+              setPayday(String(next));
+            }}
+            aria-label="Payday day of month"
+          />
+        </div>
+        <div className="li">
+          <div>
+            <div className="li-k">Starting savings</div>
+            <div className="li-s">What you had put aside before tracking</div>
+          </div>
+          <input
+            className="rate n"
+            inputMode="decimal"
+            value={savingsStart}
+            onChange={(e) => setSavingsStart(e.target.value)}
+            onBlur={() => {
+              const v = parseFloat(savingsStart.replace(/[^0-9.]/g, ''));
+              const next = Number.isFinite(v) ? v : 0;
+              setSettings({ savingsStart: next });
+              setSavingsStart(String(next));
+            }}
+            aria-label="Starting savings balance"
+          />
+        </div>
+      </div>
 
       <div className="sec">
         <h3>Account</h3>

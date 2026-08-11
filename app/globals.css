@@ -1851,3 +1851,66 @@ input {
   background: var(--accent);
   transition: width 0.5s var(--spring);
 }
+
+/* --------------------------------------------------------- payday pill -- */
+
+.payday {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 4px 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--fill-1);
+  border: 1px solid var(--hair);
+  font: var(--t-meta);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.payday-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--good);
+  box-shadow: 0 0 10px 1px var(--good);
+}
+
+/* ------------------------------------------------------------- search -- */
+
+.search {
+  margin: 4px 4px 12px;
+}
+
+/* --------------------------------------------------------- savings card */
+
+.save-card {
+  padding: 20px;
+  border-radius: var(--r-lg);
+  background: var(--fill-1);
+  border: 1px solid var(--hair);
+}
+
+.save-k {
+  font: var(--t-meta);
+  color: var(--ink-3);
+}
+
+.save-v {
+  font: var(--t-title);
+  letter-spacing: -0.02em;
+  margin: 4px 0 6px;
+}
+
+.save-v.up {
+  color: var(--good);
+}
+
+.save-v.down {
+  color: var(--bad);
+}
+
+.save-s {
+  font: var(--t-meta);
+  color: var(--ink-3);
+}
