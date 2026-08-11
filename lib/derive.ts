@@ -74,11 +74,8 @@ export interface Point {
 
 const SHORT = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
 
-function totalOf(m: MonthData, usdToGbp: number): number {
-  return m.items.reduce(
-    (sum, it) => sum + (it.currency === 'USD' ? (it.amount || 0) * usdToGbp : it.amount || 0),
-    0,
-  );
+function totalOf(m: MonthData): number {
+  return m.items.reduce((sum, it) => sum + (it.amount || 0), 0);
 }
 
 /** Totals for the n months ending at `monthKey`, oldest first. */
@@ -90,7 +87,7 @@ export function history(store: Store, monthKey: string, n = 6): Point[] {
     out.push({
       key,
       label: SHORT[Number(key.split('-')[1]) - 1],
-      total: totalOf(m, store.settings.usdToGbp),
+      total: totalOf(m),
     });
   }
   return out;

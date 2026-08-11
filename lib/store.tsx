@@ -10,7 +10,7 @@ import React, {
   useState,
 } from "react";
 import type { MonthData, Outgoing, Profile, Settings, Store, ThemeMode } from "./types";
-import { defaultStore, newId, seedMonth } from "./seed";
+import { defaultStore, newId, seedMonth, DEFAULT_SETTINGS } from "./seed";
 import { supabase } from "./supabase";
 import { useAuth } from "./auth";
 
@@ -57,7 +57,10 @@ export function deriveMonth(months: Record<string, MonthData>, key: string): Mon
   const src = months[source];
   return {
     salary: src.salary,
-    items: src.items.map((it) => ({ ...it, id: `${baseId(it.id)}@${key}`, paid: false })),
+    // One-offs belong only to their own month, so they don't carry across.
+    items: src.items
+      .filter((it) => it.recurring !== false)
+      .map((it) => ({ ...it, id: `${baseId(it.id)}@${key}`, paid: false })),
   };
 }
 
@@ -73,16 +76,16 @@ export interface Totals {
   progress: number;
 }
 
-export function computeTotals(month: MonthData, usdToGbp: number): Totals {
+export function computeTotals(month: MonthData): Totals {
   let total = 0;
   let paid = 0;
   let paidCount = 0;
 
   for (const it of month.items) {
-    const gbp = it.currency === "USD" ? (it.amount || 0) * usdToGbp : it.amount || 0;
-    total += gbp;
+    const amt = it.amount || 0;
+    total += amt;
     if (it.paid) {
-      paid += gbp;
+      paid += amt;
       paidCount += 1;
     }
   }
@@ -110,10 +113,16 @@ function loadStore(currentKey: string): Store {
     }
     // Defensive fill for older/partial data.
     parsed.profile = parsed.profile ?? { name: "", avatar: null };
-    parsed.settings = {
-      theme: parsed.settings?.theme ?? "system",
-      usdToGbp: parsed.settings?.usdToGbp ?? 0.79,
-    };
+    parsed.settings = { ...DEFAULT_SETTINGS, ...(parsed.settings ?? {}) };
+    // Backfill fields added after the currency removal so old items render.
+    for (const key of Object.keys(parsed.months)) {
+      const m = parsed.months[key];
+      m.items = (m.items ?? []).map((it) => ({
+        ...it,
+        category: it.category ?? "Bills",
+        recurring: it.recurring ?? true,
+      }));
+    }
     return parsed;
   } catch {
     return defaultStore(currentKey);
@@ -309,11 +318,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const carried = priorKey
         ? {
             salary: prev.months[priorKey].salary,
-            items: prev.months[priorKey].items.map((it) => ({
-              ...it,
-              id: newId(),
-              paid: false,
-            })),
+            items: prev.months[priorKey].items
+              // One-offs stay in their own month only.
+              .filter((it) => it.recurring !== false)
+              .map((it) => ({
+                ...it,
+                id: newId(),
+                paid: false,
+              })),
           }
         : seedMonth();
       return { ...prev, months: { ...prev.months, [currentKey]: carried } };

@@ -1,48 +1,29 @@
-import type { Currency, Outgoing } from './types';
-
-export const SYMBOL: Record<Currency, string> = { GBP: '£', USD: '$' };
-
 const gbp = new Intl.NumberFormat('en-GB', {
   style: 'currency',
   currency: 'GBP',
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
-const usd = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
 
-export function money(amount: number, currency: Currency = 'GBP'): string {
+export function money(amount: number): string {
   const n = Number.isFinite(amount) ? amount : 0;
-  return (currency === 'USD' ? usd : gbp).format(n);
+  return gbp.format(n);
 }
 
 /** Drops the ".00" tail — used for the big hero figure. */
-export function moneyCompact(amount: number, currency: Currency = 'GBP'): string {
+export function moneyCompact(amount: number): string {
   const n = Number.isFinite(amount) ? amount : 0;
   const whole = Math.abs(n % 1) < 0.005;
-  const s = (currency === 'USD' ? usd : gbp).format(n);
+  const s = gbp.format(n);
   return whole ? s.replace(/\.00$/, '') : s;
-}
-
-/** Everything rolls up in GBP; USD items convert at the user's rate. */
-export function toGbp(item: Outgoing, usdToGbp: number): number {
-  const amount = Number.isFinite(item.amount) ? item.amount : 0;
-  return item.currency === 'USD' ? amount * usdToGbp : amount;
 }
 
 /**
  * Splits into major and minor units so the hero can set the pence smaller —
  * keeps a long balance inside the gauge instead of overrunning it.
  */
-export function moneyParts(
-  amount: number,
-  currency: Currency = 'GBP',
-): { major: string; minor: string } {
-  const s = money(amount, currency);
+export function moneyParts(amount: number): { major: string; minor: string } {
+  const s = money(amount);
   const i = s.lastIndexOf('.');
   return i < 0 ? { major: s, minor: '' } : { major: s.slice(0, i), minor: s.slice(i + 1) };
 }

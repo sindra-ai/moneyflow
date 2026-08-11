@@ -1,16 +1,22 @@
-export type Currency = 'GBP' | 'USD';
 export type ThemeMode = 'dark' | 'light' | 'system';
+
+/** Spending buckets for the breakdown view. */
+export const CATEGORIES = ['Bills', 'Loans', 'Subscriptions', 'Family', 'Other'] as const;
+export type Category = (typeof CATEGORIES)[number];
 
 export interface Outgoing {
   id: string;
   name: string;
+  /** always GBP */
   amount: number;
-  currency: Currency;
   /** day of month, 1–31, or null when no date is set */
   dueDay: number | null;
   note: string;
   paid: boolean;
   accent: string;
+  category: Category;
+  /** true = carries into future months; false = one-off, this month only */
+  recurring: boolean;
 }
 
 export interface MonthData {
@@ -26,7 +32,18 @@ export interface Profile {
 
 export interface Settings {
   theme: ThemeMode;
-  usdToGbp: number;
+  /** day of the month the salary lands, for the payday countdown */
+  payday: number;
+  /** starting savings balance the monthly left-over accrues on top of */
+  savingsStart: number;
+  /** app-lock on open */
+  lockEnabled: boolean;
+  /** sha-256 hash of the PIN (never the PIN itself) */
+  lockPin: string | null;
+  /** allow device biometrics (Face ID / Touch ID) to unlock via a passkey */
+  biometric: boolean;
+  /** opt-in to due-date push reminders */
+  reminders: boolean;
 }
 
 export interface Store {

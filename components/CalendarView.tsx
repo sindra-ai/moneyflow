@@ -97,10 +97,7 @@ export function CalendarView({ scrollerRef, onEdit }: Props) {
   }
 
   const due = byDay.get(picked) ?? [];
-  const dueTotal = due.reduce(
-    (s, i) => s + (i.currency === 'USD' ? i.amount * store.settings.usdToGbp : i.amount),
-    0,
-  );
+  const dueTotal = due.reduce((s, i) => s + i.amount, 0);
 
   return (
     <>
@@ -188,13 +185,7 @@ export function CalendarView({ scrollerRef, onEdit }: Props) {
         ) : (
           <div className="group">
             {due.map((it) => (
-              <Line
-                key={it.id}
-                item={it}
-                usdToGbp={store.settings.usdToGbp}
-                onToggle={togglePaid}
-                onEdit={onEdit}
-              />
+              <Line key={it.id} item={it} onToggle={togglePaid} onEdit={onEdit} />
             ))}
           </div>
         )}
@@ -207,13 +198,7 @@ export function CalendarView({ scrollerRef, onEdit }: Props) {
             </div>
             <div className="group">
               {undated.map((it) => (
-                <Line
-                  key={it.id}
-                  item={it}
-                  usdToGbp={store.settings.usdToGbp}
-                  onToggle={togglePaid}
-                  onEdit={onEdit}
-                />
+                <Line key={it.id} item={it} onToggle={togglePaid} onEdit={onEdit} />
               ))}
             </div>
           </>
@@ -227,12 +212,10 @@ export function CalendarView({ scrollerRef, onEdit }: Props) {
 
 function Line({
   item,
-  usdToGbp,
   onToggle,
   onEdit,
 }: {
   item: Outgoing;
-  usdToGbp: number;
   onToggle: (id: string) => void;
   onEdit: (item: Outgoing) => void;
 }) {
@@ -253,10 +236,7 @@ function Line({
           <div className="rname">{item.name}</div>
           {item.note && <div className="rmeta">{item.note}</div>}
         </div>
-        <div className="ramt n">
-          {money(item.amount, item.currency)}
-          {item.currency === 'USD' && <small>≈ {money(item.amount * usdToGbp, 'GBP')}</small>}
-        </div>
+        <div className="ramt n">{money(item.amount)}</div>
         <button
           className="tick"
           aria-label={item.paid ? `Mark ${item.name} unpaid` : `Mark ${item.name} paid`}

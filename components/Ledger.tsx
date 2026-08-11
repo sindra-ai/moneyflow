@@ -29,7 +29,6 @@ interface Props {
   mode: 'order' | 'due';
   monthKey: string;
   scrollerRef: RefObject<HTMLElement>;
-  usdToGbp: number;
   onToggle: (item: Outgoing) => void;
   onEdit: (item: Outgoing) => void;
   onDelete: (item: Outgoing) => void;
@@ -41,7 +40,6 @@ export function Ledger({
   mode,
   monthKey,
   scrollerRef,
-  usdToGbp,
   onToggle,
   onEdit,
   onDelete,
@@ -322,10 +320,7 @@ export function Ledger({
             {meta.length > 0 && <div className="rmeta">{meta.join(' · ')}</div>}
           </div>
 
-          <div className="ramt n">
-            {money(item.amount, item.currency)}
-            {item.currency === 'USD' && <small>≈ {money(item.amount * usdToGbp, 'GBP')}</small>}
-          </div>
+          <div className="ramt n">{money(item.amount)}</div>
 
           <button
             className="tick"

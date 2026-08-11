@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { Currency, Outgoing } from '@/lib/types';
-import { ACCENTS } from '@/lib/types';
+import type { Category, Outgoing } from '@/lib/types';
+import { ACCENTS, CATEGORIES } from '@/lib/types';
 import { HAPTIC } from '@/lib/haptics';
 import { Close, Trash } from './icons';
 
@@ -27,10 +27,11 @@ export function ItemEditor({ target, onClose, onSave, onDelete }: Props) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(existing?.name ?? '');
   const [amount, setAmount] = useState(existing ? String(existing.amount) : '');
-  const [currency, setCurrency] = useState<Currency>(existing?.currency ?? 'GBP');
   const [dueDay, setDueDay] = useState<number | null>(existing?.dueDay ?? null);
   const [note, setNote] = useState(existing?.note ?? '');
   const [accent, setAccent] = useState(existing?.accent ?? ACCENTS[0]);
+  const [category, setCategory] = useState<Category>(existing?.category ?? 'Bills');
+  const [recurring, setRecurring] = useState(existing?.recurring ?? true);
   const [confirm, setConfirm] = useState(false);
 
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -93,11 +94,12 @@ export function ItemEditor({ target, onClose, onSave, onDelete }: Props) {
       {
         name: name.trim() || 'Untitled',
         amount: Number.isFinite(parsed) ? parsed : 0,
-        currency,
         dueDay,
         note: note.trim(),
         paid: existing?.paid ?? false,
         accent,
+        category,
+        recurring,
       },
       existing?.id ?? null,
     );
@@ -189,29 +191,18 @@ export function ItemEditor({ target, onClose, onSave, onDelete }: Props) {
             <label className="f-k" htmlFor="f-amount">
               Amount
             </label>
-            <div className="amt-row">
+            <div className="amt-wrap">
+              <span className="amt-sym" aria-hidden="true">
+                £
+              </span>
               <input
                 id="f-amount"
-                className="in n"
+                className="in n amt-in"
                 value={amount}
                 placeholder="0.00"
                 inputMode="decimal"
                 onChange={(e) => setAmount(e.target.value)}
               />
-              <div className="seg">
-                {(['GBP', 'USD'] as Currency[]).map((c) => (
-                  <button
-                    key={c}
-                    data-on={currency === c}
-                    onClick={() => {
-                      HAPTIC.light();
-                      setCurrency(c);
-                    }}
-                  >
-                    {c === 'GBP' ? '£' : '$'}
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
 
@@ -257,6 +248,48 @@ export function ItemEditor({ target, onClose, onSave, onDelete }: Props) {
               autoComplete="off"
               onChange={(e) => setNote(e.target.value)}
             />
+          </div>
+
+          <div className="f">
+            <span className="f-k">Category</span>
+            <div className="days">
+              {CATEGORIES.map((c) => (
+                <button
+                  key={c}
+                  className="chip"
+                  data-on={category === c}
+                  onClick={() => {
+                    HAPTIC.light();
+                    setCategory(c);
+                  }}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="f">
+            <button
+              type="button"
+              className="toggle-row"
+              onClick={() => {
+                HAPTIC.light();
+                setRecurring((r) => !r);
+              }}
+            >
+              <div>
+                <div className="f-k" style={{ marginBottom: 2 }}>
+                  Repeats monthly
+                </div>
+                <div className="toggle-sub">
+                  {recurring ? 'Carries into every month' : 'One-off — this month only'}
+                </div>
+              </div>
+              <span className="switch" data-on={recurring} aria-hidden="true">
+                <i />
+              </span>
+            </button>
           </div>
 
           <div className="f">

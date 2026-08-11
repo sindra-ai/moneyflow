@@ -49,10 +49,19 @@ function cropToSquare(file: File): Promise<string> {
 export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivElement> }) {
   const { store, month, monthKey, setProfile, setSettings, resetToSample } = useStore();
   const { user, signOut } = useAuth();
-  const totals = computeTotals(month, store.settings.usdToGbp);
+  const totals = computeTotals(month);
   const fileRef = useRef<HTMLInputElement>(null);
   const [confirm, setConfirm] = useState(false);
-  const [rate, setRate] = useState(String(store.settings.usdToGbp));
+
+  // Spend per category for the breakdown bars, largest first.
+  const breakdown = (() => {
+    const by = new Map<string, number>();
+    for (const it of month.items) by.set(it.category, (by.get(it.category) ?? 0) + it.amount);
+    const rows = [...by.entries()].map(([name, value]) => ({ name, value }));
+    rows.sort((a, b) => b.value - a.value);
+    const max = rows.reduce((m, r) => Math.max(m, r.value), 0) || 1;
+    return { rows, max };
+  })();
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
@@ -160,30 +169,26 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
         </div>
       </div>
 
-      <div className="sec">
-        <h3>Preferences</h3>
-      </div>
-      <div className="list">
-        <div className="li">
-          <div>
-            <div className="li-k">USD → GBP</div>
-            <div className="li-s">Rate used for dollar items</div>
+      {breakdown.rows.length > 0 && (
+        <>
+          <div className="sec">
+            <h3>Breakdown</h3>
           </div>
-          <input
-            className="rate n"
-            inputMode="decimal"
-            value={rate}
-            onChange={(e) => setRate(e.target.value)}
-            onBlur={() => {
-              const v = parseFloat(rate.replace(/[^0-9.]/g, ''));
-              const next = Number.isFinite(v) && v > 0 ? v : store.settings.usdToGbp;
-              setSettings({ usdToGbp: next });
-              setRate(String(next));
-            }}
-            aria-label="USD to GBP rate"
-          />
-        </div>
-      </div>
+          <div className="bd">
+            {breakdown.rows.map((r) => (
+              <div className="bd-row" key={r.name}>
+                <div className="bd-top">
+                  <span className="bd-k">{r.name}</span>
+                  <span className="bd-v n">{money(r.value)}</span>
+                </div>
+                <div className="bd-bar">
+                  <i style={{ width: `${Math.round((r.value / breakdown.max) * 100)}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="sec">
         <h3>Account</h3>

@@ -23,7 +23,7 @@ interface Props {
 
 export function HomeView({ scrollerRef, onAdd, onEdit }: Props) {
   const { store, month, monthKey, togglePaid, setAllPaid, reorder, deleteItem, undo } = useStore();
-  const totals = computeTotals(month, store.settings.usdToGbp);
+  const totals = computeTotals(month);
   const toast = useToast();
 
   const [min, setMin] = useState(false);
@@ -168,7 +168,6 @@ export function HomeView({ scrollerRef, onAdd, onEdit }: Props) {
             mode={mode}
             monthKey={monthKey}
             scrollerRef={scrollerRef}
-            usdToGbp={store.settings.usdToGbp}
             onToggle={handleToggle}
             onEdit={onEdit}
             onDelete={handleDelete}

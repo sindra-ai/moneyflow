@@ -1737,3 +1737,117 @@ input {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ---------------------------------------------------- editor: amount £ -- */
+
+.amt-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.amt-sym {
+  position: absolute;
+  left: 16px;
+  font: var(--t-body);
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+.amt-in {
+  padding-left: 30px;
+}
+
+/* -------------------------------------------------- editor: toggle row -- */
+
+.toggle-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: var(--r-sm);
+  background: var(--fill-2);
+  text-align: left;
+}
+
+.toggle-sub {
+  font: var(--t-meta);
+  color: var(--ink-3);
+}
+
+.switch {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--fill-1);
+  border: 1px solid var(--hair);
+  padding: 3px;
+  transition: background 0.25s;
+}
+
+.switch[data-on='true'] {
+  background: var(--accent);
+  border-color: transparent;
+}
+
+.switch i {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transform: translateX(0);
+  transition: transform 0.28s var(--spring);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.switch[data-on='true'] i {
+  transform: translateX(18px);
+}
+
+/* ------------------------------------------------------ breakdown bars -- */
+
+.bd {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border-radius: var(--r-lg);
+  background: var(--fill-1);
+  border: 1px solid var(--hair);
+}
+
+.bd-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+
+.bd-k {
+  font: var(--t-body);
+  font-weight: 600;
+}
+
+.bd-v {
+  font: var(--t-meta);
+  color: var(--ink-2);
+}
+
+.bd-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--fill-2);
+  overflow: hidden;
+}
+
+.bd-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.5s var(--spring);
+}

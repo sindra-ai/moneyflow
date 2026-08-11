@@ -1,4 +1,4 @@
-import type { MonthData, Outgoing, Store } from "./types";
+import type { Category, MonthData, Outgoing, Store } from "./types";
 
 export const ACCENTS = [
   "#7c9cff", // periwinkle
@@ -24,23 +24,31 @@ export function newId(): string {
 
 type SeedItem = Omit<Outgoing, "id" | "accent"> & { accent?: string };
 
+const S = (
+  name: string,
+  amount: number,
+  category: Category,
+  dueDay: number | null = null,
+  note = "",
+): SeedItem => ({ name, amount, category, dueDay, note, paid: false, recurring: true });
+
 const SEED_ITEMS: SeedItem[] = [
-  { name: "CC", amount: 300, currency: "GBP", dueDay: null, note: "Full £3,650 · £300 min", paid: false },
-  { name: "Dad", amount: 500, currency: "GBP", dueDay: null, note: "", paid: false },
-  { name: "HMRC Corporate Tax", amount: 156, currency: "GBP", dueDay: null, note: "Due 1st July", paid: false },
-  { name: "Everyday Loans", amount: 360, currency: "GBP", dueDay: 1, note: "", paid: false },
-  { name: "David Lloyds", amount: 142, currency: "GBP", dueDay: 1, note: "", paid: false },
-  { name: "Three", amount: 32, currency: "GBP", dueDay: 3, note: "", paid: false },
-  { name: "Vodaphone Airtime", amount: 40, currency: "GBP", dueDay: 3, note: "", paid: false },
-  { name: "Vodaphone Device", amount: 32, currency: "GBP", dueDay: 1, note: "", paid: false },
-  { name: "Pave", amount: 9, currency: "GBP", dueDay: 1, note: "", paid: false },
-  { name: "Figma + Webflow", amount: 56, currency: "GBP", dueDay: null, note: "", paid: false },
-  { name: "CreditSpring", amount: 234, currency: "GBP", dueDay: null, note: "June", paid: false },
-  { name: "Bumper", amount: 85.55, currency: "GBP", dueDay: null, note: "", paid: false },
-  { name: "Cashasap", amount: 20, currency: "GBP", dueDay: null, note: "", paid: false },
-  { name: "Loans2Go", amount: 156.44, currency: "GBP", dueDay: 28, note: "", paid: false },
-  { name: "The Money Platform", amount: 500, currency: "GBP", dueDay: null, note: "", paid: false },
-  { name: "Geeth", amount: 266, currency: "GBP", dueDay: null, note: "$350", paid: false },
+  S("CC", 300, "Loans", null, "Full £3,650 · £300 min"),
+  S("Dad", 500, "Family"),
+  S("HMRC Corporate Tax", 156, "Bills", null, "Due 1st July"),
+  S("Everyday Loans", 360, "Loans", 1),
+  S("David Lloyds", 142, "Subscriptions", 1),
+  S("Three", 32, "Bills", 3),
+  S("Vodaphone Airtime", 40, "Bills", 3),
+  S("Vodaphone Device", 32, "Bills", 1),
+  S("Pave", 9, "Loans", 1),
+  S("Figma + Webflow", 56, "Subscriptions"),
+  S("CreditSpring", 234, "Loans", null, "June"),
+  S("Bumper", 85.55, "Loans"),
+  S("Cashasap", 20, "Loans"),
+  S("Loans2Go", 156.44, "Loans", 28),
+  S("The Money Platform", 500, "Loans"),
+  S("Geeth", 266, "Family"),
 ];
 
 export function seedMonth(): MonthData {
@@ -54,11 +62,21 @@ export function seedMonth(): MonthData {
   };
 }
 
+export const DEFAULT_SETTINGS: Store["settings"] = {
+  theme: "system",
+  payday: 25,
+  savingsStart: 0,
+  lockEnabled: false,
+  lockPin: null,
+  biometric: false,
+  reminders: false,
+};
+
 export function defaultStore(currentKey: string): Store {
   return {
     version: 1,
     months: { [currentKey]: seedMonth() },
     profile: { name: "", avatar: null },
-    settings: { theme: "system", usdToGbp: 0.79 },
+    settings: { ...DEFAULT_SETTINGS },
   };
 }
