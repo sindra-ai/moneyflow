@@ -157,13 +157,14 @@ export default function HomeView({
             <div className="muted">Tap to edit</div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <span style={{ fontSize: 22, fontWeight: 800, opacity: 0.6 }}>£</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <span style={{ fontSize: 22, fontWeight: 800, opacity: 0.55 }}>£</span>
           <input
             className="salary-input tnum"
             inputMode="decimal"
             value={salaryText}
             placeholder="0"
+            style={{ width: `${Math.max(1.5, salaryText.length + 0.5)}ch` }}
             onChange={(e) => setSalaryText(e.target.value)}
             onBlur={commitSalary}
             onKeyDown={(e) => {

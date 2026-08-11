@@ -411,9 +411,9 @@ textarea {
   padding: 4px 0;
 }
 .qa-ic {
-  width: 52px;
-  height: 52px;
-  border-radius: 17px;
+  width: 60px;
+  height: 60px;
+  border-radius: 19px;
   display: grid;
   place-items: center;
   color: var(--text);
@@ -546,14 +546,15 @@ textarea {
   font-weight: 600;
 }
 .salary-input {
-  width: 130px;
-  text-align: right;
+  min-width: 1.5ch;
+  text-align: left;
   font-size: 22px;
   font-weight: 800;
   background: transparent;
   border: none;
   outline: none;
   color: var(--text);
+  padding: 0;
 }
 
 /* ---------- Section header ---------- */
