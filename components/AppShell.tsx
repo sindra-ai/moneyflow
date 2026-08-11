@@ -1,67 +1,108 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { useStore } from "@/lib/store";
-import { useAuth } from "@/lib/auth";
-import type { Outgoing } from "@/lib/types";
-import HomeView from "./HomeView";
-import CalendarView from "./CalendarView";
-import ProfileView from "./ProfileView";
-import BottomNav, { Tab } from "./BottomNav";
-import ItemEditor from "./ItemEditor";
-import LoginScreen from "./LoginScreen";
+import { useRef, useState } from 'react';
+import { useStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth';
+import { HAPTIC } from '@/lib/haptics';
+import type { Outgoing } from '@/lib/types';
+import { Logo } from './Logo';
+import LoginScreen from './LoginScreen';
+import { BottomNav, type Tab } from './BottomNav';
+import { HomeView } from './HomeView';
+import { CalendarView } from './CalendarView';
+import { ProfileView } from './ProfileView';
+import { ItemEditor, type EditorTarget } from './ItemEditor';
+import { Moon, Sun } from './icons';
 
-export type EditorTarget =
-  | { mode: "add"; presetDay?: number | null }
-  | { mode: "edit"; item: Outgoing };
-
-export default function AppShell() {
-  const { hydrated } = useStore();
+export function AppShell() {
+  const { ready, resolvedTheme, setSettings, addItem, updateItem, deleteItem } = useStore();
   const { session, loading } = useAuth();
-  const [tab, setTab] = useState<Tab>("home");
+  const [tab, setTab] = useState<Tab>('home');
   const [editor, setEditor] = useState<EditorTarget | null>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
 
-  const openAdd = (presetDay?: number | null) => setEditor({ mode: "add", presetDay });
-  const openEdit = (item: Outgoing) => setEditor({ mode: "edit", item });
+  // Auth gate — keep v1's cloud login in front of the new UI.
+  if (loading) {
+    return (
+      <div className="boot">
+        <Logo size={56} />
+      </div>
+    );
+  }
+  if (!session) return <LoginScreen />;
+
+  if (!ready) {
+    return (
+      <div className="boot">
+        <Logo size={56} />
+      </div>
+    );
+  }
+
+  const openEdit = (item: Outgoing) => setEditor({ item });
 
   return (
-    <div className="app">
-      <div className="bg" aria-hidden>
-        <div className="blob b1" />
-        <div className="blob b2" />
-        <div className="blob b3" />
+    <>
+      <div className="sky" />
+
+      <div className="app">
+        <div className="pinned">
+          <div className="top">
+            <div className="mark">
+              <Logo size={30} />
+              <b>MoneyFlow</b>
+            </div>
+            <button
+              className="ghost-btn"
+              aria-label={resolvedTheme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+              onClick={() => {
+                HAPTIC.light();
+                setSettings({ theme: resolvedTheme === 'dark' ? 'light' : 'dark' });
+              }}
+            >
+              {resolvedTheme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Keyed so each tab gets its own entrance and a fresh scroller. */}
+        <Views
+          key={tab}
+          tab={tab}
+          scrollerRef={scrollerRef}
+          onAdd={() => setEditor({ item: null })}
+          onEdit={openEdit}
+        />
+
+        <BottomNav tab={tab} onChange={setTab} />
       </div>
 
-      {loading || !hydrated ? (
-        <div className="splash">
-          <div className="spinner" />
-        </div>
-      ) : !session ? (
-        <LoginScreen />
-      ) : (
-        <>
-          <motion.div
-            key={tab}
-            className="scene"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {tab === "home" && (
-              <HomeView openAdd={openAdd} openEdit={openEdit} onTab={setTab} />
-            )}
-            {tab === "calendar" && <CalendarView openAdd={openAdd} openEdit={openEdit} />}
-            {tab === "profile" && <ProfileView />}
-          </motion.div>
-
-          <BottomNav tab={tab} onChange={setTab} />
-
-          {editor && (
-            <ItemEditor target={editor} onClose={() => setEditor(null)} />
-          )}
-        </>
+      {editor && (
+        <ItemEditor
+          // Remount per target so the form re-seeds from the item it opened on.
+          key={editor.item?.id ?? 'new'}
+          target={editor}
+          onClose={() => setEditor(null)}
+          onSave={(data, id) => (id ? updateItem(id, data) : addItem(data))}
+          onDelete={deleteItem}
+        />
       )}
-    </div>
+    </>
   );
+}
+
+function Views({
+  tab,
+  scrollerRef,
+  onAdd,
+  onEdit,
+}: {
+  tab: Tab;
+  scrollerRef: React.RefObject<HTMLDivElement>;
+  onAdd: () => void;
+  onEdit: (item: Outgoing) => void;
+}) {
+  if (tab === 'calendar') return <CalendarView scrollerRef={scrollerRef} onEdit={onEdit} />;
+  if (tab === 'profile') return <ProfileView scrollerRef={scrollerRef} />;
+  return <HomeView scrollerRef={scrollerRef} onAdd={onAdd} onEdit={onEdit} />;
 }

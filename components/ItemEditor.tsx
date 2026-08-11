@@ -1,239 +1,308 @@
-"use client";
+'use client';
 
-import React, { useEffect, useRef, useState } from "react";
-import { useStore } from "@/lib/store";
-import type { Currency, Outgoing } from "@/lib/types";
-import { ACCENTS } from "@/lib/seed";
-import type { EditorTarget } from "./AppShell";
-import { Trash } from "./icons";
+import { useEffect, useRef, useState } from 'react';
+import type { Currency, Outgoing } from '@/lib/types';
+import { ACCENTS } from '@/lib/types';
+import { HAPTIC } from '@/lib/haptics';
+import { Close, Trash } from './icons';
 
-export default function ItemEditor({
-  target,
-  onClose,
-}: {
+const CLOSE_MS = 520;
+const DISMISS_PX = 110;
+
+export interface EditorTarget {
+  /** null = adding a new outgoing */
+  item: Outgoing | null;
+}
+
+interface Props {
   target: EditorTarget;
   onClose: () => void;
-}) {
-  const { addItem, updateItem, deleteItem } = useStore();
-  const isEdit = target.mode === "edit";
-  const existing = isEdit ? target.item : null;
+  onSave: (data: Omit<Outgoing, 'id'>, id: string | null) => void;
+  onDelete: (id: string) => void;
+}
 
-  const [closing, setClosing] = useState(false);
+export function ItemEditor({ target, onClose, onSave, onDelete }: Props) {
+  const existing = target.item;
 
-  // Drag-to-dismiss state
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(existing?.name ?? '');
+  const [amount, setAmount] = useState(existing ? String(existing.amount) : '');
+  const [currency, setCurrency] = useState<Currency>(existing?.currency ?? 'GBP');
+  const [dueDay, setDueDay] = useState<number | null>(existing?.dueDay ?? null);
+  const [note, setNote] = useState(existing?.note ?? '');
+  const [accent, setAccent] = useState(existing?.accent ?? ACCENTS[0]);
+  const [confirm, setConfirm] = useState(false);
+
   const sheetRef = useRef<HTMLDivElement>(null);
-  const dragStart = useRef<{ y: number; active: boolean }>({ y: 0, active: false });
+  const daysRef = useRef<HTMLDivElement>(null);
+  const closing = useRef(false);
+  const timer = useRef<number | null>(null);
+
+  const dragFrom = useRef<number | null>(null);
   const [dragY, setDragY] = useState(0);
-  const [released, setReleased] = useState(false);
 
-  const [name, setName] = useState(existing?.name ?? "");
-  const [amount, setAmount] = useState(
-    existing ? String(existing.amount) : ""
-  );
-  const [currency, setCurrency] = useState<Currency>(existing?.currency ?? "GBP");
-  const [dueDay, setDueDay] = useState<string>(
-    existing?.dueDay
-      ? String(existing.dueDay)
-      : target.mode === "add" && target.presetDay
-      ? String(target.presetDay)
-      : ""
-  );
-  const [note, setNote] = useState(existing?.note ?? "");
-  const [accent, setAccent] = useState(
-    existing?.accent ?? ACCENTS[Math.floor(Math.random() * ACCENTS.length) % ACCENTS.length]
-  );
-
-  // Lock body scroll while sheet is open.
+  // Slide in after mount so the transition has a start value to move from.
+  // rAF alone stalls in a background tab, so a timer backs it up.
   useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const raf = requestAnimationFrame(() => setOpen(true));
+    const t = window.setTimeout(() => setOpen(true), 32);
     return () => {
-      document.body.style.overflow = prev;
+      cancelAnimationFrame(raf);
+      window.clearTimeout(t);
     };
   }, []);
 
-  // Slide the sheet down and off, then unmount. Used by the close button,
-  // the scrim tap, and a completed drag-dismiss.
+  // Centre the selected day chip without scrolling any ancestor.
+  useEffect(() => {
+    const wrap = daysRef.current;
+    if (!wrap || dueDay == null) return;
+    const chip = wrap.querySelector<HTMLElement>(`[data-day="${dueDay}"]`);
+    if (chip) wrap.scrollLeft = chip.offsetLeft - wrap.clientWidth / 2 + chip.clientWidth / 2;
+  }, [dueDay]);
+
+  /**
+   * Close is driven by our own state rather than a library's exit animation,
+   * with a timeout fallback so a missed transitionend can never strand the
+   * sheet on screen.
+   */
   const requestClose = () => {
-    if (closing) return;
-    setClosing(true);
-    setReleased(true);
-    setDragY((sheetRef.current?.offsetHeight ?? 600) + 60);
-    window.setTimeout(onClose, 340); // fallback if transitionend doesn't fire
+    if (closing.current) return;
+    closing.current = true;
+    setOpen(false);
+    timer.current = window.setTimeout(onClose, CLOSE_MS);
   };
 
-  // --- Drag-to-dismiss (touch) on the sheet handle ---
-  const onDragStart = (e: React.TouchEvent) => {
-    if (closing) return;
-    dragStart.current = { y: e.touches[0].clientY, active: true };
-    setReleased(false);
-  };
-  const onDragMove = (e: React.TouchEvent) => {
-    if (!dragStart.current.active) return;
-    const dy = e.touches[0].clientY - dragStart.current.y;
-    setDragY(Math.max(0, dy));
-  };
-  const onDragEnd = () => {
-    if (!dragStart.current.active) return;
-    dragStart.current.active = false;
-    setReleased(true);
-    if (dragY > 110) requestClose();
-    else setDragY(0); // snap back
-  };
+  useEffect(
+    () => () => {
+      if (timer.current) window.clearTimeout(timer.current);
+    },
+    [],
+  );
 
-  const nameValid = name.trim().length > 0;
-  const amountNum = parseFloat(amount.replace(/[^0-9.]/g, ""));
-  const amountValid = Number.isFinite(amountNum) && amountNum >= 0;
-  const canSave = nameValid && amountValid;
+  const onTransitionEnd = (e: React.TransitionEvent) => {
+    if (e.target !== sheetRef.current || e.propertyName !== 'transform') return;
+    if (closing.current) {
+      if (timer.current) window.clearTimeout(timer.current);
+      onClose();
+    }
+  };
 
   const save = () => {
-    if (!canSave) return;
-    let day: number | null = null;
-    const d = parseInt(dueDay, 10);
-    if (Number.isFinite(d)) day = Math.min(31, Math.max(1, d));
-
-    const payload: Omit<Outgoing, "id"> = {
-      name: name.trim(),
-      amount: Math.round(amountNum * 100) / 100,
-      currency,
-      dueDay: day,
-      note: note.trim(),
-      paid: existing?.paid ?? false,
-      accent,
-    };
-
-    if (isEdit && existing) updateItem(existing.id, payload);
-    else addItem(payload);
+    const parsed = parseFloat(amount.replace(/[^0-9.]/g, ''));
+    onSave(
+      {
+        name: name.trim() || 'Untitled',
+        amount: Number.isFinite(parsed) ? parsed : 0,
+        currency,
+        dueDay,
+        note: note.trim(),
+        paid: existing?.paid ?? false,
+        accent,
+      },
+      existing?.id ?? null,
+    );
+    HAPTIC.success();
     requestClose();
   };
 
-  const remove = () => {
-    if (existing) deleteItem(existing.id);
-    requestClose();
+  /* ------------------------------------------------------- drag to close */
+
+  const gripStart = (e: React.TouchEvent) => {
+    dragFrom.current = e.touches[0].clientY;
   };
+
+  const gripMove = (e: React.TouchEvent) => {
+    if (dragFrom.current == null) return;
+    setDragY(Math.max(0, e.touches[0].clientY - dragFrom.current));
+  };
+
+  const gripEnd = () => {
+    if (dragFrom.current == null) return;
+    dragFrom.current = null;
+    const should = dragY > DISMISS_PX;
+    setDragY(0);
+    if (should) requestClose();
+  };
+
+  const dragging = dragFrom.current != null;
 
   return (
-    <div
-      className={"scrim" + (closing ? " closing" : "")}
-      onClick={requestClose}
-    >
+    <>
+      <div className="veil" data-on={open} onClick={requestClose} aria-hidden="true" />
+
       <div
         ref={sheetRef}
         className="sheet"
-        style={{
-          transform: `translateY(${dragY}px)`,
-          transition: released ? "transform 0.32s cubic-bezier(0.22, 1, 0.36, 1)" : "none",
-        }}
-        onClick={(e) => e.stopPropagation()}
-        onTransitionEnd={() => {
-          if (closing) onClose();
-        }}
+        data-on={open}
         role="dialog"
         aria-modal="true"
-        aria-label={isEdit ? "Edit outgoing" : "Add outgoing"}
+        aria-label={existing ? 'Edit outgoing' : 'Add outgoing'}
+        onTransitionEnd={onTransitionEnd}
+        style={
+          dragY
+            ? {
+                transform: `translate(-50%, ${dragY}px)`,
+                transition: dragging ? 'none' : undefined,
+              }
+            : undefined
+        }
       >
         <div
-          className="sheet-handle"
-          onTouchStart={onDragStart}
-          onTouchMove={onDragMove}
-          onTouchEnd={onDragEnd}
+          className="grip"
+          onTouchStart={gripStart}
+          onTouchMove={gripMove}
+          onTouchEnd={gripEnd}
+          onTouchCancel={gripEnd}
         >
-          <div className="grabber" />
-          <h3>{isEdit ? "Edit outgoing" : "New outgoing"}</h3>
+          <span />
         </div>
 
-        <div className="field">
-          <label htmlFor="f-name">Name</label>
-          <input
-            id="f-name"
-            className="input"
-            value={name}
-            placeholder="e.g. Rent"
-            autoFocus={!isEdit}
-            onChange={(e) => setName(e.target.value)}
-          />
+        <div
+          className="sheet-top"
+          onTouchStart={gripStart}
+          onTouchMove={gripMove}
+          onTouchEnd={gripEnd}
+          onTouchCancel={gripEnd}
+        >
+          <h2>{existing ? 'Edit outgoing' : 'New outgoing'}</h2>
+          <button className="ghost-btn" onClick={requestClose} aria-label="Close">
+            <Close size={17} />
+          </button>
         </div>
 
-        <div className="row-2">
-          <div className="field">
-            <label htmlFor="f-amount">Amount</label>
+        <div className="sheet-body">
+          <div className="f">
+            <label className="f-k" htmlFor="f-name">
+              Name
+            </label>
             <input
-              id="f-amount"
-              className="input tnum"
-              inputMode="decimal"
-              value={amount}
-              placeholder="0.00"
-              onChange={(e) => setAmount(e.target.value)}
+              id="f-name"
+              className="in"
+              value={name}
+              placeholder="e.g. Everyday Loans"
+              autoComplete="off"
+              onChange={(e) => setName(e.target.value)}
             />
           </div>
-          <div className="field">
-            <label>Currency</label>
-            <div className="seg">
-              {(["GBP", "USD"] as Currency[]).map((c) => (
+
+          <div className="f">
+            <label className="f-k" htmlFor="f-amount">
+              Amount
+            </label>
+            <div className="amt-row">
+              <input
+                id="f-amount"
+                className="in n"
+                value={amount}
+                placeholder="0.00"
+                inputMode="decimal"
+                onChange={(e) => setAmount(e.target.value)}
+              />
+              <div className="seg">
+                {(['GBP', 'USD'] as Currency[]).map((c) => (
+                  <button
+                    key={c}
+                    data-on={currency === c}
+                    onClick={() => {
+                      HAPTIC.light();
+                      setCurrency(c);
+                    }}
+                  >
+                    {c === 'GBP' ? '£' : '$'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="f">
+            <span className="f-k">Due day</span>
+            <div className="days" ref={daysRef}>
+              <button
+                className="chip"
+                data-on={dueDay === null}
+                onClick={() => {
+                  HAPTIC.light();
+                  setDueDay(null);
+                }}
+              >
+                None
+              </button>
+              {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
                 <button
-                  key={c}
-                  type="button"
-                  className={currency === c ? "on" : ""}
-                  onClick={() => setCurrency(c)}
+                  key={d}
+                  className="chip n"
+                  data-day={d}
+                  data-on={dueDay === d}
+                  onClick={() => {
+                    HAPTIC.light();
+                    setDueDay(d);
+                  }}
                 >
-                  {c === "GBP" ? "£ GBP" : "$ USD"}
+                  {d}
                 </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="f">
+            <label className="f-k" htmlFor="f-note">
+              Note
+            </label>
+            <input
+              id="f-note"
+              className="in"
+              value={note}
+              placeholder="Optional"
+              autoComplete="off"
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </div>
+
+          <div className="f">
+            <span className="f-k">Colour</span>
+            <div className="dots">
+              {ACCENTS.map((a) => (
+                <button
+                  key={a}
+                  className="dot-pick"
+                  data-on={accent === a}
+                  style={{ background: a }}
+                  aria-label={`Accent ${a}`}
+                  onClick={() => {
+                    HAPTIC.light();
+                    setAccent(a);
+                  }}
+                />
               ))}
             </div>
           </div>
         </div>
 
-        <div className="row-2">
-          <div className="field">
-            <label htmlFor="f-day">Due day of month</label>
-            <input
-              id="f-day"
-              className="input tnum"
-              inputMode="numeric"
-              value={dueDay}
-              placeholder="e.g. 1"
-              onChange={(e) => setDueDay(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="f-note">Note</label>
-            <input
-              id="f-note"
-              className="input"
-              value={note}
-              placeholder="optional"
-              onChange={(e) => setNote(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="field">
-          <label>Colour</label>
-          <div className="swatches">
-            {ACCENTS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                aria-label={`accent ${c}`}
-                className={"swatch" + (accent === c ? " on" : "")}
-                style={{ background: c }}
-                onClick={() => setAccent(c)}
-              />
-            ))}
-          </div>
-        </div>
-
-        <button className="btn-primary" disabled={!canSave} onClick={save} style={{ opacity: canSave ? 1 : 0.5 }}>
-          {isEdit ? "Save changes" : "Add outgoing"}
-        </button>
-        {isEdit && (
-          <button className="btn-ghost" onClick={remove}>
-            <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
-              <Trash size={18} /> Delete
-            </span>
+        <div className="sheet-foot">
+          {existing && (
+            <button
+              className="btn btn-sub"
+              data-confirm={confirm}
+              onClick={() => {
+                if (!confirm) {
+                  setConfirm(true);
+                  HAPTIC.light();
+                  return;
+                }
+                HAPTIC.success();
+                onDelete(existing.id);
+                requestClose();
+              }}
+            >
+              {confirm ? 'Delete' : <Trash size={18} />}
+            </button>
+          )}
+          <button className="btn btn-key" onClick={save}>
+            {existing ? 'Save' : 'Add outgoing'}
           </button>
-        )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

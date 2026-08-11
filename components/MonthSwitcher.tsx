@@ -1,28 +1,28 @@
-"use client";
+'use client';
 
-import React from "react";
-import { useStore } from "@/lib/store";
-import { monthLabel, shiftMonth } from "@/lib/format";
-import { ChevronLeft, ChevronRight } from "./icons";
+import { monthLabel } from '@/lib/format';
+import { monthKeyOf, useStore } from '@/lib/store';
+import { HAPTIC } from '@/lib/haptics';
+import { ChevronLeft, ChevronRight } from './icons';
 
-export default function MonthSwitcher() {
-  const { currentKey, setCurrentKey } = useStore();
+export function MonthSwitcher() {
+  const { monthKey, stepMonth } = useStore();
+  const { label } = monthLabel(monthKey);
+  const isNow = monthKey === monthKeyOf();
+
+  const go = (d: number) => {
+    HAPTIC.light();
+    stepMonth(d);
+  };
+
   return (
-    <div className="month-switch">
-      <button
-        className="arrow"
-        aria-label="Previous month"
-        onClick={() => setCurrentKey(shiftMonth(currentKey, -1))}
-      >
-        <ChevronLeft size={20} />
+    <div className="month">
+      <button onClick={() => go(-1)} aria-label="Previous month">
+        <ChevronLeft size={18} />
       </button>
-      <div className="label tnum">{monthLabel(currentKey)}</div>
-      <button
-        className="arrow"
-        aria-label="Next month"
-        onClick={() => setCurrentKey(shiftMonth(currentKey, 1))}
-      >
-        <ChevronRight size={20} />
+      <div className={`month-name${isNow ? '' : ' past'}`}>{isNow ? 'This month' : label}</div>
+      <button onClick={() => go(1)} aria-label="Next month">
+        <ChevronRight size={18} />
       </button>
     </div>
   );

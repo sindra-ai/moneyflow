@@ -1,7 +1,18 @@
-"use client";
+'use client';
 
-import AppShell from "@/components/AppShell";
+import { AuthProvider } from '@/lib/auth';
+import { StoreProvider } from '@/lib/store';
+import { AppShell } from '@/components/AppShell';
+import { ToastHost } from '@/components/Toast';
 
 export default function Page() {
-  return <AppShell />;
+  return (
+    <AuthProvider>
+      <StoreProvider>
+        <ToastHost>
+          <AppShell />
+        </ToastHost>
+      </StoreProvider>
+    </AuthProvider>
+  );
 }

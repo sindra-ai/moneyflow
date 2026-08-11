@@ -1,187 +1,275 @@
-"use client";
+'use client';
 
-import React, { useMemo, useState } from "react";
-import { AnimatePresence } from "framer-motion";
-import { useStore } from "@/lib/store";
-import type { Outgoing } from "@/lib/types";
 import {
-  daysInMonth,
-  firstWeekdayMondayBased,
-  money,
-  monthKey,
-  ordinal,
-  toGbp,
-} from "@/lib/format";
-import MonthSwitcher from "./MonthSwitcher";
-import ItemRow from "./ItemRow";
-import { ChevronDown, Plus } from "./icons";
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from 'react';
+import { daysInMonth, firstWeekdayOf, monthKeyOf, useStore } from '@/lib/store';
+import { initial, money, ordinal } from '@/lib/format';
+import { HAPTIC } from '@/lib/haptics';
+import type { Outgoing } from '@/lib/types';
+import { MonthSwitcher } from './MonthSwitcher';
+import { Check, ChevronUp } from './icons';
 
-const DOW = ["M", "T", "W", "T", "F", "S", "S"];
+const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const GAP = 3;
 
-export default function CalendarView({
-  openAdd,
-  openEdit,
-}: {
-  openAdd: (day?: number | null) => void;
-  openEdit: (item: Outgoing) => void;
-}) {
-  const { items, currentKey, togglePaid, store } = useStore();
-  const settings = store.settings;
+interface Props {
+  scrollerRef: RefObject<HTMLDivElement>;
+  onEdit: (item: Outgoing) => void;
+}
 
-  const total = daysInMonth(currentKey);
-  const lead = firstWeekdayMondayBased(currentKey);
-  const todayKey = monthKey(new Date());
-  const todayDay = new Date().getDate();
+export function CalendarView({ scrollerRef, onEdit }: Props) {
+  const { month, monthKey, togglePaid, store } = useStore();
 
-  const byDay = useMemo(() => {
-    const map = new Map<number, Outgoing[]>();
-    for (const it of items) {
-      if (it.dueDay && it.dueDay >= 1 && it.dueDay <= total) {
-        const arr = map.get(it.dueDay) ?? [];
-        arr.push(it);
-        map.set(it.dueDay, arr);
-      }
-    }
-    return map;
-  }, [items, total]);
+  const total = daysInMonth(monthKey);
+  const lead = firstWeekdayOf(monthKey);
+  const todayDay = monthKey === monthKeyOf() ? new Date().getDate() : null;
 
-  const undated = useMemo(() => items.filter((it) => !it.dueDay), [items]);
+  const [picked, setPicked] = useState<number>(todayDay ?? 1);
+  const [folded, setFolded] = useState(false);
 
-  const [selected, setSelected] = useState<number>(
-    currentKey === todayKey ? todayDay : 1
-  );
-  const [monthOpen, setMonthOpen] = useState(true);
+  useEffect(() => {
+    setPicked(monthKey === monthKeyOf() ? new Date().getDate() : 1);
+  }, [monthKey]);
 
-  const selectedItems = byDay.get(selected) ?? [];
+  /* --------------------------------------------------------- week model */
+
   const cells: (number | null)[] = [
-    ...Array(lead).fill(null),
+    ...Array.from({ length: lead }, () => null),
     ...Array.from({ length: total }, (_, i) => i + 1),
   ];
+  while (cells.length % 7 !== 0) cells.push(null);
+  const weeks = Array.from({ length: cells.length / 7 }, (_, w) => cells.slice(w * 7, w * 7 + 7));
+  const pickedWeek = Math.max(0, Math.floor((lead + picked - 1) / 7));
 
-  // The single week (row) containing the selected day — shown when collapsed.
-  const selRow = Math.floor((lead + selected - 1) / 7);
-  const weekCells: (number | null)[] = Array.from({ length: 7 }, (_, col) => {
-    const day = selRow * 7 + col - lead + 1;
-    return day >= 1 && day <= total ? day : null;
-  });
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [rowH, setRowH] = useState(0);
 
-  const renderCell = (day: number | null, key: string) => {
-    if (day === null) return <div key={key} className="cal-cell empty" />;
-    const dayItems = byDay.get(day) ?? [];
-    const isToday = currentKey === todayKey && day === todayDay;
-    const cls =
-      "cal-cell" +
-      (dayItems.length ? " has" : "") +
-      (selected === day ? " sel" : "") +
-      (isToday ? " today" : "");
-    return (
-      <button key={key} className={cls} onClick={() => setSelected(day)}>
-        <span className="d tnum">{day}</span>
-        <span className="cal-dots">
-          {dayItems.slice(0, 3).map((it) => (
-            <i key={it.id} style={{ background: it.paid ? "var(--text-faint)" : it.accent }} />
-          ))}
-        </span>
-      </button>
-    );
-  };
+  useLayoutEffect(() => {
+    const first = innerRef.current?.firstElementChild as HTMLElement | null;
+    if (first) setRowH(first.getBoundingClientRect().height);
+  }, [weeks.length, monthKey]);
+
+  const fullH = rowH ? weeks.length * rowH + (weeks.length - 1) * GAP : undefined;
+  const freed = fullH && rowH ? fullH - rowH : 0;
+  const lock = useRef(0);
+
+  /**
+   * Folds to the selected week as you scroll into the list.
+   *
+   * Folding grows the scroll viewport by `freed`, which can clamp scrollTop
+   * back to the top and bounce the state. Requiring more overflow than the
+   * fold releases guarantees there's still something to scroll afterwards, so
+   * it settles instead of oscillating.
+   */
+  const onScroll = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el || !freed) return;
+    const y = el.scrollTop;
+    const overflow = el.scrollHeight - el.clientHeight;
+
+    if (!folded && y > 24 && overflow > freed + 60) {
+      setFolded(true);
+      lock.current = performance.now() + 320;
+    } else if (folded && y < 4 && performance.now() > lock.current) {
+      setFolded(false);
+    }
+  }, [folded, freed, scrollerRef]);
+
+  /* -------------------------------------------------------------- lists */
+
+  const byDay = new Map<number, Outgoing[]>();
+  const undated: Outgoing[] = [];
+  for (const it of month.items) {
+    if (it.dueDay == null) undated.push(it);
+    else {
+      // A 31st bill in a 30-day month still needs somewhere to live.
+      const day = Math.min(it.dueDay, total);
+      const list = byDay.get(day);
+      if (list) list.push(it);
+      else byDay.set(day, [it]);
+    }
+  }
+
+  const due = byDay.get(picked) ?? [];
+  const dueTotal = due.reduce(
+    (s, i) => s + (i.currency === 'USD' ? i.amount * store.settings.usdToGbp : i.amount),
+    0,
+  );
 
   return (
     <>
-      <div className="view-fixed">
-        <header className="topbar">
-          <h1>Payment Calendar</h1>
-        </header>
+      <div className="sub">
         <MonthSwitcher />
-      </div>
 
-      <div className="view-scroll">
-        <section
-          className={"hero glass cal-card" + (monthOpen ? "" : " collapsed")}
-          style={{ paddingBottom: 10 }}
-        >
-          <div className="cal-grid" style={{ marginTop: 0 }}>
+        <div className="cal" data-folded={folded}>
+          <div className="cal-top">
+            <h3>Payment calendar</h3>
+            <button
+              className="cal-fold"
+              data-folded={folded}
+              onClick={() => {
+                HAPTIC.light();
+                setFolded((f) => !f);
+              }}
+            >
+              {folded ? 'Month' : 'Week'}
+              <ChevronUp size={13} />
+            </button>
+          </div>
+
+          <div className="cal-grid" aria-hidden="true">
             {DOW.map((d, i) => (
-              <div className="cal-dow" key={i}>
+              <div className="dow" key={i}>
                 {d}
               </div>
             ))}
           </div>
-          <div className="cal-grid cal-week">
-            {weekCells.map((day, i) => renderCell(day, `w${i}`))}
-          </div>
-          <div className="cal-grid cal-full">
-            {cells.map((day, i) => renderCell(day, `c${i}`))}
-          </div>
-          <button
-            className="cal-toggle"
-            onClick={() => setMonthOpen((v) => !v)}
-            aria-label={monthOpen ? "Collapse to week" : "Expand to month"}
-          >
-            <ChevronDown
-              size={18}
-              style={{
-                transform: monthOpen ? "rotate(180deg)" : "none",
-                transition: "transform 0.3s var(--ease)",
-              }}
-            />
-          </button>
-        </section>
 
-        <div className="section-head">
-          <h2 className="tnum">{ordinal(selected)}</h2>
-          <span className="count">
-            {selectedItems.length
-              ? money(selectedItems.reduce((s, it) => s + toGbp(it, settings), 0)) + " due"
-              : "Nothing due"}
-          </span>
+          <div className="weeks" style={{ maxHeight: folded ? rowH || undefined : fullH }}>
+            <div
+              className="weeks-in"
+              ref={innerRef}
+              style={{
+                transform: folded ? `translateY(${-pickedWeek * (rowH + GAP)}px)` : undefined,
+              }}
+            >
+              {weeks.map((week, w) => (
+                <div className="cal-grid" key={w}>
+                  {week.map((day, i) => {
+                    if (day == null) return <div className="day void" key={i} />;
+                    const list = byDay.get(day) ?? [];
+                    return (
+                      <button
+                        key={i}
+                        className={`day${day === todayDay ? ' today' : ''}`}
+                        data-on={day === picked}
+                        onClick={() => {
+                          HAPTIC.light();
+                          setPicked(day);
+                        }}
+                      >
+                        <span>{day}</span>
+                        <span className="pips">
+                          {list.slice(0, 3).map((it) => (
+                            <span
+                              key={it.id}
+                              className="pip"
+                              style={{ background: it.accent, opacity: it.paid ? 0.3 : 1 }}
+                            />
+                          ))}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="scroll" ref={scrollerRef} onScroll={onScroll}>
+        <div className="sec">
+          <h3>Due {ordinal(picked)}</h3>
+          {due.length > 0 && <span className="n">{money(dueTotal)}</span>}
         </div>
 
-        {selectedItems.length === 0 ? (
-          <div className="glass-soft empty">
-            <div className="emoji">🗓️</div>
-            <p>No payments due on the {ordinal(selected)}.</p>
+        {due.length === 0 ? (
+          <div className="blank">
+            <h4>Nothing due</h4>
+            <p>No outgoings are set for the {ordinal(picked)}.</p>
           </div>
         ) : (
-          <div className="list">
-            <AnimatePresence initial={false}>
-              {selectedItems.map((it) => (
-                <ItemRow
-                  key={it.id}
-                  item={it}
-                  onToggle={() => togglePaid(it.id)}
-                  onEdit={() => openEdit(it)}
-                />
-              ))}
-            </AnimatePresence>
+          <div className="group">
+            {due.map((it) => (
+              <Line
+                key={it.id}
+                item={it}
+                usdToGbp={store.settings.usdToGbp}
+                onToggle={togglePaid}
+                onEdit={onEdit}
+              />
+            ))}
           </div>
         )}
 
-        <button className="add-btn" onClick={() => openAdd(selected)}>
-          <Plus size={20} /> Add on the {ordinal(selected)}
-        </button>
-
         {undated.length > 0 && (
           <>
-            <div className="section-head" style={{ marginTop: 22 }}>
-              <h2>No date set</h2>
-              <span className="count">{undated.length}</span>
+            <div className="sec">
+              <h3>No date set</h3>
+              <span className="n">{undated.length}</span>
             </div>
-            <div className="list">
-              <AnimatePresence initial={false}>
-                {undated.map((it) => (
-                  <ItemRow
-                    key={it.id}
-                    item={it}
-                    onToggle={() => togglePaid(it.id)}
-                    onEdit={() => openEdit(it)}
-                  />
-                ))}
-              </AnimatePresence>
+            <div className="group">
+              {undated.map((it) => (
+                <Line
+                  key={it.id}
+                  item={it}
+                  usdToGbp={store.settings.usdToGbp}
+                  onToggle={togglePaid}
+                  onEdit={onEdit}
+                />
+              ))}
             </div>
           </>
         )}
       </div>
     </>
+  );
+}
+
+/* ------------------------------------------------------------------------ */
+
+function Line({
+  item,
+  usdToGbp,
+  onToggle,
+  onEdit,
+}: {
+  item: Outgoing;
+  usdToGbp: number;
+  onToggle: (id: string) => void;
+  onEdit: (item: Outgoing) => void;
+}) {
+  return (
+    <div className="swipe">
+      <div className={`row enter${item.paid ? ' done' : ''}`} onClick={() => onEdit(item)}>
+        <div
+          className="glyph"
+          style={{
+            background: `color-mix(in srgb, ${item.accent} 16%, transparent)`,
+            color: item.accent,
+          }}
+          aria-hidden="true"
+        >
+          {initial(item.name)}
+        </div>
+        <div className="rbody">
+          <div className="rname">{item.name}</div>
+          {item.note && <div className="rmeta">{item.note}</div>}
+        </div>
+        <div className="ramt n">
+          {money(item.amount, item.currency)}
+          {item.currency === 'USD' && <small>≈ {money(item.amount * usdToGbp, 'GBP')}</small>}
+        </div>
+        <button
+          className="tick"
+          aria-label={item.paid ? `Mark ${item.name} unpaid` : `Mark ${item.name} paid`}
+          aria-pressed={item.paid}
+          onClick={(e) => {
+            e.stopPropagation();
+            HAPTIC.select();
+            onToggle(item.id);
+          }}
+        >
+          <Check size={14} />
+        </button>
+      </div>
+    </div>
   );
 }

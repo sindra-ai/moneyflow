@@ -1,56 +1,90 @@
-import type { Currency, Outgoing, Settings } from "./types";
+import type { Currency, Outgoing } from './types';
 
-const symbols: Record<Currency, string> = { GBP: "£", USD: "$" };
+export const SYMBOL: Record<Currency, string> = { GBP: '£', USD: '$' };
 
-export function money(amount: number, currency: Currency = "GBP"): string {
-  const sym = symbols[currency] ?? "";
-  const rounded = Math.round(amount * 100) / 100;
-  const hasPennies = Math.abs(rounded % 1) > 0.0001;
-  return (
-    sym +
-    rounded.toLocaleString("en-GB", {
-      minimumFractionDigits: hasPennies ? 2 : 0,
-      maximumFractionDigits: 2,
-    })
-  );
+const gbp = new Intl.NumberFormat('en-GB', {
+  style: 'currency',
+  currency: 'GBP',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+const usd = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+export function money(amount: number, currency: Currency = 'GBP'): string {
+  const n = Number.isFinite(amount) ? amount : 0;
+  return (currency === 'USD' ? usd : gbp).format(n);
 }
 
-/** Convert any outgoing to its GBP value for the running totals. */
-export function toGbp(item: Outgoing, settings: Settings): number {
-  if (item.currency === "USD") return item.amount * settings.usdToGbp;
-  return item.amount;
+/** Drops the ".00" tail — used for the big hero figure. */
+export function moneyCompact(amount: number, currency: Currency = 'GBP'): string {
+  const n = Number.isFinite(amount) ? amount : 0;
+  const whole = Math.abs(n % 1) < 0.005;
+  const s = (currency === 'USD' ? usd : gbp).format(n);
+  return whole ? s.replace(/\.00$/, '') : s;
 }
 
-export function monthKey(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+/** Everything rolls up in GBP; USD items convert at the user's rate. */
+export function toGbp(item: Outgoing, usdToGbp: number): number {
+  const amount = Number.isFinite(item.amount) ? item.amount : 0;
+  return item.currency === 'USD' ? amount * usdToGbp : amount;
 }
 
-export function monthLabel(key: string): string {
-  const [y, m] = key.split("-").map(Number);
-  const d = new Date(y, m - 1, 1);
-  return d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+/**
+ * Splits into major and minor units so the hero can set the pence smaller —
+ * keeps a long balance inside the gauge instead of overrunning it.
+ */
+export function moneyParts(
+  amount: number,
+  currency: Currency = 'GBP',
+): { major: string; minor: string } {
+  const s = money(amount, currency);
+  const i = s.lastIndexOf('.');
+  return i < 0 ? { major: s, minor: '' } : { major: s.slice(0, i), minor: s.slice(i + 1) };
 }
 
-export function shiftMonth(key: string, delta: number): string {
-  const [y, m] = key.split("-").map(Number);
-  const d = new Date(y, m - 1 + delta, 1);
-  return monthKey(d);
+export function ordinal(day: number): string {
+  const rem100 = day % 100;
+  if (rem100 >= 11 && rem100 <= 13) return `${day}th`;
+  switch (day % 10) {
+    case 1:
+      return `${day}st`;
+    case 2:
+      return `${day}nd`;
+    case 3:
+      return `${day}rd`;
+    default:
+      return `${day}th`;
+  }
 }
 
-const ordinals = ["th", "st", "nd", "rd"];
-export function ordinal(n: number): string {
-  const v = n % 100;
-  return n + (ordinals[(v - 20) % 10] || ordinals[v] || ordinals[0]);
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+/** 'YYYY-MM' -> { label: 'August 2026', short: 'Aug 2026' } */
+export function monthLabel(key: string): { label: string; short: string } {
+  const [y, m] = key.split('-');
+  const name = MONTH_NAMES[Number(m) - 1] ?? '';
+  return { label: `${name} ${y}`, short: `${name.slice(0, 3)} ${y}` };
 }
 
-export function daysInMonth(key: string): number {
-  const [y, m] = key.split("-").map(Number);
-  return new Date(y, m, 0).getDate();
-}
-
-/** First weekday of the month, Monday = 0 ... Sunday = 6. */
-export function firstWeekdayMondayBased(key: string): number {
-  const [y, m] = key.split("-").map(Number);
-  const jsDay = new Date(y, m - 1, 1).getDay(); // Sun = 0
-  return (jsDay + 6) % 7;
+export function initial(name: string): string {
+  const trimmed = name.trim();
+  return trimmed ? trimmed[0].toUpperCase() : '·';
 }

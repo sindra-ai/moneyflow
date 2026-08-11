@@ -1,11 +1,19 @@
-import React from "react";
+'use client';
 
-/** MoneyFlow brand mark (user-provided logo), shown as a rounded tile. */
-export default function Logo({ size = 40 }: { size?: number }) {
+/**
+ * The brand mark. Sourced from public/brand/logo.png (generated from the
+ * supplied artwork by scripts/genicons.py) — drop a replacement at that path
+ * and it swaps in everywhere.
+ */
+export function Logo({ size = 34 }: { size?: number }) {
   return (
-    <span className="logo-mark" style={{ width: size, height: size }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.png" alt="MoneyFlow" width={size} height={size} />
-    </span>
+    <img
+      src="/brand/logo.png"
+      width={size}
+      height={size}
+      alt="MoneyFlow"
+      draggable={false}
+      style={{ width: size, height: size }}
+    />
   );
 }

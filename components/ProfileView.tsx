@@ -1,163 +1,157 @@
-"use client";
+'use client';
 
-import React, { useMemo, useRef, useState } from "react";
-import { useStore } from "@/lib/store";
-import { useAuth } from "@/lib/auth";
-import type { ThemeMode } from "@/lib/types";
-import { money, toGbp } from "@/lib/format";
-import { Camera, Moon, Refresh, Sun, User, Wallet } from "./icons";
+import { useRef, useState, type RefObject } from 'react';
+import { computeTotals, useStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth';
+import { initial, money, monthLabel } from '@/lib/format';
+import { history } from '@/lib/derive';
+import { HAPTIC } from '@/lib/haptics';
+import type { ThemeMode } from '@/lib/types';
+import { Sparkline } from './Sparkline';
+import { Camera } from './icons';
 
-/** Downscale an image file to a small square data URL for localStorage. */
-function fileToAvatar(file: File): Promise<string> {
+const AVATAR_PX = 256;
+
+/** Centre-crops to a square and downsizes, so the store stays small. */
+function cropToSquare(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
+    reader.onerror = () => reject(new Error('read failed'));
     reader.onload = () => {
       const img = new Image();
+      img.onerror = () => reject(new Error('decode failed'));
       img.onload = () => {
-        const size = 256;
-        const canvas = document.createElement("canvas");
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return reject(new Error("no ctx"));
-        const min = Math.min(img.width, img.height);
-        const sx = (img.width - min) / 2;
-        const sy = (img.height - min) / 2;
-        ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
-        resolve(canvas.toDataURL("image/jpeg", 0.82));
+        const side = Math.min(img.width, img.height);
+        const canvas = document.createElement('canvas');
+        canvas.width = AVATAR_PX;
+        canvas.height = AVATAR_PX;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('no 2d context'));
+        ctx.drawImage(
+          img,
+          (img.width - side) / 2,
+          (img.height - side) / 2,
+          side,
+          side,
+          0,
+          0,
+          AVATAR_PX,
+          AVATAR_PX,
+        );
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
       };
-      img.onerror = reject;
       img.src = reader.result as string;
     };
-    reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }
 
-const THEMES: { key: ThemeMode; label: string }[] = [
-  { key: "system", label: "System" },
-  { key: "light", label: "Light" },
-  { key: "dark", label: "Dark" },
-];
-
-export default function ProfileView() {
-  const { store, items, setProfile, setSettings, setTheme, resetSeed } = useStore();
+export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivElement> }) {
+  const { store, month, monthKey, setProfile, setSettings, resetToSample } = useStore();
   const { user, signOut } = useAuth();
-  const { profile, settings } = store;
+  const totals = computeTotals(month, store.settings.usdToGbp);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [confirmReset, setConfirmReset] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const [rate, setRate] = useState(String(store.settings.usdToGbp));
 
-  const summary = useMemo(() => {
-    const total = items.reduce((s, it) => s + toGbp(it, settings), 0);
-    const monthCount = Object.keys(store.months).length;
-    return { total, monthCount, itemCount: items.length };
-  }, [items, settings, store.months]);
-
-  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const pick = async (file: File | undefined) => {
     if (!file) return;
     try {
-      const url = await fileToAvatar(file);
-      setProfile({ avatar: url });
+      setProfile({ avatar: await cropToSquare(file) });
+      HAPTIC.success();
     } catch {
-      /* ignore bad image */
+      /* unreadable image — keep the existing avatar */
     }
-    e.target.value = "";
   };
 
-  const initials =
-    profile.name
-      .trim()
-      .split(/\s+/)
-      .map((w) => w[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "";
+  const themes: { key: ThemeMode; label: string }[] = [
+    { key: 'system', label: 'System' },
+    { key: 'light', label: 'Light' },
+    { key: 'dark', label: 'Dark' },
+  ];
 
   return (
-    <div className="view-scroll">
-      <header className="topbar">
-        <h1>Profile</h1>
-      </header>
-
-      <section className="glass profile-head">
-        <div className="avatar" onClick={() => fileRef.current?.click()}>
-          <span className="avatar-img">
-            {profile.avatar ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={profile.avatar} alt="Avatar" />
-            ) : initials ? (
-              <span>{initials}</span>
+    <div className="scroll view" ref={scrollerRef}>
+      <div className="me">
+        <div className="face-wrap">
+          <div className="face">
+            {store.profile.avatar ? (
+              <img src={store.profile.avatar} alt="" draggable={false} />
             ) : (
-              <User size={38} />
+              initial(store.profile.name || 'M')
             )}
-          </span>
-          <span className="avatar-edit">
+          </div>
+          <button className="face-edit" onClick={() => fileRef.current?.click()} aria-label="Change photo">
             <Camera size={15} />
-          </span>
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              void pick(e.target.files?.[0]);
+              e.target.value = '';
+            }}
+          />
         </div>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          hidden
-          onChange={onPick}
-        />
 
         <input
-          className="profile-name"
-          style={{
-            background: "transparent",
-            border: "none",
-            outline: "none",
-            textAlign: "center",
-          }}
-          value={profile.name}
+          value={store.profile.name}
           placeholder="Your name"
           onChange={(e) => setProfile({ name: e.target.value })}
-          aria-label="Your name"
+          aria-label="Display name"
         />
-        <div className="muted">Tap the avatar to change your photo</div>
-      </section>
-
-      <div className="section-head" style={{ marginTop: 20 }}>
-        <h2>This month</h2>
-      </div>
-      <div className="hero-row" style={{ marginTop: 0 }}>
-        <div className="stat glass-soft">
-          <div className="k">Outgoings</div>
-          <div className="v tnum">{summary.itemCount}</div>
-        </div>
-        <div className="stat glass-soft">
-          <div className="k">Total out</div>
-          <div className="v tnum">{money(summary.total)}</div>
-        </div>
-        <div className="stat glass-soft">
-          <div className="k">Months</div>
-          <div className="v tnum">{summary.monthCount}</div>
-        </div>
       </div>
 
-      <div className="section-head" style={{ marginTop: 22 }}>
-        <h2>Appearance</h2>
+      <div className="sec">
+        <h3>{monthLabel(monthKey).label}</h3>
       </div>
-      <div className="glass list-card">
-        <div className="list-item">
-          <div className="li-left">
-            <div className="li-ic">
-              {settings.theme === "light" ? <Sun size={18} /> : <Moon size={18} />}
-            </div>
-            <div>
-              <div className="li-title">Theme</div>
-              <div className="li-sub">Choose your mode</div>
-            </div>
+
+      <div className="tiles">
+        <div className="tile">
+          <div className="duo-k">Total out</div>
+          <div className="duo-v n">{money(totals.total)}</div>
+        </div>
+        <div className="tile">
+          <div className="duo-k">Paid so far</div>
+          <div className="duo-v n">{money(totals.paid)}</div>
+        </div>
+        <div className="tile">
+          <div className="duo-k">Left to pay</div>
+          <div className="duo-v n">{money(totals.left)}</div>
+        </div>
+        <div className="tile">
+          <div className="duo-k">Left over</div>
+          <div className={`duo-v n ${totals.leftOver >= 0 ? 'up' : 'down'}`}>
+            {money(totals.leftOver)}
           </div>
-          <div className="theme-seg">
-            {THEMES.map((t) => (
+        </div>
+      </div>
+
+      <div className="sec">
+        <h3>Last 6 months</h3>
+      </div>
+      <Sparkline points={history(store, monthKey)} />
+
+      <div className="sec">
+        <h3>Appearance</h3>
+      </div>
+      <div className="list">
+        <div className="li stack">
+          <div>
+            <div className="li-k">Theme</div>
+            <div className="li-s">Follows your device when set to System</div>
+          </div>
+          <div className="seg">
+            {themes.map((t) => (
               <button
                 key={t.key}
-                className={settings.theme === t.key ? "on" : ""}
-                onClick={() => setTheme(t.key)}
+                data-on={store.settings.theme === t.key}
+                onClick={() => {
+                  HAPTIC.light();
+                  setSettings({ theme: t.key });
+                }}
               >
                 {t.label}
               </button>
@@ -166,102 +160,82 @@ export default function ProfileView() {
         </div>
       </div>
 
-      <div className="section-head" style={{ marginTop: 22 }}>
-        <h2>Preferences</h2>
+      <div className="sec">
+        <h3>Preferences</h3>
       </div>
-      <div className="glass list-card">
-        <div className="list-item">
-          <div className="li-left">
-            <div className="li-ic">
-              <Wallet size={18} />
-            </div>
-            <div>
-              <div className="li-title">USD → GBP rate</div>
-              <div className="li-sub">Used for $ items in totals</div>
-            </div>
+      <div className="list">
+        <div className="li">
+          <div>
+            <div className="li-k">USD → GBP</div>
+            <div className="li-s">Rate used for dollar items</div>
           </div>
           <input
-            className="input tnum"
-            style={{ width: 90, textAlign: "right", padding: "10px 12px" }}
+            className="rate n"
             inputMode="decimal"
-            defaultValue={settings.usdToGbp}
-            onBlur={(e) => {
-              const n = parseFloat(e.target.value);
-              if (Number.isFinite(n) && n > 0) setSettings({ usdToGbp: n });
-              else e.target.value = String(settings.usdToGbp);
+            value={rate}
+            onChange={(e) => setRate(e.target.value)}
+            onBlur={() => {
+              const v = parseFloat(rate.replace(/[^0-9.]/g, ''));
+              const next = Number.isFinite(v) && v > 0 ? v : store.settings.usdToGbp;
+              setSettings({ usdToGbp: next });
+              setRate(String(next));
             }}
             aria-label="USD to GBP rate"
           />
         </div>
       </div>
 
-      <div className="section-head" style={{ marginTop: 22 }}>
-        <h2>Data</h2>
+      <div className="sec">
+        <h3>Account</h3>
       </div>
-      <div className="glass list-card">
-        <button
-          className="list-item"
-          style={{ width: "100%", textAlign: "left" }}
-          onClick={() => {
-            if (confirmReset) {
-              resetSeed();
-              setConfirmReset(false);
-            } else {
-              setConfirmReset(true);
-              window.setTimeout(() => setConfirmReset(false), 4000);
-            }
-          }}
-        >
-          <div className="li-left">
-            <div className="li-ic">
-              <Refresh size={18} />
-            </div>
-            <div>
-              <div className="li-title" style={{ color: confirmReset ? "var(--danger)" : undefined }}>
-                {confirmReset ? "Tap again to confirm" : "Reset to sample data"}
-              </div>
-              <div className="li-sub">Restores the starter outgoings list</div>
-            </div>
+      <div className="list">
+        <div className="li">
+          <div>
+            <div className="li-k">Signed in</div>
+            <div className="li-s">{user?.email}</div>
+          </div>
+        </div>
+        <button className="li" onClick={() => void signOut()}>
+          <div>
+            <div className="li-k warn">Sign out</div>
           </div>
         </button>
       </div>
 
-      <div className="section-head" style={{ marginTop: 22 }}>
-        <h2>Account</h2>
+      <div className="sec">
+        <h3>Data</h3>
       </div>
-      <div className="glass list-card">
-        <div className="list-item">
-          <div className="li-left">
-            <div className="li-ic">
-              <User size={18} />
-            </div>
-            <div>
-              <div className="li-title">Signed in</div>
-              <div className="li-sub">{user?.email ?? "—"}</div>
+      <div className="list">
+        <div className="li">
+          <div>
+            <div className="li-k">Storage</div>
+            <div className="li-s">
+              Synced to your account. Available on every device you sign in on.
             </div>
           </div>
-          <button className="theme-seg" style={{ display: "block" }} onClick={() => signOut()}>
-            <span
-              style={{
-                padding: "8px 14px",
-                borderRadius: 10,
-                fontSize: 13,
-                fontWeight: 650,
-                color: "var(--danger)",
-                background: "var(--glass-strong)",
-                border: "1px solid var(--glass-border)",
-                display: "inline-block",
-              }}
-            >
-              Sign out
-            </span>
-          </button>
         </div>
+        <button
+          className="li"
+          onClick={() => {
+            if (!confirm) {
+              setConfirm(true);
+              HAPTIC.light();
+              return;
+            }
+            HAPTIC.success();
+            resetToSample();
+            setConfirm(false);
+          }}
+        >
+          <div>
+            <div className="li-k warn">
+              {confirm ? 'Tap again to confirm' : 'Reset to sample data'}
+            </div>
+            <div className="li-s">Replaces every month with the starter list</div>
+          </div>
+          <div className="li-v warn">Reset</div>
+        </button>
       </div>
-
-      <p className="muted" style={{ textAlign: "center", marginTop: 24 }}>
-        MoneyFlow · synced to your account
-      </p>
     </div>
   );
 }
