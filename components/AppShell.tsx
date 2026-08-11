@@ -8,7 +8,6 @@ import { registerSW, runDueCheck } from '@/lib/reminders';
 import type { Outgoing } from '@/lib/types';
 import { Logo } from './Logo';
 import LoginScreen from './LoginScreen';
-import { LockScreen } from './LockScreen';
 import { BottomNav, type Tab } from './BottomNav';
 import { HomeView } from './HomeView';
 import { CalendarView } from './CalendarView';
@@ -21,7 +20,6 @@ export function AppShell() {
   const { session, loading } = useAuth();
   const [tab, setTab] = useState<Tab>('home');
   const [editor, setEditor] = useState<EditorTarget | null>(null);
-  const [unlocked, setUnlocked] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const storeRef = useRef(store);
   storeRef.current = store;
@@ -46,30 +44,7 @@ export function AppShell() {
     };
   }, [ready, session]);
 
-  // Wait for the local store (which holds the PIN) to hydrate first.
-  if (!ready) {
-    return (
-      <div className="boot">
-        <Logo size={56} />
-      </div>
-    );
-  }
-
-  // App-lock is the everyday front door: when a PIN is set, ask for it (or
-  // Face ID) straight away — before the email login. The Supabase session
-  // persists in the browser, so unlocking is all that's needed day to day;
-  // the email login below only appears the one time there's no session yet.
-  if (store.settings.lockEnabled && store.settings.lockPin && !unlocked) {
-    return (
-      <LockScreen
-        mode="unlock"
-        expectedHash={store.settings.lockPin}
-        onDone={() => setUnlocked(true)}
-      />
-    );
-  }
-
-  // Auth gate — cloud login, needed once per device to establish the session.
+  // Auth gate — keep the cloud login in front of the app.
   if (loading) {
     return (
       <div className="boot">
@@ -78,6 +53,14 @@ export function AppShell() {
     );
   }
   if (!session) return <LoginScreen />;
+
+  if (!ready) {
+    return (
+      <div className="boot">
+        <Logo size={56} />
+      </div>
+    );
+  }
 
   const openEdit = (item: Outgoing) => setEditor({ item });
 

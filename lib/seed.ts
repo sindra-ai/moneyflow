@@ -66,9 +66,6 @@ export const DEFAULT_SETTINGS: Store["settings"] = {
   theme: "system",
   payday: 25,
   savingsStart: 0,
-  lockEnabled: false,
-  lockPin: null,
-  biometric: false,
   reminders: false,
 };
 

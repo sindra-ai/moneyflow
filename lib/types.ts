@@ -36,13 +36,7 @@ export interface Settings {
   payday: number;
   /** starting savings balance the monthly left-over accrues on top of */
   savingsStart: number;
-  /** app-lock on open */
-  lockEnabled: boolean;
-  /** sha-256 hash of the PIN (never the PIN itself) */
-  lockPin: string | null;
-  /** allow device biometrics (Face ID / Touch ID) to unlock via a passkey */
-  biometric: boolean;
-  /** opt-in to due-date push reminders */
+  /** opt-in to due-date reminders */
   reminders: boolean;
 }
 

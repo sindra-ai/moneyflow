@@ -6,15 +6,8 @@ import { useAuth } from '@/lib/auth';
 import { initial, money, monthLabel } from '@/lib/format';
 import { history, savingsSoFar } from '@/lib/derive';
 import { HAPTIC } from '@/lib/haptics';
-import {
-  biometricAvailable,
-  clearBiometric,
-  getBiometricCredId,
-  registerBiometric,
-} from '@/lib/lock';
 import { registerSW, reminderPermission, requestReminderPermission } from '@/lib/reminders';
 import type { ThemeMode } from '@/lib/types';
-import { LockScreen } from './LockScreen';
 import { Sparkline } from './Sparkline';
 import { Camera } from './icons';
 
@@ -64,16 +57,6 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
   const [payday, setPayday] = useState(String(store.settings.payday ?? 25));
   const [savingsStart, setSavingsStart] = useState(String(store.settings.savingsStart ?? 0));
 
-  // App lock
-  const lockOn = store.settings.lockEnabled && !!store.settings.lockPin;
-  const [setup, setSetup] = useState(false);
-  const [bioAvail, setBioAvail] = useState(false);
-  const [bioOn, setBioOn] = useState(false);
-  useEffect(() => {
-    void biometricAvailable().then(setBioAvail);
-    setBioOn(!!getBiometricCredId());
-  }, []);
-
   // Reminders
   const [remOn, setRemOn] = useState(false);
   const [remDenied, setRemDenied] = useState(false);
@@ -99,31 +82,6 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
       HAPTIC.success();
     } else {
       setRemDenied(reminderPermission() === 'denied');
-    }
-  };
-
-  const toggleLock = () => {
-    HAPTIC.light();
-    if (lockOn) {
-      clearBiometric();
-      setBioOn(false);
-      setSettings({ lockEnabled: false, lockPin: null, biometric: false });
-    } else {
-      setSetup(true);
-    }
-  };
-
-  const toggleBiometric = async () => {
-    HAPTIC.light();
-    if (bioOn) {
-      clearBiometric();
-      setBioOn(false);
-      setSettings({ biometric: false });
-    } else {
-      const ok = await registerBiometric(store.profile.name || user?.email || 'MoneyFlow');
-      setBioOn(ok);
-      setSettings({ biometric: ok });
-      if (ok) HAPTIC.success();
     }
   };
 
@@ -154,19 +112,7 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
   ];
 
   return (
-    <>
-      {setup && (
-        <LockScreen
-          mode="set"
-          onCancel={() => setSetup(false)}
-          onDone={(hash) => {
-            setSettings({ lockEnabled: true, lockPin: hash ?? null });
-            setSetup(false);
-            HAPTIC.success();
-          }}
-        />
-      )}
-      <div className="scroll view" ref={scrollerRef}>
+    <div className="scroll view" ref={scrollerRef}>
       <div className="me">
         <div className="face-wrap">
           <div className="face">
@@ -345,32 +291,6 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
       </div>
 
       <div className="sec">
-        <h3>Security</h3>
-      </div>
-      <div className="list">
-        <button className="li" onClick={toggleLock}>
-          <div>
-            <div className="li-k">App lock</div>
-            <div className="li-s">Require a PIN each time you open MoneyFlow</div>
-          </div>
-          <span className="switch" data-on={lockOn} aria-hidden="true">
-            <i />
-          </span>
-        </button>
-        {lockOn && bioAvail && (
-          <button className="li" onClick={() => void toggleBiometric()}>
-            <div>
-              <div className="li-k">Face ID / Touch ID</div>
-              <div className="li-s">Unlock with your device biometrics</div>
-            </div>
-            <span className="switch" data-on={bioOn} aria-hidden="true">
-              <i />
-            </span>
-          </button>
-        )}
-      </div>
-
-      <div className="sec">
         <h3>Account</h3>
       </div>
       <div className="list">
@@ -421,7 +341,6 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
           <div className="li-v warn">Reset</div>
         </button>
       </div>
-      </div>
-    </>
+    </div>
   );
 }
