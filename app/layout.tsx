@@ -12,8 +12,10 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
   },
   icons: {
-    icon: '/icons/icon-192.png',
-    apple: '/icons/apple-touch-icon.png',
+    // ?v=2 busts iOS/Safari's aggressive apple-touch-icon cache after the
+    // dark-icon restore — a new URL forces a fresh fetch on re-add.
+    icon: '/icons/icon-192.png?v=2',
+    apple: '/icons/apple-touch-icon.png?v=2',
   },
   formatDetection: { telephone: false },
 };
