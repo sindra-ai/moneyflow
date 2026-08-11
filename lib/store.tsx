@@ -9,13 +9,95 @@ import React, {
   useRef,
   useState,
 } from "react";
-import type { Outgoing, Profile, Settings, Store, ThemeMode } from "./types";
+import type { MonthData, Outgoing, Profile, Settings, Store, ThemeMode } from "./types";
 import { defaultStore, newId, seedMonth } from "./seed";
-import { monthKey } from "./format";
 import { supabase } from "./supabase";
 import { useAuth } from "./auth";
 
 const STORAGE_KEY = "moneyflow:v1";
+
+/* ------------------------------------------------------------------ dates */
+// Exported so v2's components / derive.ts can import them from the store.
+
+export function monthKeyOf(d: Date = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export function shiftMonth(key: string, delta: number): string {
+  const [y, m] = key.split("-").map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return monthKeyOf(d);
+}
+
+export function daysInMonth(key: string): number {
+  const [y, m] = key.split("-").map(Number);
+  return new Date(y, m, 0).getDate();
+}
+
+/** 0 = Monday … 6 = Sunday, for the 1st of the month. */
+export function firstWeekdayOf(key: string): number {
+  const [y, m] = key.split("-").map(Number);
+  return (new Date(y, m - 1, 1).getDay() + 6) % 7;
+}
+
+/* ------------------------------------------------------- month derivation */
+
+const baseId = (id: string) => id.split("@")[0];
+
+/**
+ * A month the user hasn't touched yet shows the nearest prior month's
+ * recurring bills, reset to unpaid. Ids are deterministic so the derived view
+ * and the materialised copy agree. Used by derive.ts's history projection.
+ */
+export function deriveMonth(months: Record<string, MonthData>, key: string): MonthData {
+  const keys = Object.keys(months).sort();
+  const prior = keys.filter((k) => k < key).pop();
+  const source = prior ?? keys.find((k) => k > key);
+  if (!source) return seedMonth();
+  const src = months[source];
+  return {
+    salary: src.salary,
+    items: src.items.map((it) => ({ ...it, id: `${baseId(it.id)}@${key}`, paid: false })),
+  };
+}
+
+/* ----------------------------------------------------------- derived math */
+
+export interface Totals {
+  total: number;
+  paid: number;
+  left: number;
+  leftOver: number;
+  paidCount: number;
+  count: number;
+  progress: number;
+}
+
+export function computeTotals(month: MonthData, usdToGbp: number): Totals {
+  let total = 0;
+  let paid = 0;
+  let paidCount = 0;
+
+  for (const it of month.items) {
+    const gbp = it.currency === "USD" ? (it.amount || 0) * usdToGbp : it.amount || 0;
+    total += gbp;
+    if (it.paid) {
+      paid += gbp;
+      paidCount += 1;
+    }
+  }
+
+  const count = month.items.length;
+  return {
+    total,
+    paid,
+    left: total - paid,
+    leftOver: month.salary - total,
+    paidCount,
+    count,
+    progress: count === 0 ? 0 : paidCount / count,
+  };
+}
 
 function loadStore(currentKey: string): Store {
   if (typeof window === "undefined") return defaultStore(currentKey);
@@ -67,12 +149,22 @@ interface StoreContextValue {
   setSettings: (patch: Partial<Settings>) => void;
   setTheme: (theme: ThemeMode) => void;
   resetSeed: () => void;
+  // --- v2 UI adapter surface ---
+  ready: boolean;
+  monthKey: string;
+  setMonthKey: (key: string) => void;
+  month: MonthData;
+  stepMonth: (delta: number) => void;
+  setAllPaid: (paid: boolean) => void;
+  reorder: (from: number, to: number) => void;
+  resetToSample: () => void;
+  undo: () => void;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const initialKey = monthKey(new Date());
+  const initialKey = monthKeyOf();
   const [currentKey, setCurrentKey] = useState(initialKey);
   const [store, setStore] = useState<Store>(() => defaultStore(initialKey));
   const [hydrated, setHydrated] = useState(false);
@@ -83,6 +175,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const lastSync = useRef<string | null>(null);
   const storeRef = useRef(store);
   storeRef.current = store;
+  // Snapshot of `months` taken before a destructive action, for one-level undo.
+  const undoRef = useRef<Record<string, MonthData> | null>(null);
 
   // Hydrate from localStorage after mount (avoids SSR mismatch).
   useEffect(() => {
@@ -229,6 +323,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const month = store.months[currentKey];
   const salary = month?.salary ?? 0;
   const items = useMemo(() => month?.items ?? [], [month]);
+  // v2 components read `month` as a MonthData; keep it defined even for a
+  // never-visited month (the materialize effect fills it in a frame later).
+  const monthData = useMemo<MonthData>(() => ({ salary, items }), [salary, items]);
 
   const mutateMonth = useCallback(
     (fn: (m: { salary: number; items: Outgoing[] }) => { salary: number; items: Outgoing[] }) => {
@@ -260,9 +357,23 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [mutateMonth]
   );
 
+  const snapshot = useCallback(() => {
+    undoRef.current = storeRef.current.months;
+  }, []);
+
+  const undo = useCallback(() => {
+    const prev = undoRef.current;
+    if (!prev) return;
+    undoRef.current = null;
+    setStore((s) => ({ ...s, months: prev }));
+  }, []);
+
   const deleteItem = useCallback(
-    (id: string) => mutateMonth((m) => ({ ...m, items: m.items.filter((it) => it.id !== id) })),
-    [mutateMonth]
+    (id: string) => {
+      snapshot();
+      mutateMonth((m) => ({ ...m, items: m.items.filter((it) => it.id !== id) }));
+    },
+    [mutateMonth, snapshot]
   );
 
   const togglePaid = useCallback(
@@ -275,13 +386,29 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const markAll = useCallback(
-    (paid: boolean) =>
-      mutateMonth((m) => ({ ...m, items: m.items.map((it) => ({ ...it, paid })) })),
-    [mutateMonth]
+    (paid: boolean) => {
+      snapshot();
+      mutateMonth((m) => ({ ...m, items: m.items.map((it) => ({ ...it, paid })) }));
+    },
+    [mutateMonth, snapshot]
   );
 
   const reorderItems = useCallback(
     (items: Outgoing[]) => mutateMonth((m) => ({ ...m, items })),
+    [mutateMonth]
+  );
+
+  // v2's Ledger reorders by (from, to) index rather than a full array.
+  const reorder = useCallback(
+    (from: number, to: number) => {
+      mutateMonth((m) => {
+        if (from === to || from < 0 || from >= m.items.length) return m;
+        const next = m.items.slice();
+        const [moved] = next.splice(from, 1);
+        next.splice(Math.max(0, Math.min(next.length, to)), 0, moved);
+        return { ...m, items: next };
+      });
+    },
     [mutateMonth]
   );
 
@@ -303,7 +430,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const resetSeed = useCallback(() => {
-    const key = monthKey(new Date());
+    const key = monthKeyOf();
     setCurrentKey(key);
     setStore(defaultStore(key));
   }, []);
@@ -327,6 +454,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setSettings,
     setTheme,
     resetSeed,
+    // --- v2 UI adapter surface ---
+    ready: hydrated,
+    monthKey: currentKey,
+    setMonthKey: setCurrentKey,
+    month: monthData,
+    stepMonth: (delta: number) => setCurrentKey(shiftMonth(currentKey, delta)),
+    setAllPaid: markAll,
+    reorder,
+    resetToSample: resetSeed,
+    undo,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

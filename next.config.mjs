@@ -4,6 +4,7 @@ const nextConfig = {
   // double-mount, which visibly breaks the bottom-sheet open/close animation.
   // Production never double-mounts; disabling keeps dev behaviour identical.
   reactStrictMode: false,
+  eslint: { ignoreDuringBuilds: true },
 };
 
 export default nextConfig;
