@@ -135,7 +135,7 @@ export function HomeView({ scrollerRef, onAdd, onEdit }: Props) {
             <Plus size={17} />
             Add
           </button>
-          <button onClick={payAll}>
+          <button className="pay" onClick={payAll}>
             <CheckAll size={17} />
             Pay all
           </button>

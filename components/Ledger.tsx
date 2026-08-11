@@ -287,7 +287,7 @@ export function Ledger({
           style={{
             animationDelay: `${Math.min(stagger, 10) * 30}ms`,
             transform: dragging
-              ? `translateY(${drag!.dy}px) scale(1.03)`
+              ? `translateY(${drag!.dy}px) scale(1.055)`
               : dx
                 ? `translateX(${dx}px)`
                 : shift

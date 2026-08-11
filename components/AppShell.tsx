@@ -50,7 +50,6 @@ export function AppShell() {
           <div className="top">
             <div className="mark">
               <Logo size={30} />
-              <b>MoneyFlow</b>
             </div>
             <button
               className="ghost-btn"

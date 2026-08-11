@@ -561,6 +561,15 @@ input {
   box-shadow: 0 12px 26px -14px var(--a2);
 }
 
+/* The primary "paying" action gets a richer, more saturated violet gradient
+   so it reads as the standout button in the row. */
+.quick button.pay {
+  background: linear-gradient(135deg, #a98bff, #7b5cff 55%, #6a49ff);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 14px 30px -12px rgba(123, 92, 255, 0.75);
+}
+
 /* -------------------------------------------------------------- ledger -- */
 
 .sec {
@@ -663,8 +672,13 @@ input {
   z-index: 6;
   border-radius: var(--r-md);
   background: var(--raised);
-  border: 1px solid var(--edge);
-  box-shadow: var(--lift);
+  border: 1px solid transparent;
+  /* Deep drop shadow for real elevation, plus a violet ring + glow so the
+     held row unmistakably lifts off the list and reads as "picked up". */
+  box-shadow:
+    0 26px 52px -14px rgba(0, 0, 0, 0.72),
+    0 0 0 1.5px rgba(150, 132, 255, 0.65),
+    0 0 34px -4px rgba(150, 132, 255, 0.5);
   cursor: grabbing;
 }
 
