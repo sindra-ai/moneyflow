@@ -57,31 +57,46 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
   const [payday, setPayday] = useState(String(store.settings.payday ?? 25));
   const [savingsStart, setSavingsStart] = useState(String(store.settings.savingsStart ?? 0));
 
-  // Reminders
-  const [remOn, setRemOn] = useState(false);
-  const [remDenied, setRemDenied] = useState(false);
+  // Reminders — 'unsupported' usually means opened in a browser tab rather
+  // than installed to the Home Screen (iPhone only allows notifications for
+  // installed web apps).
+  type RemState = 'off' | 'on' | 'denied' | 'unsupported';
+  const [remState, setRemState] = useState<RemState>('off');
   useEffect(() => {
     const p = reminderPermission();
-    setRemOn(store.settings.reminders && p === 'granted');
-    setRemDenied(p === 'denied');
+    if (p === 'unsupported') setRemState('unsupported');
+    else if (p === 'denied') setRemState('denied');
+    else setRemState(store.settings.reminders && p === 'granted' ? 'on' : 'off');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const remSub: Record<RemState, string> = {
+    on: "On — you'll get a heads-up when a bill is due soon.",
+    off: 'A heads-up when a bill is due in the next couple of days.',
+    denied: 'Blocked — turn on notifications for MoneyFlow in your device Settings.',
+    unsupported:
+      'Add MoneyFlow to your Home Screen first — iPhone only allows reminders for installed apps.',
+  };
+
   const toggleReminders = async () => {
     HAPTIC.light();
-    if (remOn) {
-      setRemOn(false);
+    if (remState === 'on') {
+      setRemState('off');
       setSettings({ reminders: false });
+      return;
+    }
+    if (reminderPermission() === 'unsupported') {
+      setRemState('unsupported');
       return;
     }
     const ok = await requestReminderPermission();
     if (ok) {
       await registerSW();
-      setRemOn(true);
+      setRemState('on');
       setSettings({ reminders: true });
       HAPTIC.success();
     } else {
-      setRemDenied(reminderPermission() === 'denied');
+      setRemState(reminderPermission() === 'denied' ? 'denied' : 'off');
     }
   };
 
@@ -278,13 +293,9 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
         <button className="li" onClick={() => void toggleReminders()}>
           <div>
             <div className="li-k">Due-date reminders</div>
-            <div className="li-s">
-              {remDenied
-                ? 'Blocked — enable notifications for this app in your settings'
-                : 'A heads-up when a bill is due in the next couple of days'}
-            </div>
+            <div className="li-s">{remSub[remState]}</div>
           </div>
-          <span className="switch" data-on={remOn} aria-hidden="true">
+          <span className="switch" data-on={remState === 'on'} aria-hidden="true">
             <i />
           </span>
         </button>
