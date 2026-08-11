@@ -108,7 +108,9 @@ export default function LoginScreen() {
           className="btn btn-key"
           type="submit"
           disabled={!canSubmit}
-          style={{ opacity: canSubmit ? 1 : 0.5, width: '100%' }}
+          // `.btn` uses flex:1 for the sheet's button row; in this column it
+          // would collapse to text height, so pin an explicit height here.
+          style={{ opacity: canSubmit ? 1 : 0.5, width: '100%', flex: 'none', height: 54 }}
         >
           {busy ? 'Please wait…' : 'Log in'}
         </button>
