@@ -71,6 +71,8 @@ export default function HomeView({
     }
   };
 
+  const [reordering, setReordering] = useState(false);
+
   const commitSalary = () => {
     const n = parseFloat(salaryText.replace(/[^0-9.]/g, ""));
     setSalary(Number.isFinite(n) ? n : 0);
@@ -176,7 +178,16 @@ export default function HomeView({
 
       <div className="section-head">
         <h2>Outgoings</h2>
-        <span className="count">{money(totals.total)} total</span>
+        {totals.count > 1 ? (
+          <button
+            className={"reorder-toggle" + (reordering ? " active" : "")}
+            onClick={() => setReordering((v) => !v)}
+          >
+            {reordering ? "Done" : "Reorder"}
+          </button>
+        ) : (
+          <span className="count">{money(totals.total)} total</span>
+        )}
       </div>
 
       {totals.count === 0 ? (
@@ -198,6 +209,7 @@ export default function HomeView({
               item={it}
               onToggle={() => togglePaid(it.id)}
               onEdit={() => openEdit(it)}
+              active={reordering}
             />
           ))}
         </Reorder.Group>

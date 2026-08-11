@@ -573,6 +573,36 @@ textarea {
   color: var(--text-dim);
   font-weight: 600;
 }
+.reorder-toggle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  padding: 5px 13px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  transition: transform 0.15s var(--ease);
+}
+.reorder-toggle:active {
+  transform: scale(0.94);
+}
+.reorder-toggle.active {
+  color: #08122b;
+  background: linear-gradient(120deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+}
+.row.reordering {
+  cursor: grab;
+  border-color: var(--glass-hi);
+}
+.row-grip {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: var(--text-faint);
+}
 
 /* ---------- Outgoing rows ---------- */
 .list {

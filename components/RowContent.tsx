@@ -9,25 +9,16 @@ export default function RowContent({
   item,
   onToggle,
   onEdit,
-  dragHandle,
+  showGrip,
 }: {
   item: Outgoing;
   onToggle: () => void;
   onEdit: () => void;
-  dragHandle?: (e: React.PointerEvent) => void;
+  showGrip?: boolean;
 }) {
   const initial = (item.name.trim()[0] ?? "?").toUpperCase();
   return (
     <>
-      {dragHandle && (
-        <button
-          className="drag-handle"
-          aria-label="Drag to reorder"
-          onPointerDown={dragHandle}
-        >
-          <Grip size={18} />
-        </button>
-      )}
       <button className="row-tap" onClick={onEdit} aria-label={`Edit ${item.name}`}>
         <span
           className="row-tile"
@@ -53,15 +44,21 @@ export default function RowContent({
         <span className="amt tnum">{money(item.amount, item.currency)}</span>
       </button>
 
-      <button
-        className={"check" + (item.paid ? " on" : "")}
-        onClick={onToggle}
-        role="checkbox"
-        aria-checked={item.paid}
-        aria-label={item.paid ? `Mark ${item.name} unpaid` : `Mark ${item.name} paid`}
-      >
-        <Check size={16} />
-      </button>
+      {showGrip ? (
+        <span className="row-grip" aria-hidden>
+          <Grip size={20} />
+        </span>
+      ) : (
+        <button
+          className={"check" + (item.paid ? " on" : "")}
+          onClick={onToggle}
+          role="checkbox"
+          aria-checked={item.paid}
+          aria-label={item.paid ? `Mark ${item.name} unpaid` : `Mark ${item.name} paid`}
+        >
+          <Check size={16} />
+        </button>
+      )}
     </>
   );
 }
