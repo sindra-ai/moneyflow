@@ -12,11 +12,11 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
   },
   icons: {
-    // Freshly-named files (v3) rather than a ?v= query — Safari caches
-    // favicons by path and ignores query strings, so a new path is the only
-    // reliable way to force it to refetch the restored dark icon.
-    icon: '/icons/app-icon-v3-192.png',
-    apple: '/icons/touch-icon-v3-180.png',
+    // v4: opaque, full-bleed dark icons (no alpha) so iOS can't composite the
+    // transparent corners onto white. Fresh path also defeats Safari's
+    // path-keyed favicon cache.
+    icon: '/icons/app-icon-v4-192.png',
+    apple: '/icons/touch-icon-v4-180.png',
   },
   formatDetection: { telephone: false },
 };
