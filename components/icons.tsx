@@ -132,15 +132,29 @@ export const Trash = (p: P) => (
   </Base>
 );
 
-export const Sparkle = (p: P) => (
-  <Base {...p}>
-    <path d="M12 3.5c.6 3.7 1.8 4.9 5.5 5.5-3.7.6-4.9 1.8-5.5 5.5-.6-3.7-1.8-4.9-5.5-5.5 3.7-.6 4.9-1.8 5.5-5.5Z" />
-    <path d="M18.5 14.5c.3 1.7.9 2.3 2.5 2.5-1.6.3-2.2.9-2.5 2.5-.3-1.6-.9-2.2-2.5-2.5 1.6-.2 2.2-.8 2.5-2.5Z" />
-  </Base>
+// Filled, symmetric 4-point star centred on (12,12) so it sits dead-centre.
+export const Sparkle = ({ size = 20, ...rest }: P) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    aria-hidden="true"
+    {...rest}
+  >
+    <path d="M12 3.5c.9 5.6 2.9 7.6 8.5 8.5-5.6.9-7.6 2.9-8.5 8.5-.9-5.6-2.9-7.6-8.5-8.5 5.6-.9 7.6-2.9 8.5-8.5Z" />
+  </svg>
 );
 
 export const Send = (p: P) => (
   <Base {...p}>
     <path d="M4 12 20 4l-4 16-4-7-8-1Z" />
+  </Base>
+);
+
+export const Mic = (p: P) => (
+  <Base {...p}>
+    <rect x="9" y="2.5" width="6" height="11.5" rx="3" />
+    <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" />
   </Base>
 );

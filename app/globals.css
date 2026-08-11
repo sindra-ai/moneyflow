@@ -2158,3 +2158,65 @@ input {
 .ai-send:disabled {
   opacity: 0.4;
 }
+
+/* ------------------------------------------------ AI button pulse + mic -- */
+
+.ai-open {
+  color: var(--a2);
+  overflow: visible;
+}
+
+/* Gentle breathing glow so the assistant reads as "alive". */
+.ai-open svg {
+  animation: aiPulse 2.6s var(--ease) infinite;
+}
+
+@keyframes aiPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    transform: scale(1.14);
+    filter: drop-shadow(0 0 7px var(--a2));
+  }
+}
+
+.ai-mic {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--fill-2);
+  color: var(--ink-2);
+  transition:
+    transform 0.2s var(--spring),
+    background 0.2s,
+    color 0.2s;
+}
+
+.ai-mic:active {
+  transform: scale(0.9);
+}
+
+/* Recording: turns red and emits a radar pulse. */
+.ai-mic.on {
+  background: var(--bad);
+  color: #fff;
+  animation: micPulse 1.3s ease-out infinite;
+}
+
+@keyframes micPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 117, 145, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(255, 117, 145, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 117, 145, 0);
+  }
+}

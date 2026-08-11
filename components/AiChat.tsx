@@ -6,7 +6,19 @@ import { money, monthLabel } from '@/lib/format';
 import { HAPTIC } from '@/lib/haptics';
 import { ACCENTS, CATEGORIES, type Category } from '@/lib/types';
 import { useToast } from './Toast';
-import { Close, Send, Sparkle } from './icons';
+import { Close, Mic, Send, Sparkle } from './icons';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+interface SpeechRec {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((e: any) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
 
 const CLOSE_MS = 460;
 
@@ -46,6 +58,47 @@ export function AiChat({ onClose }: { onClose: () => void }) {
   const threadRef = useRef<HTMLDivElement>(null);
   const closing = useRef(false);
   const timer = useRef<number | null>(null);
+
+  // Voice dictation (Web Speech API — where the browser supports it)
+  const recRef = useRef<SpeechRec | null>(null);
+  const [listening, setListening] = useState(false);
+  const [micOk, setMicOk] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    setMicOk(!!SR);
+    return () => recRef.current?.stop();
+  }, []);
+
+  const toggleMic = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    if (listening) {
+      recRef.current?.stop();
+      return;
+    }
+    const rec: SpeechRec = new SR();
+    rec.lang = 'en-GB';
+    rec.interimResults = true;
+    rec.continuous = false;
+    const base = input.trim() ? input.trim() + ' ' : '';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => {
+      let t = '';
+      for (let i = e.resultIndex; i < e.results.length; i += 1) t += e.results[i][0].transcript;
+      setInput(base + t);
+    };
+    rec.onend = () => {
+      setListening(false);
+      recRef.current = null;
+    };
+    rec.onerror = () => setListening(false);
+    recRef.current = rec;
+    setListening(true);
+    HAPTIC.light();
+    rec.start();
+  };
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setOpen(true));
@@ -242,13 +295,24 @@ export function AiChat({ onClose }: { onClose: () => void }) {
           className="ai-bar"
           onSubmit={(e) => {
             e.preventDefault();
+            recRef.current?.stop();
             void send(input);
           }}
         >
+          {micOk && (
+            <button
+              type="button"
+              className={`ai-mic${listening ? ' on' : ''}`}
+              onClick={toggleMic}
+              aria-label={listening ? 'Stop dictation' : 'Speak'}
+            >
+              <Mic size={18} />
+            </button>
+          )}
           <input
             className="ai-input"
             value={input}
-            placeholder="Ask or tell me to change something…"
+            placeholder={listening ? 'Listening…' : 'Ask or tell me to change something…'}
             autoComplete="off"
             onChange={(e) => setInput(e.target.value)}
           />
