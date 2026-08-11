@@ -13,7 +13,7 @@ import { Sparkline } from './Sparkline';
 import { Ledger } from './Ledger';
 import { Celebration } from './Celebration';
 import { useToast } from './Toast';
-import { CheckAll, Plus, Rotate } from './icons';
+import { CheckAll, Plus, Rotate, Wallet } from './icons';
 
 interface Props {
   scrollerRef: RefObject<HTMLDivElement>;
@@ -140,8 +140,10 @@ export function HomeView({ scrollerRef, onAdd, onEdit }: Props) {
 
         {untilPay !== null && (
           <div className="payday">
-            <span className="payday-dot" aria-hidden="true" />
-            {untilPay === 0 ? 'Payday today 🎉' : `Payday in ${untilPay} day${untilPay === 1 ? '' : 's'}`}
+            <Wallet size={17} />
+            <span>
+              {untilPay === 0 ? 'Payday today' : `Payday in ${untilPay} day${untilPay === 1 ? '' : 's'}`}
+            </span>
           </div>
         )}
 

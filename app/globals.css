@@ -1855,12 +1855,14 @@ input {
 /* --------------------------------------------------------- payday pill -- */
 
 .payday {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 12px 4px 0;
-  padding: 8px 14px;
-  border-radius: 999px;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 13px 16px;
+  border-radius: var(--r-sm);
   background: var(--fill-1);
   border: 1px solid var(--hair);
   font: var(--t-meta);
@@ -1868,12 +1870,8 @@ input {
   color: var(--ink-2);
 }
 
-.payday-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--good);
-  box-shadow: 0 0 10px 1px var(--good);
+.payday svg {
+  color: var(--a2);
 }
 
 /* ------------------------------------------------------------- search -- */

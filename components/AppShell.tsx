@@ -46,16 +46,7 @@ export function AppShell() {
     };
   }, [ready, session]);
 
-  // Auth gate — keep v1's cloud login in front of the new UI.
-  if (loading) {
-    return (
-      <div className="boot">
-        <Logo size={56} />
-      </div>
-    );
-  }
-  if (!session) return <LoginScreen />;
-
+  // Wait for the local store (which holds the PIN) to hydrate first.
   if (!ready) {
     return (
       <div className="boot">
@@ -64,7 +55,10 @@ export function AppShell() {
     );
   }
 
-  // App-lock gate — PIN (and optional Face ID) before the data is shown.
+  // App-lock is the everyday front door: when a PIN is set, ask for it (or
+  // Face ID) straight away — before the email login. The Supabase session
+  // persists in the browser, so unlocking is all that's needed day to day;
+  // the email login below only appears the one time there's no session yet.
   if (store.settings.lockEnabled && store.settings.lockPin && !unlocked) {
     return (
       <LockScreen
@@ -74,6 +68,16 @@ export function AppShell() {
       />
     );
   }
+
+  // Auth gate — cloud login, needed once per device to establish the session.
+  if (loading) {
+    return (
+      <div className="boot">
+        <Logo size={56} />
+      </div>
+    );
+  }
+  if (!session) return <LoginScreen />;
 
   const openEdit = (item: Outgoing) => setEditor({ item });
 
