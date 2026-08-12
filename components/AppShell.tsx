@@ -13,7 +13,6 @@ import { HomeView } from './HomeView';
 import { CalendarView } from './CalendarView';
 import { SpendingView } from './SpendingView';
 import { ProfileView } from './ProfileView';
-import { completeConnect, hasPendingConnect } from '@/lib/bankClient';
 import { ItemEditor, type EditorTarget } from './ItemEditor';
 import { AiChat } from './AiChat';
 import { Moon, Sparkle, Sun } from './icons';
@@ -33,22 +32,20 @@ export function AppShell() {
     void registerSW();
   }, []);
 
-  // Handle the return from the bank's OAuth screen (?code=…): finish the
-  // connection, clean the URL, and drop the user on the Spending tab.
+  // Handle the return from the bank's OAuth screen. TrueLayer sends back a
+  // ?code (success) or ?error (declined/blocked). We hand it to SpendingView
+  // to finish the exchange and show any error — no fragile session flag.
+  const [bankCode, setBankCode] = useState<string | null>(null);
+  const [bankError, setBankError] = useState<string | null>(null);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
-    if (!code || !hasPendingConnect()) return;
-    (async () => {
-      try {
-        await completeConnect(code);
-      } catch {
-        /* SpendingView will surface a reconnect prompt */
-      } finally {
-        window.history.replaceState({}, '', window.location.pathname);
-        setTab('spending');
-      }
-    })();
+    const err = params.get('error');
+    if (!code && !err) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    if (code) setBankCode(code);
+    if (err) setBankError(err);
+    setTab('spending');
   }, []);
 
   // Surface any bills due soon shortly after load (giving cloud sync a moment
@@ -128,6 +125,8 @@ export function AppShell() {
           scrollerRef={scrollerRef}
           onAdd={() => setEditor({ item: null })}
           onEdit={openEdit}
+          bankCode={bankCode}
+          bankError={bankError}
         />
 
         <BottomNav tab={tab} onChange={setTab} />
@@ -154,14 +153,19 @@ function Views({
   scrollerRef,
   onAdd,
   onEdit,
+  bankCode,
+  bankError,
 }: {
   tab: Tab;
   scrollerRef: React.RefObject<HTMLDivElement>;
   onAdd: () => void;
   onEdit: (item: Outgoing) => void;
+  bankCode: string | null;
+  bankError: string | null;
 }) {
   if (tab === 'calendar') return <CalendarView scrollerRef={scrollerRef} onEdit={onEdit} />;
-  if (tab === 'spending') return <SpendingView scrollerRef={scrollerRef} />;
+  if (tab === 'spending')
+    return <SpendingView scrollerRef={scrollerRef} initialCode={bankCode} initialError={bankError} />;
   if (tab === 'profile') return <ProfileView scrollerRef={scrollerRef} />;
   return <HomeView scrollerRef={scrollerRef} onAdd={onAdd} onEdit={onEdit} />;
 }

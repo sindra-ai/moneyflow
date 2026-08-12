@@ -7,6 +7,7 @@ import { CAT_ACCENT, type SpendCat } from '@/lib/spend';
 import {
   beginConnect,
   clearConn,
+  completeConnect,
   getConn,
   loadTransactions,
   saveConn,
@@ -21,17 +22,48 @@ function startOfWeek(d: Date): number {
   return s.getTime();
 }
 
-export function SpendingView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivElement> }) {
+export function SpendingView({
+  scrollerRef,
+  initialCode,
+  initialError,
+}: {
+  scrollerRef: RefObject<HTMLDivElement>;
+  initialCode?: string | null;
+  initialError?: string | null;
+}) {
   const [conn, setConn] = useState<BankConn | null>(null);
   const [txns, setTxns] = useState<Txn[]>([]);
   const [loading, setLoading] = useState(false);
+  const [connecting, setConnecting] = useState(!!initialCode);
   const [needsKeys, setNeedsKeys] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    initialError ? `Halifax returned: ${initialError}` : null,
+  );
   const [confirmDc, setConfirmDc] = useState(false);
   const loadedFor = useRef<string>('');
+  const codeUsed = useRef(false);
 
+  // On first mount: either finish an OAuth return (?code) or load the saved
+  // connection. Any failure is shown, not swallowed.
   useEffect(() => {
-    setConn(getConn());
+    if (initialCode && !codeUsed.current) {
+      codeUsed.current = true;
+      (async () => {
+        setConnecting(true);
+        setError(null);
+        try {
+          setConn(await completeConnect(initialCode));
+        } catch (e) {
+          setError(`Couldn’t finish connecting — ${(e as Error).message}`);
+          setConn(getConn());
+        } finally {
+          setConnecting(false);
+        }
+      })();
+    } else {
+      setConn(getConn());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const refresh = useCallback(async (c: BankConn) => {
@@ -110,8 +142,10 @@ export function SpendingView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEl
           <div className="sp-orb">
             <Wallet size={30} />
           </div>
-          <h3>Track your spending</h3>
-          {needsKeys ? (
+          <h3>{connecting ? 'Connecting…' : 'Track your spending'}</h3>
+          {connecting ? (
+            <p>Finishing the secure connection to your bank…</p>
+          ) : needsKeys ? (
             <p>
               Add your TrueLayer keys (<code>TRUELAYER_CLIENT_ID</code> /{' '}
               <code>TRUELAYER_CLIENT_SECRET</code>) in Vercel and redeploy, then connect.
@@ -123,13 +157,13 @@ export function SpendingView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEl
             </p>
           )}
           {error && <div className="sp-err">{error}</div>}
-          {!needsKeys && (
+          {!needsKeys && !connecting && (
             <button
               className="btn btn-key"
               style={{ width: '100%', flex: 'none', height: 54 }}
               onClick={() => void connect()}
             >
-              Connect your bank
+              {error ? 'Try again' : 'Connect your bank'}
             </button>
           )}
         </div>
