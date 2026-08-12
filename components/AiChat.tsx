@@ -141,9 +141,49 @@ export function AiChat({ onClose }: { onClose: () => void }) {
         category: it.category,
         paid: it.paid,
         recurring: it.recurring,
+        accent: it.accent,
       })),
       totals: { total: t.total, paid: t.paid, left: t.left, leftOver: t.leftOver },
     };
+  };
+
+  // Map a colour name (or #hex) onto the app's accent palette.
+  const COLOR_MAP: Record<string, string> = {
+    blue: '#7c9cff',
+    periwinkle: '#7c9cff',
+    indigo: '#7c9cff',
+    purple: '#b98bff',
+    violet: '#b98bff',
+    lavender: '#b98bff',
+    green: '#4be3a8',
+    mint: '#4be3a8',
+    emerald: '#4be3a8',
+    yellow: '#ffd166',
+    amber: '#ffd166',
+    gold: '#ffd166',
+    pink: '#ff6b8b',
+    red: '#ff6b8b',
+    rose: '#ff6b8b',
+    coral: '#ff6b8b',
+    crimson: '#ff6b8b',
+    cyan: '#5ad2f4',
+    teal: '#5ad2f4',
+    sky: '#5ad2f4',
+    turquoise: '#5ad2f4',
+    orange: '#ff9f6b',
+    peach: '#ff9f6b',
+    lime: '#a0e86f',
+    magenta: '#f78bd0',
+    fuchsia: '#f78bd0',
+    grey: '#c0c6e0',
+    gray: '#c0c6e0',
+    silver: '#c0c6e0',
+    white: '#c0c6e0',
+  };
+  const resolveColor = (c: unknown): string => {
+    const s = String(c ?? '').trim().toLowerCase();
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(s)) return s;
+    return COLOR_MAP[s] || ACCENTS[0];
   };
 
   const applyActions = (actions: { name: string; input: Record<string, unknown> }[]): number => {
@@ -169,10 +209,25 @@ export function AiChat({ onClose }: { onClose: () => void }) {
         case 'update_item': {
           if (!inp.id) break;
           const patch: Record<string, unknown> = {};
-          for (const k of ['name', 'amount', 'dueDay', 'note', 'category', 'recurring']) {
-            if (inp[k] !== undefined) patch[k] = k === 'category' ? asCat(inp[k]) : inp[k];
+          for (const k of ['name', 'amount', 'dueDay', 'note', 'category', 'recurring', 'accent']) {
+            if (inp[k] === undefined) continue;
+            patch[k] =
+              k === 'category' ? asCat(inp[k]) : k === 'accent' ? resolveColor(inp[k]) : inp[k];
           }
           updateItem(String(inp.id), patch);
+          break;
+        }
+        case 'recolor_items': {
+          const color = resolveColor(inp.color);
+          const ids = Array.isArray(inp.ids) ? (inp.ids as string[]) : null;
+          const targets = month.items.filter((it) =>
+            ids && ids.length
+              ? ids.includes(it.id)
+              : inp.category
+                ? it.category === asCat(inp.category)
+                : true,
+          );
+          for (const it of targets) updateItem(it.id, { accent: color });
           break;
         }
         case 'delete_item':

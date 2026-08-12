@@ -14,6 +14,7 @@ interface SnapItem {
   category: string;
   paid: boolean;
   recurring: boolean;
+  accent: string;
 }
 interface Snapshot {
   monthKey: string;
@@ -54,8 +55,29 @@ const tools = [
         note: { type: 'string' },
         category: { type: 'string', enum: CATEGORIES },
         recurring: { type: 'boolean' },
+        accent: {
+          type: 'string',
+          description: "Icon colour — a name like 'pink'/'blue'/'green' or a #hex value",
+        },
       },
       required: ['id'],
+    },
+  },
+  {
+    name: 'recolor_items',
+    description:
+      "Change the icon colour of many outgoings at once. Omit both category and ids to recolour EVERY item (use this for 'all bills'/'all outgoings'). Pass category to recolour just one group, or ids for specific ones.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        color: {
+          type: 'string',
+          description: "Colour name like 'pink'/'blue'/'green'/'purple' or a #hex value",
+        },
+        category: { type: 'string', enum: CATEGORIES },
+        ids: { type: 'array', items: { type: 'string' } },
+      },
+      required: ['color'],
     },
   },
   {
@@ -105,6 +127,8 @@ ${JSON.stringify(snap)}
 Notes:
 - To change or remove an item, use its "id" from the data above.
 - Categories must be one of: ${CATEGORIES.join(', ')}.
+- Each item has an "accent" — the colour of its round icon. To recolour one item use update_item with "accent"; to recolour many at once use recolor_items. Colours can be plain names (pink, blue, green, purple, yellow, orange, cyan, lime, grey) or a #hex.
+- "bills", "outgoings" and "everything" all mean ALL items unless the user names a specific category. So "make all the bill icons pink" = recolor_items with color "pink" and no category.
 - "left" is still-to-pay this month; "leftOver" is salary minus total outgoings.
 - If a request is ambiguous (e.g. which of two similar items), ask a brief clarifying question instead of guessing.`;
 }
