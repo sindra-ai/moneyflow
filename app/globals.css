@@ -2422,3 +2422,64 @@ input {
   border-color: var(--a2);
   color: var(--ink);
 }
+
+/* --------------------------------------- spending: account cards (v2) --- */
+
+.acct-card {
+  position: relative;
+  touch-action: pan-x;
+  transition:
+    transform 0.34s var(--spring),
+    opacity 0.25s,
+    box-shadow 0.2s;
+}
+
+.acct-row[data-dragging='true'] {
+  touch-action: none;
+}
+
+.acct-card.slide {
+  transition: transform 0.34s var(--spring);
+}
+
+/* Held card lifts and follows the finger 1:1 (no transition), with a glow. */
+.acct-card.lift {
+  z-index: 5;
+  transition: none;
+  border-color: transparent;
+  box-shadow:
+    0 22px 44px -14px rgba(0, 0, 0, 0.7),
+    0 0 0 1.5px rgba(150, 132, 255, 0.6),
+    0 0 30px -6px rgba(150, 132, 255, 0.45);
+  cursor: grabbing;
+}
+
+.acct-card[data-off='true'] {
+  opacity: 0.4;
+}
+
+.acct-toggle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--fill-3);
+  border: 1.5px solid var(--edge);
+  color: var(--on-accent);
+  transition:
+    background 0.2s,
+    transform 0.2s var(--spring);
+}
+
+.acct-toggle:active {
+  transform: scale(0.85);
+}
+
+.acct-toggle[data-on='true'] {
+  background: var(--accent);
+  border-color: transparent;
+}

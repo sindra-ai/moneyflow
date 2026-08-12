@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { useStore } from '@/lib/store';
 import { money } from '@/lib/format';
 import { HAPTIC } from '@/lib/haptics';
+import { bankLogo } from '@/lib/bankLogos';
 import { CAT_ACCENT, type SpendCat } from '@/lib/spend';
 import {
   beginConnect,
@@ -16,12 +17,23 @@ import {
   type BankConn,
   type Txn,
 } from '@/lib/bankClient';
-import { Plus, Rotate, Wallet } from './icons';
+import { Check, Plus, Rotate, Wallet } from './icons';
 
 function startOfWeek(d: Date): number {
   const day = (d.getDay() + 6) % 7; // Monday = 0
   const s = new Date(d.getFullYear(), d.getMonth(), d.getDate() - day);
   return s.getTime();
+}
+
+const HOLD_TOUCH = 240;
+const HOLD_MOUSE = 150;
+const CARD_GAP = 12;
+
+interface Drag {
+  from: number;
+  to: number;
+  dx: number;
+  w: number;
 }
 
 export function SpendingView({
@@ -47,6 +59,8 @@ export function SpendingView({
   const [confirmDc, setConfirmDc] = useState(false);
   const loadedFor = useRef<string>('');
   const codeUsed = useRef(false);
+  const connRef = useRef(conn);
+  connRef.current = conn;
 
   // Finish an OAuth return (?code) once. Any failure is shown, not swallowed.
   useEffect(() => {
@@ -66,7 +80,7 @@ export function SpendingView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load transactions; persist any rotated tokens back to the synced store.
+  // Load ALL accounts' transactions; persist rotated tokens back to the store.
   const load = useCallback(
     async (c: BankConn, force = false) => {
       setLoading(true);
@@ -94,9 +108,11 @@ export function SpendingView({
     [onSeen, setBank],
   );
 
+  // Re-fetch only when the connection (not the selection or order) changes.
   useEffect(() => {
-    if (conn && loadedFor.current !== conn.connectedAt + conn.selected.join()) {
-      loadedFor.current = conn.connectedAt + conn.selected.join();
+    const key = conn ? conn.connectedAt + '|' + conn.accounts.map((a) => a.id).join() : '';
+    if (conn && loadedFor.current !== key) {
+      loadedFor.current = key;
       void load(conn);
     }
   }, [conn, load]);
@@ -123,8 +139,117 @@ export function SpendingView({
     setConfirmDc(false);
   };
 
-  /* -------- derived spend figures -------- */
-  const spend = txns.filter((t) => t.amount < 0);
+  // Include/exclude an account from the view (clear, explicit toggle).
+  const toggleSelected = (id: string) => {
+    if (!conn) return;
+    HAPTIC.select();
+    const selected = conn.selected.includes(id)
+      ? conn.selected.filter((x) => x !== id)
+      : [...conn.selected, id];
+    if (selected.length === 0) return; // keep at least one on
+    setBank({ ...conn, selected });
+  };
+
+  /* ------------------------------------------------- drag to reorder cards */
+
+  const [drag, setDrag] = useState<Drag | null>(null);
+  const dragRef = useRef<Drag | null>(null);
+  dragRef.current = drag;
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const centers = useRef<number[]>([]);
+  const startX = useRef(0);
+  const hold = useRef<number | null>(null);
+
+  const clearHold = () => {
+    if (hold.current) {
+      window.clearTimeout(hold.current);
+      hold.current = null;
+    }
+  };
+  useEffect(() => () => clearHold(), []);
+
+  const beginDrag = (i: number) => {
+    const el = cardRefs.current[i];
+    if (!el) return;
+    centers.current = cardRefs.current.map((c) => {
+      const b = c?.getBoundingClientRect();
+      return b ? b.left + b.width / 2 : 0;
+    });
+    HAPTIC.select();
+    setDrag({ from: i, to: i, dx: 0, w: el.getBoundingClientRect().width + CARD_GAP });
+  };
+
+  const armTouch = (e: React.TouchEvent, i: number) => {
+    if ((e.target as HTMLElement).closest('.acct-toggle')) return;
+    startX.current = e.touches[0].clientX;
+    clearHold();
+    hold.current = window.setTimeout(() => beginDrag(i), HOLD_TOUCH);
+  };
+  const moveTouch = (e: React.TouchEvent) => {
+    if (dragRef.current) return;
+    if (Math.abs(e.touches[0].clientX - startX.current) > 9) clearHold();
+  };
+  const armMouse = (e: React.MouseEvent, i: number) => {
+    if (e.button !== 0) return;
+    if ((e.target as HTMLElement).closest('.acct-toggle')) return;
+    startX.current = e.clientX;
+    clearHold();
+    hold.current = window.setTimeout(() => beginDrag(i), HOLD_MOUSE);
+  };
+
+  // One loop owns follow-the-finger + commit, for touch and mouse alike.
+  useEffect(() => {
+    if (!drag) return;
+    const move = (e: TouchEvent | MouseEvent) => {
+      const cur = dragRef.current;
+      if (!cur) return;
+      const x = 'touches' in e ? e.touches[0]?.clientX : (e as MouseEvent).clientX;
+      if (x == null) return;
+      if ('touches' in e) e.preventDefault(); // block the row scroll while dragging
+      const dx = x - startX.current;
+      const mid = centers.current[cur.from] + dx;
+      let to = cur.from;
+      while (to > 0 && mid < centers.current[to - 1]) to -= 1;
+      while (to < centers.current.length - 1 && mid > centers.current[to + 1]) to += 1;
+      if (to !== cur.to) HAPTIC.light();
+      setDrag({ ...cur, dx, to });
+    };
+    const end = () => {
+      const cur = dragRef.current;
+      const c = connRef.current;
+      if (cur && c && cur.to !== cur.from) {
+        const next = c.accounts.slice();
+        const [moved] = next.splice(cur.from, 1);
+        next.splice(cur.to, 0, moved);
+        HAPTIC.success();
+        setBank({ ...c, accounts: next });
+      }
+      setDrag(null);
+    };
+    document.addEventListener('touchmove', move, { passive: false });
+    document.addEventListener('touchend', end);
+    document.addEventListener('touchcancel', end);
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', end);
+    return () => {
+      document.removeEventListener('touchmove', move);
+      document.removeEventListener('touchend', end);
+      document.removeEventListener('touchcancel', end);
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', end);
+    };
+  }, [drag !== null, setBank]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const shiftFor = (i: number): number => {
+    if (!drag || i === drag.from) return 0;
+    if (drag.to > drag.from && i > drag.from && i <= drag.to) return -drag.w;
+    if (drag.to < drag.from && i >= drag.to && i < drag.from) return drag.w;
+    return 0;
+  };
+
+  /* -------- derived spend figures (only the SELECTED accounts count) -------- */
+  const shown = conn ? txns.filter((t) => conn.selected.includes(t.accountId)) : [];
+  const spend = shown.filter((t) => t.amount < 0);
   const now = new Date();
   const weekStart = startOfWeek(now);
   const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -195,25 +320,61 @@ export function SpendingView({
               <Rotate size={16} />
             </button>
           </div>
-          <div className="acct-row">
-            {conn.accounts.map((a) => (
-              <div className="acct-card" key={a.id}>
-                <div className="acct-logo">
-                  {a.providerLogo ? (
-                    <img src={a.providerLogo} alt="" draggable={false} />
-                  ) : (
-                    <Wallet size={18} />
-                  )}
-                </div>
-                <div className="acct-info">
-                  <div className="acct-name">{a.name}</div>
-                  <div className="acct-meta">
-                    {a.provider || 'Account'}
-                    {a.sortLast4 ? ` ·${a.sortLast4}` : ''}
+          <div className="acct-row" data-dragging={!!drag}>
+            {conn.accounts.map((a, i) => {
+              const on = conn.selected.includes(a.id);
+              const dragging = drag?.from === i;
+              const logo = bankLogo(a.provider, a.providerLogo);
+              return (
+                <div
+                  key={a.id}
+                  ref={(el) => {
+                    cardRefs.current[i] = el;
+                  }}
+                  className={`acct-card${dragging ? ' lift' : ''}${!dragging && drag ? ' slide' : ''}`}
+                  data-off={!on}
+                  style={{
+                    transform: dragging
+                      ? `translateX(${drag!.dx}px) scale(1.04)`
+                      : shiftFor(i)
+                        ? `translateX(${shiftFor(i)}px)`
+                        : undefined,
+                  }}
+                  onTouchStart={(e) => armTouch(e, i)}
+                  onTouchMove={moveTouch}
+                  onTouchEnd={clearHold}
+                  onMouseDown={(e) => armMouse(e, i)}
+                  onMouseUp={clearHold}
+                  onMouseLeave={clearHold}
+                >
+                  <button
+                    className="acct-toggle"
+                    data-on={on}
+                    aria-label={on ? `Hide ${a.name}` : `Show ${a.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSelected(a.id);
+                    }}
+                  >
+                    {on && <Check size={12} />}
+                  </button>
+                  <div className="acct-logo">
+                    {logo ? (
+                      <img src={logo} alt="" draggable={false} />
+                    ) : (
+                      <Wallet size={18} />
+                    )}
+                  </div>
+                  <div className="acct-info">
+                    <div className="acct-name">{a.name}</div>
+                    <div className="acct-meta">
+                      {a.provider || 'Account'}
+                      {a.sortLast4 ? ` ·${a.sortLast4}` : ''}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <button className="acct-add" onClick={() => void connect()}>
               <Plus size={18} />
               Add account
@@ -248,21 +409,21 @@ export function SpendingView({
 
           <div className="sec">
             <h3>Transactions</h3>
-            <span className="n">{txns.length}</span>
+            <span className="n">{shown.length}</span>
           </div>
           {error && <div className="sp-err">{error}</div>}
-          {loading && txns.length === 0 ? (
+          {loading && shown.length === 0 ? (
             <div className="blank">
               <p>Loading your transactions…</p>
             </div>
-          ) : txns.length === 0 ? (
+          ) : shown.length === 0 ? (
             <div className="blank">
               <h4>Nothing yet</h4>
               <p>New transactions appear here after they clear at your bank.</p>
             </div>
           ) : (
             <div className="group">
-              {txns.map((t) => (
+              {shown.map((t) => (
                 <div className="swipe" key={t.id}>
                   <div className="row">
                     <div

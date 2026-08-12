@@ -122,12 +122,14 @@ async function ensureFresh(conn: BankConn): Promise<BankConn> {
   };
 }
 
-/** Load transactions. Returns the txns and the (possibly refreshed) conn. */
+/** Load transactions for ALL connected accounts (the view filters by the
+ *  `selected` set client-side, so toggling accounts is instant, no re-fetch).
+ *  Returns the txns and the (possibly refreshed) conn. */
 export async function loadTransactions(conn: BankConn): Promise<{ txns: Txn[]; conn: BankConn }> {
   const fresh = await ensureFresh(conn);
   const r = await post<{ transactions?: Txn[]; error?: string }>('/api/bank/transactions', {
     accessToken: fresh.tokens.accessToken,
-    accountIds: fresh.selected,
+    accountIds: fresh.accounts.map((a) => a.id),
   });
   if (r.error) throw new Error(r.error);
   return { txns: r.transactions ?? [], conn: fresh };
