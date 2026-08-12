@@ -35,6 +35,18 @@ const SUGGESTIONS = [
   'Where could I cut back?',
 ];
 
+// Render the small bit of markdown the model uses (**bold**); newlines are
+// preserved by white-space: pre-wrap on the bubble.
+function renderRich(text: string) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((p, i) =>
+    p.startsWith('**') && p.endsWith('**') ? (
+      <strong key={i}>{p.slice(2, -2)}</strong>
+    ) : (
+      <span key={i}>{p}</span>
+    ),
+  );
+}
+
 export function AiChat({ onClose }: { onClose: () => void }) {
   const {
     month,
@@ -392,7 +404,7 @@ export function AiChat({ onClose }: { onClose: () => void }) {
 
           {msgs.map((m, i) => (
             <div key={i} className={`ai-msg ${m.role}`}>
-              {m.content}
+              {m.role === 'assistant' ? renderRich(m.content) : m.content}
             </div>
           ))}
 
