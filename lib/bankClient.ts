@@ -18,9 +18,19 @@ const SEEN_KEY = 'moneyflow:bank:seen';
 
 /* -------- device-local cache + unread tracking (for the "new" dot) -------- */
 
+/** Merge new transactions into the cache (newest first, deduped by id, capped)
+ *  so the deep history from the first connection is kept even when later
+ *  background pulls only return the recent window. */
 export function cacheTxns(txns: Txn[]) {
   try {
-    localStorage.setItem(TXN_KEY, JSON.stringify({ at: Date.now(), txns }));
+    const prev = getCachedTxns()?.txns ?? [];
+    const byId = new Map<string, Txn>();
+    for (const t of prev) byId.set(t.id, t);
+    for (const t of txns) byId.set(t.id, t); // fresh copy wins
+    const merged = [...byId.values()]
+      .sort((a, b) => (a.date < b.date ? 1 : -1))
+      .slice(0, 4000);
+    localStorage.setItem(TXN_KEY, JSON.stringify({ at: Date.now(), txns: merged }));
   } catch {
     /* ignore */
   }

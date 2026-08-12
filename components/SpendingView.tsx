@@ -425,7 +425,8 @@ export function SpendingView({
             </div>
           ) : (
             <div className="group">
-              {shown.map((t) => (
+              {/* Render a window for performance; totals above still use all. */}
+              {shown.slice(0, 250).map((t) => (
                 <div className="swipe" key={t.id}>
                   <div className="row">
                     <div
@@ -451,6 +452,9 @@ export function SpendingView({
                   </div>
                 </div>
               ))}
+              {shown.length > 250 && (
+                <div className="sp-more">Showing the latest 250 of {shown.length}</div>
+              )}
             </div>
           )}
 

@@ -128,7 +128,7 @@ ${JSON.stringify(snap)}
 
 Bank spending:
 - If a "spending" section is present, it's the user's REAL bank transactions from Open Banking (read-only) — completely separate from the planned "items"/bills above. Use it to answer any question about actual spending: totals, categories, specific shops/merchants, month-to-month comparisons, "how much did I spend at X", "what's my biggest expense", "where can I cut back", etc.
-- In spending, a negative amount is money OUT, positive is money IN. "recentTransactions" is the latest ~120; "byCategoryThisMonth/LastMonth", "topMerchants" and "thisMonthSpend/lastMonthSpend" summarise the wider set — use the summaries for totals and the transactions for specifics.
+- In spending, a negative amount is money OUT, positive is money IN. "recentTransactions" is the latest ~120 (for specifics). The summaries cover the WHOLE cached history (usually up to ~12–24 months, see historyFrom/historyTo): "monthlySpend" is total spend per calendar month, "byCategoryAllTime"/"byCategoryThisMonth"/"byCategoryLastMonth" are category totals, "topMerchants" is total per shop, and "thisMonthSpend/lastMonthSpend" are month totals. Use monthlySpend for trends/"last N months", byCategoryAllTime + topMerchants for "how much on X ever", and recentTransactions for individual items.
 - You CANNOT edit bank transactions (there are no tools for that) — only report and analyse them. If asked to change a transaction, explain they're read from the bank and can't be edited. (The add/edit tools only affect the planned outgoings.)
 - If the user asks about spending but no "spending" section is present, tell them to connect their bank on the Spending tab (or open it once so it loads).
 

@@ -2589,3 +2589,10 @@ input {
   display: grid;
   place-items: center;
 }
+
+.sp-more {
+  padding: 14px 16px;
+  text-align: center;
+  font: var(--t-meta);
+  color: var(--ink-3);
+}

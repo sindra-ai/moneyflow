@@ -117,7 +117,14 @@ export interface Txn {
 }
 
 export async function getTransactions(accessToken: string, accountId: string): Promise<Txn[]> {
-  const d = await apiGet(`/data/v1/accounts/${accountId}/transactions`, accessToken);
+  // Ask for as much history as the bank will give (up to ~24 months). Banks
+  // return the full range on the first (attended) call after connecting;
+  // later background calls may only return ~90 days — which is why the client
+  // merges results into a cache rather than replacing it.
+  const to = new Date();
+  const from = new Date(to.getFullYear() - 2, to.getMonth(), to.getDate());
+  const qs = `?from=${from.toISOString()}&to=${to.toISOString()}`;
+  const d = await apiGet(`/data/v1/accounts/${accountId}/transactions${qs}`, accessToken);
   return (d.results ?? []).map((t: any) => {
     const magnitude = Math.abs(Number(t.amount ?? 0));
     const out = (t.transaction_type || '').toUpperCase() === 'DEBIT';

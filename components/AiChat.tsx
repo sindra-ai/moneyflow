@@ -166,18 +166,32 @@ export function AiChat({ onClose }: { onClose: () => void }) {
       const total = (k: string) => r(spend.filter((x) => x.date.startsWith(k)).reduce((s, x) => s + Math.abs(x.amount), 0));
       const merchants = sumBy(spend, (x) => x.merchant);
       const acctName = (id: string) => bank.accounts.find((a) => a.id === id)?.name;
+      // total spend per month, most recent first (up to 15 months)
+      const perMonth: Record<string, number> = {};
+      for (const x of spend) perMonth[x.date.slice(0, 7)] = (perMonth[x.date.slice(0, 7)] ?? 0) + Math.abs(x.amount);
+      const monthlySpend = Object.fromEntries(
+        Object.entries(perMonth)
+          .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+          .slice(0, 15)
+          .map(([k, v]) => [k, r(v)]),
+      );
+      const dates = spend.map((x) => x.date).filter(Boolean).sort();
       snap.spending = {
         note: 'Actual bank transactions (read-only). Separate from the planned "items"/bills above. Negative amount = money out, positive = money in.',
+        historyFrom: dates[0],
+        historyTo: dates[dates.length - 1],
         accounts: bank.accounts
           .filter((a) => bank.selected.includes(a.id))
           .map((a) => ({ name: a.name, provider: a.provider, last4: a.sortLast4 })),
         thisMonthSpend: total(mKey),
         lastMonthSpend: total(lmKey),
+        monthlySpend,
         byCategoryThisMonth: sumBy(spend.filter((x) => x.date.startsWith(mKey)), (x) => x.category || 'Other'),
         byCategoryLastMonth: sumBy(spend.filter((x) => x.date.startsWith(lmKey)), (x) => x.category || 'Other'),
+        byCategoryAllTime: sumBy(spend, (x) => x.category || 'Other'),
         topMerchants: Object.entries(merchants)
           .sort((a, b) => b[1] - a[1])
-          .slice(0, 20)
+          .slice(0, 25)
           .map(([name, spent]) => ({ name, spent })),
         recentTransactions: all.slice(0, 120).map((x) => ({
           date: x.date,
