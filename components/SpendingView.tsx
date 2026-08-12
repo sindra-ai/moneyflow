@@ -16,7 +16,7 @@ import {
   type BankConn,
   type Txn,
 } from '@/lib/bankClient';
-import { Rotate, Wallet } from './icons';
+import { Plus, Rotate, Wallet } from './icons';
 
 function startOfWeek(d: Date): number {
   const day = (d.getDay() + 6) % 7; // Monday = 0
@@ -123,16 +123,6 @@ export function SpendingView({
     setConfirmDc(false);
   };
 
-  const toggleAccount = (id: string) => {
-    if (!conn) return;
-    HAPTIC.light();
-    const selected = conn.selected.includes(id)
-      ? conn.selected.filter((x) => x !== id)
-      : [...conn.selected, id];
-    if (selected.length === 0) return; // keep at least one
-    setBank({ ...conn, selected });
-  };
-
   /* -------- derived spend figures -------- */
   const spend = txns.filter((t) => t.amount < 0);
   const now = new Date();
@@ -205,18 +195,29 @@ export function SpendingView({
               <Rotate size={16} />
             </button>
           </div>
-          <div className="days">
+          <div className="acct-row">
             {conn.accounts.map((a) => (
-              <button
-                key={a.id}
-                className="chip"
-                data-on={conn.selected.includes(a.id)}
-                onClick={() => toggleAccount(a.id)}
-              >
-                {a.name}
-                {a.sortLast4 ? ` ·${a.sortLast4}` : ''}
-              </button>
+              <div className="acct-card" key={a.id}>
+                <div className="acct-logo">
+                  {a.providerLogo ? (
+                    <img src={a.providerLogo} alt="" draggable={false} />
+                  ) : (
+                    <Wallet size={18} />
+                  )}
+                </div>
+                <div className="acct-info">
+                  <div className="acct-name">{a.name}</div>
+                  <div className="acct-meta">
+                    {a.provider || 'Account'}
+                    {a.sortLast4 ? ` ·${a.sortLast4}` : ''}
+                  </div>
+                </div>
+              </div>
             ))}
+            <button className="acct-add" onClick={() => void connect()}>
+              <Plus size={18} />
+              Add account
+            </button>
           </div>
 
           {cats.length > 0 && (

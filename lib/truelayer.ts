@@ -89,6 +89,7 @@ export interface BankAccount {
   type?: string;
   currency?: string;
   provider?: string;
+  providerLogo?: string;
   sortLast4?: string;
 }
 
@@ -100,7 +101,8 @@ export async function getAccounts(accessToken: string): Promise<BankAccount[]> {
     type: a.account_type,
     currency: a.currency,
     provider: a.provider?.display_name,
-    sortLast4: a.account_number?.number?.slice?.(-4),
+    providerLogo: a.provider?.logo_uri,
+    sortLast4: a.account_number?.number?.slice?.(-4) || a.account_number?.sort_code?.slice?.(-4),
   }));
 }
 

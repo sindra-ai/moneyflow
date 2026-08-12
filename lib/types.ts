@@ -53,6 +53,7 @@ export interface BankAccount {
   type?: string;
   currency?: string;
   provider?: string;
+  providerLogo?: string;
   sortLast4?: string;
 }
 export interface BankTxn {
