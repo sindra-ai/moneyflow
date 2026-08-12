@@ -1,13 +1,14 @@
 'use client';
 
 import { HAPTIC } from '@/lib/haptics';
-import { Calendar, Home, User } from './icons';
+import { Calendar, Home, User, Wallet } from './icons';
 
-export type Tab = 'home' | 'calendar' | 'profile';
+export type Tab = 'home' | 'calendar' | 'spending' | 'profile';
 
 const TABS: { key: Tab; label: string; Icon: typeof Home }[] = [
   { key: 'home', label: 'Home', Icon: Home },
   { key: 'calendar', label: 'Calendar', Icon: Calendar },
+  { key: 'spending', label: 'Spending', Icon: Wallet },
   { key: 'profile', label: 'Profile', Icon: User },
 ];
 

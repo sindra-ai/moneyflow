@@ -11,7 +11,9 @@ import LoginScreen from './LoginScreen';
 import { BottomNav, type Tab } from './BottomNav';
 import { HomeView } from './HomeView';
 import { CalendarView } from './CalendarView';
+import { SpendingView } from './SpendingView';
 import { ProfileView } from './ProfileView';
+import { completeConnect, hasPendingConnect } from '@/lib/bankClient';
 import { ItemEditor, type EditorTarget } from './ItemEditor';
 import { AiChat } from './AiChat';
 import { Moon, Sparkle, Sun } from './icons';
@@ -29,6 +31,24 @@ export function AppShell() {
   // Register the notification service worker once.
   useEffect(() => {
     void registerSW();
+  }, []);
+
+  // Handle the return from the bank's OAuth screen (?code=…): finish the
+  // connection, clean the URL, and drop the user on the Spending tab.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (!code || !hasPendingConnect()) return;
+    (async () => {
+      try {
+        await completeConnect(code);
+      } catch {
+        /* SpendingView will surface a reconnect prompt */
+      } finally {
+        window.history.replaceState({}, '', window.location.pathname);
+        setTab('spending');
+      }
+    })();
   }, []);
 
   // Surface any bills due soon shortly after load (giving cloud sync a moment
@@ -141,6 +161,7 @@ function Views({
   onEdit: (item: Outgoing) => void;
 }) {
   if (tab === 'calendar') return <CalendarView scrollerRef={scrollerRef} onEdit={onEdit} />;
+  if (tab === 'spending') return <SpendingView scrollerRef={scrollerRef} />;
   if (tab === 'profile') return <ProfileView scrollerRef={scrollerRef} />;
   return <HomeView scrollerRef={scrollerRef} onAdd={onAdd} onEdit={onEdit} />;
 }
