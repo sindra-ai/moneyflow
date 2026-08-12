@@ -1,67 +1,22 @@
 'use client';
 
-/** Client-side manager for the bank connection. Tokens are kept in
- *  localStorage on this device only (never synced to the cloud). */
+/**
+ * Client-side bank helpers. The connection itself now lives in the synced
+ * store (so it follows you across devices) — this module is pure network +
+ * a device-local cache for the transaction list and the "seen" set (which
+ * are performance/UI only, never sensitive).
+ */
 
-export interface Tokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: number;
-}
-export interface BankAccount {
-  id: string;
-  name: string;
-  type?: string;
-  currency?: string;
-  provider?: string;
-  sortLast4?: string;
-}
-export interface Txn {
-  id: string;
-  date: string;
-  amount: number;
-  currency: string;
-  merchant: string;
-  category?: string;
-  accountId: string;
-}
-export interface BankConn {
-  tokens: Tokens;
-  accounts: BankAccount[];
-  selected: string[];
-  connectedAt: number;
-}
+import type { BankAccount, BankConn, BankTokens, BankTxn } from './types';
 
-const KEY = 'moneyflow:bank';
+export type { BankAccount, BankConn };
+export type Txn = BankTxn;
+export type Tokens = BankTokens;
+
 const TXN_KEY = 'moneyflow:bank:txns';
 const SEEN_KEY = 'moneyflow:bank:seen';
 
-export function getConn(): BankConn | null {
-  try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as BankConn) : null;
-  } catch {
-    return null;
-  }
-}
-export function saveConn(c: BankConn) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(c));
-  } catch {
-    /* ignore */
-  }
-}
-export function clearConn() {
-  try {
-    localStorage.removeItem(KEY);
-    localStorage.removeItem(TXN_KEY);
-    localStorage.removeItem(SEEN_KEY);
-  } catch {
-    /* ignore */
-  }
-}
-
-/* -------- transaction cache + unread tracking (for the "new" dot) -------- */
+/* -------- device-local cache + unread tracking (for the "new" dot) -------- */
 
 export function cacheTxns(txns: Txn[]) {
   try {
@@ -76,6 +31,14 @@ export function getCachedTxns(): { at: number; txns: Txn[] } | null {
     return r ? (JSON.parse(r) as { at: number; txns: Txn[] }) : null;
   } catch {
     return null;
+  }
+}
+export function clearCache() {
+  try {
+    localStorage.removeItem(TXN_KEY);
+    localStorage.removeItem(SEEN_KEY);
+  } catch {
+    /* ignore */
   }
 }
 function getSeen(): Set<string> {
@@ -98,23 +61,7 @@ export function newCount(txns: Txn[]): number {
   return txns.filter((t) => !seen.has(t.id)).length;
 }
 
-/** Quiet check (on app open / focus): is there new activity since last viewed? */
-export async function checkNewActivity(): Promise<boolean> {
-  const conn = getConn();
-  if (!conn) return false;
-  try {
-    const cached = getCachedTxns();
-    let txns: Txn[];
-    if (cached && Date.now() - cached.at < 90_000) txns = cached.txns;
-    else {
-      txns = await loadTransactions(conn);
-      cacheTxns(txns);
-    }
-    return newCount(txns) > 0;
-  } catch {
-    return false;
-  }
-}
+/* -------------------------------------------------------------- network -- */
 
 /** Must exactly match a redirect URI whitelisted in the TrueLayer console. */
 export function redirectUri(): string {
@@ -137,29 +84,13 @@ export async function beginConnect(): Promise<{ needsKeys?: boolean; error?: str
   });
   if (r.needsKeys) return { needsKeys: true };
   if (!r.link) return { error: r.error || 'Could not start bank connection.' };
-  sessionStorage.setItem('mf-bank-pending', '1');
   location.href = r.link;
   return {};
 }
 
-export function hasPendingConnect(): boolean {
-  try {
-    return sessionStorage.getItem('mf-bank-pending') === '1';
-  } catch {
-    return false;
-  }
-}
-export function clearPending() {
-  try {
-    sessionStorage.removeItem('mf-bank-pending');
-  } catch {
-    /* ignore */
-  }
-}
-
-/** Exchange the returned code, load accounts, and store the connection. */
+/** Exchange the returned code, load accounts, and return the connection. */
 export async function completeConnect(code: string): Promise<BankConn> {
-  const tokens = await post<Tokens & { error?: string }>('/api/bank/token', {
+  const tokens = await post<BankTokens & { error?: string }>('/api/bank/token', {
     code,
     redirect: redirectUri(),
   });
@@ -168,34 +99,55 @@ export async function completeConnect(code: string): Promise<BankConn> {
     accessToken: tokens.accessToken,
   });
   const accounts = a.accounts ?? [];
-  const conn: BankConn = {
-    tokens,
+  return {
+    tokens: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, expiresAt: tokens.expiresAt },
     accounts,
     selected: accounts.map((x) => x.id),
     connectedAt: Date.now(),
   };
-  saveConn(conn);
-  clearPending();
-  return conn;
 }
 
+/** Refresh the access token if it's near expiry. Returns the (possibly new)
+ *  connection — TrueLayer rotates the refresh token, so the caller MUST
+ *  persist whatever comes back. */
 async function ensureFresh(conn: BankConn): Promise<BankConn> {
   if (Date.now() < conn.tokens.expiresAt - 60_000) return conn;
-  const t = await post<Tokens & { error?: string }>('/api/bank/refresh', {
+  const t = await post<BankTokens & { error?: string }>('/api/bank/refresh', {
     refreshToken: conn.tokens.refreshToken,
   });
   if (!t.accessToken) throw new Error('Session expired — reconnect your bank.');
-  const next = { ...conn, tokens: t };
-  saveConn(next);
-  return next;
+  return {
+    ...conn,
+    tokens: { accessToken: t.accessToken, refreshToken: t.refreshToken, expiresAt: t.expiresAt },
+  };
 }
 
-export async function loadTransactions(conn: BankConn): Promise<Txn[]> {
+/** Load transactions. Returns the txns and the (possibly refreshed) conn. */
+export async function loadTransactions(conn: BankConn): Promise<{ txns: Txn[]; conn: BankConn }> {
   const fresh = await ensureFresh(conn);
   const r = await post<{ transactions?: Txn[]; error?: string }>('/api/bank/transactions', {
     accessToken: fresh.tokens.accessToken,
     accountIds: fresh.selected,
   });
   if (r.error) throw new Error(r.error);
-  return r.transactions ?? [];
+  return { txns: r.transactions ?? [], conn: fresh };
+}
+
+/** Quiet check (on app open / focus): new activity since last viewed?
+ *  Returns whether there's new activity plus the (possibly refreshed) conn. */
+export async function checkNewActivity(
+  conn: BankConn | null | undefined,
+): Promise<{ hasNew: boolean; conn: BankConn | null }> {
+  if (!conn) return { hasNew: false, conn: null };
+  try {
+    const cached = getCachedTxns();
+    if (cached && Date.now() - cached.at < 90_000) {
+      return { hasNew: newCount(cached.txns) > 0, conn };
+    }
+    const { txns, conn: next } = await loadTransactions(conn);
+    cacheTxns(txns);
+    return { hasNew: newCount(txns) > 0, conn: next };
+  } catch {
+    return { hasNew: false, conn };
+  }
 }

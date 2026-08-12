@@ -9,7 +9,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import type { MonthData, Outgoing, Profile, Settings, Store, ThemeMode } from "./types";
+import type { BankConn, MonthData, Outgoing, Profile, Settings, Store, ThemeMode } from "./types";
 import { defaultStore, newId, seedMonth, DEFAULT_SETTINGS } from "./seed";
 import { supabase } from "./supabase";
 import { useAuth } from "./auth";
@@ -169,6 +169,9 @@ interface StoreContextValue {
   resetToSample: () => void;
   snapshot: () => void;
   undo: () => void;
+  // --- bank connection (synced) ---
+  bank: BankConn | null;
+  setBank: (conn: BankConn | null) => void;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
@@ -442,6 +445,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [setSettings]
   );
 
+  const setBank = useCallback(
+    (conn: BankConn | null) => setStore((prev) => ({ ...prev, bank: conn })),
+    []
+  );
+
   const resetSeed = useCallback(() => {
     const key = monthKeyOf();
     setCurrentKey(key);
@@ -478,6 +486,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     resetToSample: resetSeed,
     snapshot,
     undo,
+    bank: store.bank ?? null,
+    setBank,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

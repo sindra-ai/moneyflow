@@ -40,12 +40,45 @@ export interface Settings {
   reminders: boolean;
 }
 
+/* ------------------------------------------------- bank (Open Banking) -- */
+
+export interface BankTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+}
+export interface BankAccount {
+  id: string;
+  name: string;
+  type?: string;
+  currency?: string;
+  provider?: string;
+  sortLast4?: string;
+}
+export interface BankTxn {
+  id: string;
+  date: string;
+  amount: number;
+  currency: string;
+  merchant: string;
+  category?: string;
+  accountId: string;
+}
+export interface BankConn {
+  tokens: BankTokens;
+  accounts: BankAccount[];
+  selected: string[];
+  connectedAt: number;
+}
+
 export interface Store {
   version: number;
   /** keyed 'YYYY-MM' */
   months: Record<string, MonthData>;
   profile: Profile;
   settings: Settings;
+  /** linked bank connection — synced so you connect once across devices */
+  bank?: BankConn | null;
 }
 
 export const ACCENTS = [

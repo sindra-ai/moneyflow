@@ -19,7 +19,8 @@ import { AiChat } from './AiChat';
 import { Moon, Sparkle, Sun } from './icons';
 
 export function AppShell() {
-  const { ready, store, resolvedTheme, setSettings, addItem, updateItem, deleteItem } = useStore();
+  const { ready, store, resolvedTheme, setSettings, addItem, updateItem, deleteItem, setBank } =
+    useStore();
   const { session, loading } = useAuth();
   const [tab, setTab] = useState<Tab>('home');
   const [editor, setEditor] = useState<EditorTarget | null>(null);
@@ -49,18 +50,24 @@ export function AppShell() {
     setTab('spending');
   }, []);
 
-  // "New activity" dot on the Spending tab: quietly check on open and when the
-  // app returns to the foreground.
+  // "New activity" dot on the Spending tab: quietly check on open, when a
+  // synced connection first appears, and when the app returns to foreground.
   const [bankDot, setBankDot] = useState(false);
+  const bankKey = store.bank?.connectedAt ?? 0;
   useEffect(() => {
-    const check = () => void checkNewActivity().then(setBankDot);
-    check();
+    const check = async () => {
+      const cur = storeRef.current.bank;
+      const { hasNew, conn } = await checkNewActivity(cur);
+      setBankDot(hasNew);
+      if (conn && cur && conn.tokens.accessToken !== cur.tokens.accessToken) setBank(conn);
+    };
+    void check();
     const onVis = () => {
-      if (document.visibilityState === 'visible') check();
+      if (document.visibilityState === 'visible') void check();
     };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
-  }, []);
+  }, [bankKey, setBank]);
 
   // Surface any bills due soon shortly after load (giving cloud sync a moment
   // to land) and whenever the app is brought back to the foreground.

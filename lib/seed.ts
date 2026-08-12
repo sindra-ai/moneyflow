@@ -75,5 +75,6 @@ export function defaultStore(currentKey: string): Store {
     months: { [currentKey]: seedMonth() },
     profile: { name: "", avatar: null },
     settings: { ...DEFAULT_SETTINGS },
+    bank: null,
   };
 }

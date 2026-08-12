@@ -1,19 +1,18 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { useStore } from '@/lib/store';
 import { money } from '@/lib/format';
 import { HAPTIC } from '@/lib/haptics';
 import { CAT_ACCENT, type SpendCat } from '@/lib/spend';
 import {
   beginConnect,
   cacheTxns,
-  clearConn,
+  clearCache,
   completeConnect,
   getCachedTxns,
-  getConn,
   loadTransactions,
   markSeen,
-  saveConn,
   type BankConn,
   type Txn,
 } from '@/lib/bankClient';
@@ -36,7 +35,8 @@ export function SpendingView({
   initialError?: string | null;
   onSeen?: () => void;
 }) {
-  const [conn, setConn] = useState<BankConn | null>(null);
+  // The connection lives in the synced store, so it follows you everywhere.
+  const { bank: conn, setBank } = useStore();
   const [txns, setTxns] = useState<Txn[]>([]);
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState(!!initialCode);
@@ -48,44 +48,40 @@ export function SpendingView({
   const loadedFor = useRef<string>('');
   const codeUsed = useRef(false);
 
-  // On first mount: either finish an OAuth return (?code) or load the saved
-  // connection. Any failure is shown, not swallowed.
+  // Finish an OAuth return (?code) once. Any failure is shown, not swallowed.
   useEffect(() => {
-    if (initialCode && !codeUsed.current) {
-      codeUsed.current = true;
-      (async () => {
-        setConnecting(true);
-        setError(null);
-        try {
-          setConn(await completeConnect(initialCode));
-        } catch (e) {
-          setError(`Couldn’t finish connecting — ${(e as Error).message}`);
-          setConn(getConn());
-        } finally {
-          setConnecting(false);
-        }
-      })();
-    } else {
-      setConn(getConn());
-    }
+    if (!initialCode || codeUsed.current) return;
+    codeUsed.current = true;
+    (async () => {
+      setConnecting(true);
+      setError(null);
+      try {
+        setBank(await completeConnect(initialCode));
+      } catch (e) {
+        setError(`Couldn’t finish connecting — ${(e as Error).message}`);
+      } finally {
+        setConnecting(false);
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Viewing the Spending tab marks everything seen (clears the nav dot).
+  // Load transactions; persist any rotated tokens back to the synced store.
   const load = useCallback(
     async (c: BankConn, force = false) => {
       setLoading(true);
       setError(null);
       try {
         const cached = getCachedTxns();
-        const list =
-          !force && cached && Date.now() - cached.at < 120_000
-            ? cached.txns
-            : await (async () => {
-                const fresh = await loadTransactions(c);
-                cacheTxns(fresh);
-                return fresh;
-              })();
+        let list: Txn[];
+        if (!force && cached && Date.now() - cached.at < 120_000) {
+          list = cached.txns;
+        } else {
+          const res = await loadTransactions(c);
+          list = res.txns;
+          cacheTxns(list);
+          if (res.conn.tokens.accessToken !== c.tokens.accessToken) setBank(res.conn);
+        }
         setTxns(list);
         markSeen(list);
         onSeen?.();
@@ -95,7 +91,7 @@ export function SpendingView({
         setLoading(false);
       }
     },
-    [onSeen],
+    [onSeen, setBank],
   );
 
   useEffect(() => {
@@ -121,8 +117,8 @@ export function SpendingView({
       return;
     }
     HAPTIC.success();
-    clearConn();
-    setConn(null);
+    clearCache();
+    setBank(null);
     setTxns([]);
     setConfirmDc(false);
   };
@@ -134,9 +130,7 @@ export function SpendingView({
       ? conn.selected.filter((x) => x !== id)
       : [...conn.selected, id];
     if (selected.length === 0) return; // keep at least one
-    const next = { ...conn, selected };
-    saveConn(next);
-    setConn(next);
+    setBank({ ...conn, selected });
   };
 
   /* -------- derived spend figures -------- */
