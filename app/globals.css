@@ -2560,3 +2560,32 @@ input {
 .acct-toggle {
   z-index: 2;
 }
+
+/* Clean, centred bank logo (its own background, e.g. Halifax blue badge). */
+.acct-logo {
+  width: 100%;
+  height: 46px;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+.acct-logo img {
+  height: 40px;
+  width: auto;
+  max-width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px -6px rgba(0, 0, 0, 0.5);
+}
+.acct-logo-fallback {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: var(--fill-3);
+  color: var(--a2);
+  display: grid;
+  place-items: center;
+}

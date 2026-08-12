@@ -34,6 +34,40 @@ export function AppShell() {
     void registerSW();
   }, []);
 
+  // Auto-update: if a newer version has been deployed, quietly refresh — on
+  // return to foreground and shortly after load — but never mid-edit.
+  useEffect(() => {
+    const mine = process.env.NEXT_PUBLIC_BUILD_ID;
+    // Only run when both ids are real deploy ids — never reload on the 'dev'
+    // fallback, which would risk a loop if the runtime id were ever missing.
+    if (!mine || mine === 'dev') return;
+    let reloading = false;
+    const check = async () => {
+      if (reloading || document.visibilityState !== 'visible') return;
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      try {
+        const res = await fetch('/api/version', { cache: 'no-store' });
+        const { id } = (await res.json()) as { id?: string };
+        if (id && id !== 'dev' && id !== mine) {
+          reloading = true;
+          window.location.reload();
+        }
+      } catch {
+        /* offline — ignore */
+      }
+    };
+    const t = window.setTimeout(check, 3000);
+    const onVis = () => {
+      if (document.visibilityState === 'visible') void check();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.clearTimeout(t);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, []);
+
   // Handle the return from the bank's OAuth screen. TrueLayer sends back a
   // ?code (success) or ?error (declined/blocked). We hand it to SpendingView
   // to finish the exchange and show any error — no fragile session flag.

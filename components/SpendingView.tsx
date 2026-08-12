@@ -360,9 +360,11 @@ export function SpendingView({
                   </button>
                   <div className="acct-logo">
                     {logo ? (
-                      <img src={logo} alt="" draggable={false} />
+                      <img src={logo} alt={a.provider || ''} draggable={false} />
                     ) : (
-                      <Wallet size={18} />
+                      <span className="acct-logo-fallback">
+                        <Wallet size={20} />
+                      </span>
                     )}
                   </div>
                   <div className="acct-info">
