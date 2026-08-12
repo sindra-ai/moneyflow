@@ -124,7 +124,11 @@ export function SpendingView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEl
           )}
           {error && <div className="sp-err">{error}</div>}
           {!needsKeys && (
-            <button className="btn btn-key" style={{ width: '100%' }} onClick={() => void connect()}>
+            <button
+              className="btn btn-key"
+              style={{ width: '100%', flex: 'none', height: 54 }}
+              onClick={() => void connect()}
+            >
               Connect your bank
             </button>
           )}
