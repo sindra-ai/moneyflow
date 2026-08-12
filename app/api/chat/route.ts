@@ -23,6 +23,8 @@ interface Snapshot {
   salary: number;
   items: SnapItem[];
   totals: { total: number; paid: number; left: number; leftOver: number };
+  /** actual bank spending (read-only), present when a bank is connected */
+  spending?: unknown;
 }
 
 const tools = [
@@ -123,6 +125,12 @@ Today is the ${snap.today}${ordinalSuffix(snap.today)}. Current view: ${snap.mon
 
 Current data (JSON):
 ${JSON.stringify(snap)}
+
+Bank spending:
+- If a "spending" section is present, it's the user's REAL bank transactions from Open Banking (read-only) — completely separate from the planned "items"/bills above. Use it to answer any question about actual spending: totals, categories, specific shops/merchants, month-to-month comparisons, "how much did I spend at X", "what's my biggest expense", "where can I cut back", etc.
+- In spending, a negative amount is money OUT, positive is money IN. "recentTransactions" is the latest ~120; "byCategoryThisMonth/LastMonth", "topMerchants" and "thisMonthSpend/lastMonthSpend" summarise the wider set — use the summaries for totals and the transactions for specifics.
+- You CANNOT edit bank transactions (there are no tools for that) — only report and analyse them. If asked to change a transaction, explain they're read from the bank and can't be edited. (The add/edit tools only affect the planned outgoings.)
+- If the user asks about spending but no "spending" section is present, tell them to connect their bank on the Spending tab (or open it once so it loads).
 
 Notes:
 - To change or remove an item, use its "id" from the data above.

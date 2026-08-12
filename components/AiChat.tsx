@@ -5,6 +5,7 @@ import { computeTotals, useStore } from '@/lib/store';
 import { money, monthLabel } from '@/lib/format';
 import { HAPTIC } from '@/lib/haptics';
 import { ACCENTS, CATEGORIES, type Category } from '@/lib/types';
+import { getCachedTxns } from '@/lib/bankClient';
 import { useToast } from './Toast';
 import { Close, Mic, Send, Sparkle } from './icons';
 
@@ -38,6 +39,7 @@ export function AiChat({ onClose }: { onClose: () => void }) {
   const {
     month,
     monthKey,
+    bank,
     addItem,
     updateItem,
     deleteItem,
@@ -128,7 +130,7 @@ export function AiChat({ onClose }: { onClose: () => void }) {
 
   const buildSnapshot = () => {
     const t = computeTotals(month);
-    return {
+    const snap: Record<string, unknown> = {
       monthKey,
       monthLabel: monthLabel(monthKey).label,
       today: new Date().getDate(),
@@ -145,6 +147,49 @@ export function AiChat({ onClose }: { onClose: () => void }) {
       })),
       totals: { total: t.total, paid: t.paid, left: t.left, leftOver: t.leftOver },
     };
+
+    // Real bank spending (read-only) so the AI can answer spending questions.
+    if (bank) {
+      const cached = getCachedTxns();
+      const all = (cached?.txns ?? []).filter((x) => bank.selected.includes(x.accountId));
+      const r = (n: number) => Math.round(n * 100) / 100;
+      const spend = all.filter((x) => x.amount < 0);
+      const now = new Date();
+      const mKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lmKey = `${lm.getFullYear()}-${String(lm.getMonth() + 1).padStart(2, '0')}`;
+      const sumBy = (list: typeof spend, key: (x: (typeof spend)[number]) => string) => {
+        const m: Record<string, number> = {};
+        for (const x of list) m[key(x)] = (m[key(x)] ?? 0) + Math.abs(x.amount);
+        return Object.fromEntries(Object.entries(m).map(([k, v]) => [k, r(v)]));
+      };
+      const total = (k: string) => r(spend.filter((x) => x.date.startsWith(k)).reduce((s, x) => s + Math.abs(x.amount), 0));
+      const merchants = sumBy(spend, (x) => x.merchant);
+      const acctName = (id: string) => bank.accounts.find((a) => a.id === id)?.name;
+      snap.spending = {
+        note: 'Actual bank transactions (read-only). Separate from the planned "items"/bills above. Negative amount = money out, positive = money in.',
+        accounts: bank.accounts
+          .filter((a) => bank.selected.includes(a.id))
+          .map((a) => ({ name: a.name, provider: a.provider, last4: a.sortLast4 })),
+        thisMonthSpend: total(mKey),
+        lastMonthSpend: total(lmKey),
+        byCategoryThisMonth: sumBy(spend.filter((x) => x.date.startsWith(mKey)), (x) => x.category || 'Other'),
+        byCategoryLastMonth: sumBy(spend.filter((x) => x.date.startsWith(lmKey)), (x) => x.category || 'Other'),
+        topMerchants: Object.entries(merchants)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 20)
+          .map(([name, spent]) => ({ name, spent })),
+        recentTransactions: all.slice(0, 120).map((x) => ({
+          date: x.date,
+          merchant: x.merchant,
+          amount: r(x.amount),
+          category: x.category,
+          account: acctName(x.accountId),
+        })),
+      };
+    }
+
+    return snap;
   };
 
   // Map a colour name (or #hex) onto the app's accent palette.
