@@ -33,6 +33,8 @@ export interface BankConn {
 }
 
 const KEY = 'moneyflow:bank';
+const TXN_KEY = 'moneyflow:bank:txns';
+const SEEN_KEY = 'moneyflow:bank:seen';
 
 export function getConn(): BankConn | null {
   try {
@@ -52,8 +54,65 @@ export function saveConn(c: BankConn) {
 export function clearConn() {
   try {
     localStorage.removeItem(KEY);
+    localStorage.removeItem(TXN_KEY);
+    localStorage.removeItem(SEEN_KEY);
   } catch {
     /* ignore */
+  }
+}
+
+/* -------- transaction cache + unread tracking (for the "new" dot) -------- */
+
+export function cacheTxns(txns: Txn[]) {
+  try {
+    localStorage.setItem(TXN_KEY, JSON.stringify({ at: Date.now(), txns }));
+  } catch {
+    /* ignore */
+  }
+}
+export function getCachedTxns(): { at: number; txns: Txn[] } | null {
+  try {
+    const r = localStorage.getItem(TXN_KEY);
+    return r ? (JSON.parse(r) as { at: number; txns: Txn[] }) : null;
+  } catch {
+    return null;
+  }
+}
+function getSeen(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || '[]') as string[]);
+  } catch {
+    return new Set();
+  }
+}
+/** Record the currently-shown transactions as seen (clears the dot). */
+export function markSeen(txns: Txn[]) {
+  try {
+    localStorage.setItem(SEEN_KEY, JSON.stringify(txns.map((t) => t.id)));
+  } catch {
+    /* ignore */
+  }
+}
+export function newCount(txns: Txn[]): number {
+  const seen = getSeen();
+  return txns.filter((t) => !seen.has(t.id)).length;
+}
+
+/** Quiet check (on app open / focus): is there new activity since last viewed? */
+export async function checkNewActivity(): Promise<boolean> {
+  const conn = getConn();
+  if (!conn) return false;
+  try {
+    const cached = getCachedTxns();
+    let txns: Txn[];
+    if (cached && Date.now() - cached.at < 90_000) txns = cached.txns;
+    else {
+      txns = await loadTransactions(conn);
+      cacheTxns(txns);
+    }
+    return newCount(txns) > 0;
+  } catch {
+    return false;
   }
 }
 

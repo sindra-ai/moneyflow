@@ -2305,3 +2305,33 @@ input {
   font: var(--t-body);
   font-weight: 620;
 }
+
+/* --------------------------------------------------- nav "new" activity -- */
+
+.nav-ico {
+  position: relative;
+  display: inline-flex;
+}
+
+.nav-dot {
+  position: absolute;
+  top: -1px;
+  right: -5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--a2);
+  box-shadow:
+    0 0 0 2px var(--glass),
+    0 0 8px 0 var(--a2);
+  animation: dotPop 0.3s var(--spring);
+}
+
+@keyframes dotPop {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}

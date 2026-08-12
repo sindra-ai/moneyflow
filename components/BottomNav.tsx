@@ -12,7 +12,16 @@ const TABS: { key: Tab; label: string; Icon: typeof Home }[] = [
   { key: 'profile', label: 'Profile', Icon: User },
 ];
 
-export function BottomNav({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
+export function BottomNav({
+  tab,
+  onChange,
+  dot,
+}: {
+  tab: Tab;
+  onChange: (t: Tab) => void;
+  /** show a "new activity" dot on this tab */
+  dot?: Tab | null;
+}) {
   const index = TABS.findIndex((t) => t.key === tab);
 
   return (
@@ -28,7 +37,10 @@ export function BottomNav({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => v
             onChange(key);
           }}
         >
-          <Icon size={19} />
+          <span className="nav-ico">
+            <Icon size={19} />
+            {dot === key && tab !== key && <span className="nav-dot" aria-label="New activity" />}
+          </span>
           {label}
         </button>
       ))}

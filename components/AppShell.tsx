@@ -13,6 +13,7 @@ import { HomeView } from './HomeView';
 import { CalendarView } from './CalendarView';
 import { SpendingView } from './SpendingView';
 import { ProfileView } from './ProfileView';
+import { checkNewActivity } from '@/lib/bankClient';
 import { ItemEditor, type EditorTarget } from './ItemEditor';
 import { AiChat } from './AiChat';
 import { Moon, Sparkle, Sun } from './icons';
@@ -46,6 +47,19 @@ export function AppShell() {
     if (code) setBankCode(code);
     if (err) setBankError(err);
     setTab('spending');
+  }, []);
+
+  // "New activity" dot on the Spending tab: quietly check on open and when the
+  // app returns to the foreground.
+  const [bankDot, setBankDot] = useState(false);
+  useEffect(() => {
+    const check = () => void checkNewActivity().then(setBankDot);
+    check();
+    const onVis = () => {
+      if (document.visibilityState === 'visible') check();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
 
   // Surface any bills due soon shortly after load (giving cloud sync a moment
@@ -127,9 +141,10 @@ export function AppShell() {
           onEdit={openEdit}
           bankCode={bankCode}
           bankError={bankError}
+          onBankSeen={() => setBankDot(false)}
         />
 
-        <BottomNav tab={tab} onChange={setTab} />
+        <BottomNav tab={tab} onChange={setTab} dot={bankDot ? 'spending' : null} />
       </div>
 
       {editor && (
@@ -155,6 +170,7 @@ function Views({
   onEdit,
   bankCode,
   bankError,
+  onBankSeen,
 }: {
   tab: Tab;
   scrollerRef: React.RefObject<HTMLDivElement>;
@@ -162,10 +178,18 @@ function Views({
   onEdit: (item: Outgoing) => void;
   bankCode: string | null;
   bankError: string | null;
+  onBankSeen: () => void;
 }) {
   if (tab === 'calendar') return <CalendarView scrollerRef={scrollerRef} onEdit={onEdit} />;
   if (tab === 'spending')
-    return <SpendingView scrollerRef={scrollerRef} initialCode={bankCode} initialError={bankError} />;
+    return (
+      <SpendingView
+        scrollerRef={scrollerRef}
+        initialCode={bankCode}
+        initialError={bankError}
+        onSeen={onBankSeen}
+      />
+    );
   if (tab === 'profile') return <ProfileView scrollerRef={scrollerRef} />;
   return <HomeView scrollerRef={scrollerRef} onAdd={onAdd} onEdit={onEdit} />;
 }

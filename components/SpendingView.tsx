@@ -6,10 +6,13 @@ import { HAPTIC } from '@/lib/haptics';
 import { CAT_ACCENT, type SpendCat } from '@/lib/spend';
 import {
   beginConnect,
+  cacheTxns,
   clearConn,
   completeConnect,
+  getCachedTxns,
   getConn,
   loadTransactions,
+  markSeen,
   saveConn,
   type BankConn,
   type Txn,
@@ -26,10 +29,12 @@ export function SpendingView({
   scrollerRef,
   initialCode,
   initialError,
+  onSeen,
 }: {
   scrollerRef: RefObject<HTMLDivElement>;
   initialCode?: string | null;
   initialError?: string | null;
+  onSeen?: () => void;
 }) {
   const [conn, setConn] = useState<BankConn | null>(null);
   const [txns, setTxns] = useState<Txn[]>([]);
@@ -66,24 +71,39 @@ export function SpendingView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const refresh = useCallback(async (c: BankConn) => {
-    setLoading(true);
-    setError(null);
-    try {
-      setTxns(await loadTransactions(c));
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Viewing the Spending tab marks everything seen (clears the nav dot).
+  const load = useCallback(
+    async (c: BankConn, force = false) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const cached = getCachedTxns();
+        const list =
+          !force && cached && Date.now() - cached.at < 120_000
+            ? cached.txns
+            : await (async () => {
+                const fresh = await loadTransactions(c);
+                cacheTxns(fresh);
+                return fresh;
+              })();
+        setTxns(list);
+        markSeen(list);
+        onSeen?.();
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onSeen],
+  );
 
   useEffect(() => {
     if (conn && loadedFor.current !== conn.connectedAt + conn.selected.join()) {
       loadedFor.current = conn.connectedAt + conn.selected.join();
-      void refresh(conn);
+      void load(conn);
     }
-  }, [conn, refresh]);
+  }, [conn, load]);
 
   const connect = async () => {
     HAPTIC.light();
@@ -184,7 +204,7 @@ export function SpendingView({
             <h3>Accounts</h3>
             <button
               className="sp-refresh"
-              onClick={() => void refresh(conn)}
+              onClick={() => void load(conn, true)}
               aria-label="Refresh"
               data-spin={loading}
             >
