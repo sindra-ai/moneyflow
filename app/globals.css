@@ -2596,3 +2596,16 @@ input {
   font: var(--t-meta);
   color: var(--ink-3);
 }
+
+/* Accounts header actions: Disconnect link + refresh. */
+.sp-acts {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sp-dc-link {
+  font: var(--t-meta);
+  font-weight: 640;
+  color: var(--bad);
+  padding: 4px 2px;
+}

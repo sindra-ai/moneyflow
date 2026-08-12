@@ -57,6 +57,7 @@ export function SpendingView({
     initialError ? `Halifax returned: ${initialError}` : null,
   );
   const [confirmDc, setConfirmDc] = useState(false);
+  const [txnQuery, setTxnQuery] = useState('');
   const loadedFor = useRef<string>('');
   const codeUsed = useRef(false);
   const connRef = useRef(conn);
@@ -250,6 +251,11 @@ export function SpendingView({
   /* -------- derived spend figures (only the SELECTED accounts count) -------- */
   const shown = conn ? txns.filter((t) => conn.selected.includes(t.accountId)) : [];
   const spend = shown.filter((t) => t.amount < 0);
+  // The transaction list can be searched by merchant or category.
+  const q = txnQuery.trim().toLowerCase();
+  const listed = q
+    ? shown.filter((t) => `${t.merchant} ${t.category ?? ''}`.toLowerCase().includes(q))
+    : shown;
   const now = new Date();
   const weekStart = startOfWeek(now);
   const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -311,14 +317,19 @@ export function SpendingView({
 
           <div className="sec">
             <h3>Accounts</h3>
-            <button
-              className="sp-refresh"
-              onClick={() => void load(conn, true)}
-              aria-label="Refresh"
-              data-spin={loading}
-            >
-              <Rotate size={16} />
-            </button>
+            <div className="sp-acts">
+              <button className="sp-dc-link" onClick={disconnect}>
+                {confirmDc ? 'Tap to confirm' : 'Disconnect'}
+              </button>
+              <button
+                className="sp-refresh"
+                onClick={() => void load(conn, true)}
+                aria-label="Refresh"
+                data-spin={loading}
+              >
+                <Rotate size={16} />
+              </button>
+            </div>
           </div>
           <div className="acct-row" data-dragging={!!drag}>
             {conn.accounts.map((a, i) => {
@@ -411,8 +422,18 @@ export function SpendingView({
 
           <div className="sec">
             <h3>Transactions</h3>
-            <span className="n">{shown.length}</span>
+            <span className="n">{listed.length}</span>
           </div>
+          {shown.length > 0 && (
+            <input
+              className="in search"
+              value={txnQuery}
+              placeholder="Search transactions"
+              autoComplete="off"
+              aria-label="Search transactions"
+              onChange={(e) => setTxnQuery(e.target.value)}
+            />
+          )}
           {error && <div className="sp-err">{error}</div>}
           {loading && shown.length === 0 ? (
             <div className="blank">
@@ -423,10 +444,15 @@ export function SpendingView({
               <h4>Nothing yet</h4>
               <p>New transactions appear here after they clear at your bank.</p>
             </div>
+          ) : listed.length === 0 ? (
+            <div className="blank">
+              <h4>No matches</h4>
+              <p>Nothing matches &ldquo;{txnQuery.trim()}&rdquo;.</p>
+            </div>
           ) : (
             <div className="group">
               {/* Render a window for performance; totals above still use all. */}
-              {shown.slice(0, 250).map((t) => (
+              {listed.slice(0, 250).map((t) => (
                 <div className="swipe" key={t.id}>
                   <div className="row">
                     <div
@@ -452,15 +478,11 @@ export function SpendingView({
                   </div>
                 </div>
               ))}
-              {shown.length > 250 && (
-                <div className="sp-more">Showing the latest 250 of {shown.length}</div>
+              {listed.length > 250 && (
+                <div className="sp-more">Showing the latest 250 of {listed.length}</div>
               )}
             </div>
           )}
-
-          <button className="sp-disconnect" onClick={disconnect}>
-            {confirmDc ? 'Tap again to disconnect' : 'Disconnect bank'}
-          </button>
         </>
       )}
     </div>
