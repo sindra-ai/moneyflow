@@ -8,8 +8,9 @@ const svg = (body: string) =>
   'data:image/svg+xml,' +
   encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">${body}</svg>`);
 
+// Halifax's four-chevron "X" mark, in Halifax blue on white.
 const HALIFAX = svg(
-  `<rect width="40" height="40" rx="9" fill="#005EB8"/><path d="M12 12 28 28M28 12 12 28" stroke="#fff" stroke-width="5" stroke-linecap="round"/>`,
+  `<rect width="40" height="40" fill="#fff"/><g fill="#005EB8"><path d="M6 7h10l7 11H13z"/><path d="M34 7H24l-7 11h10z"/><path d="M6 33h10l7-11H13z"/><path d="M34 33H24l-7-11h10z"/></g>`,
 );
 const LLOYDS = svg(
   `<rect width="40" height="40" rx="9" fill="#0F7A3D"/><path d="M13 12v16h14" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`,

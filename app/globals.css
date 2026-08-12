@@ -2483,3 +2483,63 @@ input {
   background: var(--accent);
   border-color: transparent;
 }
+
+/* -------------------------------------------------------------- splash -- */
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  background: var(--canvas);
+  transition: opacity 0.5s var(--ease);
+}
+
+.splash.hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash-mark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  animation: splashIn 0.7s var(--spring) both;
+}
+
+.splash-mark :is(img, svg) {
+  filter: drop-shadow(0 0 26px rgba(150, 132, 255, 0.5));
+}
+
+.splash-mark b {
+  font: var(--t-title);
+  letter-spacing: -0.02em;
+  opacity: 0;
+  animation: splashWord 0.55s var(--ease) 0.28s both;
+}
+
+@keyframes splashIn {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes splashWord {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
