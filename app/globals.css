@@ -2543,3 +2543,20 @@ input {
     transform: translateY(0);
   }
 }
+
+/* Wider logo banner so full bank logos (with wordmark) stay legible. */
+.acct-logo {
+  width: 100%;
+  height: 44px;
+  border-radius: 10px;
+  padding: 5px 12px;
+}
+.acct-logo img {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+.acct-toggle {
+  z-index: 2;
+}

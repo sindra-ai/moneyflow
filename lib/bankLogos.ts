@@ -8,10 +8,12 @@ const svg = (body: string) =>
   'data:image/svg+xml,' +
   encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">${body}</svg>`);
 
-// Halifax's four-chevron "X" mark, in Halifax blue on white.
-const HALIFAX = svg(
-  `<rect width="40" height="40" fill="#fff"/><g fill="#005EB8"><path d="M6 7h10l7 11H13z"/><path d="M34 7H24l-7 11h10z"/><path d="M6 33h10l7-11H13z"/><path d="M34 33H24l-7-11h10z"/></g>`,
-);
+// Halifax's full logo: four-chevron "X" with the HALIFAX wordmark across it.
+const HALIFAX =
+  'data:image/svg+xml,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 62"><rect width="120" height="62" fill="#fff"/><g fill="#005EB8"><path d="M8 6h26l16 20H24z"/><path d="M112 6H86L70 26h26z"/><path d="M8 56h26l16-20H24z"/><path d="M112 56H86L70 36h26z"/><text x="60" y="31" text-anchor="middle" dominant-baseline="central" font-family="Arial,Helvetica,sans-serif" font-weight="800" font-size="20" letter-spacing="-0.5">HALIFAX</text></g></svg>`,
+  );
 const LLOYDS = svg(
   `<rect width="40" height="40" rx="9" fill="#0F7A3D"/><path d="M13 12v16h14" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`,
 );
