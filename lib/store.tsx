@@ -22,6 +22,7 @@ import type {
 } from "./types";
 import { defaultStore, newId, seedMonth, DEFAULT_SETTINGS } from "./seed";
 import { matchBills } from "./reconcile";
+import { cacheTxns, clearCache, getCachedTxns } from "./bankClient";
 import { supabase } from "./supabase";
 import { useAuth } from "./auth";
 
@@ -187,6 +188,13 @@ interface StoreContextValue {
   /** Tick this real month's bills that have a matching money-out payment in
    *  the bank feed. Returns how many were newly ticked. */
   autoReconcile: (txns: BankTxn[]) => number;
+  /** Merge fresh transactions into the cache and persist them to the account
+   *  (call after a bank pull). Pass nothing to just push the current cache. */
+  syncTxns: (fresh?: BankTxn[]) => Promise<void>;
+  /** Clear transactions locally and in the cloud (on disconnect). */
+  clearTxns: () => Promise<void>;
+  /** Increments when the local transaction cache changes — read to re-render. */
+  bankTxnsRev: number;
   // --- savings goals (synced) ---
   goals: Goal[];
   addGoal: (goal: Omit<Goal, "id" | "createdAt">) => void;
@@ -202,12 +210,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [store, setStore] = useState<Store>(() => defaultStore(initialKey));
   const [hydrated, setHydrated] = useState(false);
   const [systemDark, setSystemDark] = useState(true);
+  // Bumped whenever the device-local transaction cache changes (a cloud merge
+  // or a fresh bank pull), so views that read the cache re-render.
+  const [bankTxnsRev, setBankTxnsRev] = useState(0);
 
   const { user } = useAuth();
   const cloudLoaded = useRef(false);
   const lastSync = useRef<string | null>(null);
   const storeRef = useRef(store);
   storeRef.current = store;
+  const userRef = useRef(user);
+  userRef.current = user;
   // Snapshot of `months` taken before a destructive action, for one-level undo.
   const undoRef = useRef<Record<string, MonthData> | null>(null);
 
@@ -263,6 +276,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         lastSync.current = now;
       }
       cloudLoaded.current = true;
+
+      // Pull the synced bank transactions into this device's cache (separate
+      // query + try/catch so a missing `bank_txns` column never breaks sync).
+      try {
+        const { data: tx } = await supabase
+          .from("user_state")
+          .select("bank_txns")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (cancelled) return;
+        const cloudTxns = tx?.bank_txns as BankTxn[] | undefined;
+        if (cloudTxns?.length) {
+          cacheTxns(cloudTxns);
+          setBankTxnsRev((v) => v + 1);
+        }
+      } catch {
+        /* column not added yet — ignore */
+      }
     })();
     return () => {
       cancelled = true;
@@ -299,6 +330,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (cloud && cloud.months && data.updated_at !== lastSync.current) {
         setStore(cloud);
         lastSync.current = data.updated_at as string;
+      }
+      // Merge synced transactions when another device has added more.
+      try {
+        const { data: tx } = await supabase
+          .from("user_state")
+          .select("bank_txns")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        const cloudTxns = tx?.bank_txns as BankTxn[] | undefined;
+        if (cloudTxns?.length && cloudTxns.length > (getCachedTxns()?.txns.length ?? 0)) {
+          cacheTxns(cloudTxns);
+          setBankTxnsRev((v) => v + 1);
+        }
+      } catch {
+        /* column not added yet — ignore */
       }
     };
     document.addEventListener("visibilitychange", refetch);
@@ -470,6 +516,40 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  // Merge freshly pulled transactions into the device cache AND persist the
+  // whole (deduped, capped) set to the user's account so it follows them to
+  // any device and survives a browser-data wipe.
+  const syncTxns = useCallback(
+    async (fresh?: BankTxn[]) => {
+      if (fresh?.length) {
+        cacheTxns(fresh);
+        setBankTxnsRev((v) => v + 1);
+      }
+      const all = getCachedTxns()?.txns ?? [];
+      const u = userRef.current;
+      if (!u || !all.length) return;
+      try {
+        await supabase.from("user_state").update({ bank_txns: all }).eq("user_id", u.id);
+      } catch {
+        /* column not added yet — ignore */
+      }
+    },
+    []
+  );
+
+  // Wipe transactions locally and in the cloud (used on disconnect).
+  const clearTxns = useCallback(async () => {
+    clearCache();
+    setBankTxnsRev((v) => v + 1);
+    const u = userRef.current;
+    if (!u) return;
+    try {
+      await supabase.from("user_state").update({ bank_txns: null }).eq("user_id", u.id);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   // Auto-tick bills that have a matching payment already gone out of the bank.
   // Always targets the real current month (not whatever month is being viewed),
   // and never re-touches a bill that already carries a match — so a manual
@@ -564,6 +644,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     bank: store.bank ?? null,
     setBank,
     autoReconcile,
+    syncTxns,
+    clearTxns,
+    bankTxnsRev,
     goals: store.goals ?? [],
     addGoal,
     updateGoal,

@@ -8,8 +8,6 @@ import { bankLogo } from '@/lib/bankLogos';
 import { CAT_ACCENT, type SpendCat } from '@/lib/spend';
 import {
   beginConnect,
-  cacheTxns,
-  clearCache,
   completeConnect,
   getCachedTxns,
   loadBalances,
@@ -54,7 +52,7 @@ export function SpendingView({
   onSeen?: () => void;
 }) {
   // The connection lives in the synced store, so it follows you everywhere.
-  const { bank: conn, setBank, autoReconcile } = useStore();
+  const { bank: conn, setBank, autoReconcile, syncTxns, clearTxns, bankTxnsRev } = useStore();
   const toast = useToast();
   const [txns, setTxns] = useState<Txn[]>([]);
   const [balances, setBalances] = useState<Record<string, number>>({});
@@ -101,9 +99,12 @@ export function SpendingView({
           list = cached.txns;
         } else {
           const res = await loadTransactions(c);
-          list = res.txns;
-          cacheTxns(list);
           if (res.conn.tokens.accessToken !== c.tokens.accessToken) setBank(res.conn);
+          // Merge into the cache and persist to the account (cloud push runs in
+          // the background; the merge itself is synchronous so the full history
+          // — including anything only in the cloud — is ready to show now).
+          void syncTxns(res.txns);
+          list = getCachedTxns()?.txns ?? res.txns;
         }
         setTxns(list);
         markSeen(list);
@@ -121,8 +122,15 @@ export function SpendingView({
         setLoading(false);
       }
     },
-    [onSeen, setBank, autoReconcile, toast],
+    [onSeen, setBank, autoReconcile, syncTxns, toast],
   );
+
+  // When a cloud merge lands (login, focus, or another device adding activity),
+  // refresh the visible list from the freshly-merged cache.
+  useEffect(() => {
+    if (bankTxnsRev === 0) return;
+    setTxns(getCachedTxns()?.txns ?? []);
+  }, [bankTxnsRev]);
 
   // Re-fetch only when the connection (not the selection or order) changes.
   useEffect(() => {
@@ -149,7 +157,7 @@ export function SpendingView({
       return;
     }
     HAPTIC.success();
-    clearCache();
+    void clearTxns();
     setBank(null);
     setTxns([]);
     setConfirmDc(false);

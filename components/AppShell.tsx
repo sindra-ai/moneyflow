@@ -30,6 +30,7 @@ export function AppShell() {
     deleteItem,
     setBank,
     autoReconcile,
+    syncTxns,
   } = useStore();
   const { session, loading } = useAuth();
   const toast = useToast();
@@ -111,6 +112,8 @@ export function AppShell() {
         const n = autoReconcile(cached.txns);
         if (n > 0)
           toast({ message: `${n} bill${n === 1 ? '' : 's'} auto-ticked — payment cleared` });
+        // New activity on focus → keep the account's synced copy current.
+        if (hasNew) void syncTxns();
       }
     };
     void check();
@@ -119,7 +122,7 @@ export function AppShell() {
     };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
-  }, [bankKey, setBank, autoReconcile, toast]);
+  }, [bankKey, setBank, autoReconcile, syncTxns, toast]);
 
   // Surface any bills due soon shortly after load (giving cloud sync a moment
   // to land) and whenever the app is brought back to the foreground.
