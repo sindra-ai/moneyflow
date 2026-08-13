@@ -3058,3 +3058,146 @@ input {
 .goal-cta svg {
   color: var(--a2);
 }
+
+/* ------------------------------------------------------------- pension -- */
+.pension {
+  padding: 18px 20px;
+  border-radius: var(--r-lg);
+  background: var(--fill-1);
+  border: 1px solid var(--hair);
+}
+.pension-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.pension-lab {
+  font: var(--t-meta);
+  color: var(--ink-3);
+}
+.pension-proxy-tag {
+  font: var(--t-cap);
+  font-weight: 640;
+  color: var(--a2);
+  background: color-mix(in srgb, var(--a2) 14%, transparent);
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.pension-fig {
+  font: var(--t-title);
+  font-size: 30px;
+  letter-spacing: -0.02em;
+  margin: 4px 0 6px;
+}
+.pension-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: var(--t-meta);
+  font-weight: 640;
+}
+.pension-delta.up {
+  color: var(--good);
+}
+.pension-delta.down {
+  color: var(--bad);
+}
+.pension-anchor {
+  margin-top: 8px;
+  font: var(--t-meta);
+  color: var(--ink-3);
+}
+.pension-anchor b {
+  color: var(--ink-2);
+  font-weight: 640;
+}
+.pension-acts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+.pension-update {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--fill-2);
+  border: 1px solid var(--edge);
+  color: var(--ink-2);
+  font: var(--t-meta);
+  font-weight: 680;
+}
+.pension-update:active {
+  background: var(--fill-3);
+}
+.pension-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  justify-content: center;
+  padding: 13px;
+  border-radius: var(--r-md);
+  border: 1.5px dashed var(--edge);
+  background: transparent;
+  color: var(--ink-2);
+  font: var(--t-meta);
+  font-weight: 680;
+}
+.pension-cta:active {
+  border-color: var(--a2);
+  color: var(--ink);
+}
+.pension-cta svg {
+  color: var(--a2);
+}
+.pension-new {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 17px 18px;
+  border-radius: var(--r-lg);
+  background: var(--fill-1);
+  border: 1px solid var(--hair);
+}
+.pension-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pension-field > span {
+  font: var(--t-meta);
+  color: var(--ink-3);
+}
+.pension-proxies {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.pension-proxies button {
+  flex: 1;
+  min-width: 96px;
+  padding: 9px 10px;
+  border-radius: var(--pill);
+  background: var(--fill-2);
+  border: 1px solid var(--edge);
+  color: var(--ink-2);
+  font: var(--t-meta);
+  font-weight: 640;
+  transition: all 0.18s;
+}
+.pension-proxies button[data-on='true'] {
+  background: var(--accent);
+  border-color: transparent;
+  color: #0b0c12;
+}
+.pension-remove {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: none;
+  border: 1px solid var(--edge);
+  color: var(--bad);
+  font: var(--t-meta);
+  font-weight: 680;
+  margin-right: auto;
+}

@@ -15,6 +15,7 @@ import type {
   Goal,
   MonthData,
   Outgoing,
+  Pension,
   Profile,
   Settings,
   Store,
@@ -200,6 +201,10 @@ interface StoreContextValue {
   addGoal: (goal: Omit<Goal, "id" | "createdAt">) => void;
   updateGoal: (id: string, patch: Partial<Goal>) => void;
   deleteGoal: (id: string) => void;
+  // --- pension (synced) ---
+  pension: Pension | null;
+  /** Merge a patch into the pension, or pass null to remove it. */
+  setPension: (patch: Partial<Pension> | null) => void;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
@@ -605,6 +610,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const setPension = useCallback(
+    (patch: Partial<Pension> | null) =>
+      setStore((prev) => ({
+        ...prev,
+        pension:
+          patch === null
+            ? null
+            : ({ value: 0, date: "", symbol: "URTH", ...(prev.pension ?? {}), ...patch } as Pension),
+      })),
+    []
+  );
+
   const resetSeed = useCallback(() => {
     const key = monthKeyOf();
     setCurrentKey(key);
@@ -651,6 +668,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     addGoal,
     updateGoal,
     deleteGoal,
+    pension: store.pension ?? null,
+    setPension,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

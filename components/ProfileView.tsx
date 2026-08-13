@@ -10,6 +10,7 @@ import { registerSW, reminderPermission, requestReminderPermission } from '@/lib
 import type { ThemeMode } from '@/lib/types';
 import { Sparkline } from './Sparkline';
 import { Goals } from './Goals';
+import { Pension } from './Pension';
 import { Camera } from './icons';
 
 const AVATAR_PX = 256;
@@ -291,6 +292,11 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
         <h3>Savings goals</h3>
       </div>
       <Goals />
+
+      <div className="sec">
+        <h3>Pension</h3>
+      </div>
+      <Pension />
 
       <div className="sec">
         <h3>Bank</h3>

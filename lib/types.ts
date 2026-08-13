@@ -49,6 +49,19 @@ export interface Settings {
   autoReconcile?: boolean;
 }
 
+/** A pension/investment pot tracked by anchoring a real value and moving it
+ *  with a market index (since there's no PensionBee API). */
+export interface Pension {
+  /** the last real value the user entered (from their pension app) */
+  value: number;
+  /** ISO date (YYYY-MM-DD) that value was set */
+  date: string;
+  /** market proxy ticker used to move the estimate (Yahoo, e.g. 'URTH') */
+  symbol: string;
+  /** index price captured when the value was anchored */
+  baseLevel?: number | null;
+}
+
 /** A savings goal the user is putting money aside for. */
 export interface Goal {
   id: string;
@@ -101,6 +114,8 @@ export interface Store {
   bank?: BankConn | null;
   /** savings goals (synced) */
   goals?: Goal[];
+  /** pension/investment pot tracked by anchor + market proxy (synced) */
+  pension?: Pension | null;
 }
 
 export const ACCENTS = [
