@@ -385,6 +385,20 @@ export function AiChat({ onClose }: { onClose: () => void }) {
       .replace(/\s+/g, ' ')
       .trim();
 
+  // iOS won't speak later (post-network) unless speech was unlocked inside a
+  // user gesture first. Call this from every tap that starts a voice turn.
+  const primeSpeech = () => {
+    try {
+      if (typeof speechSynthesis === 'undefined') return;
+      speechSynthesis.resume();
+      const u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0;
+      speechSynthesis.speak(u);
+    } catch {
+      /* ignore */
+    }
+  };
+
   const speak = (text: string, onDone?: () => void) => {
     if (typeof speechSynthesis === 'undefined') return onDone?.();
     try {
@@ -486,6 +500,7 @@ export function AiChat({ onClose }: { onClose: () => void }) {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return;
     HAPTIC.light();
+    primeSpeech(); // unlock iOS text-to-speech within this tap
     voiceRef.current = true;
     setVoiceOn(true);
     listenOnce();
@@ -586,7 +601,10 @@ export function AiChat({ onClose }: { onClose: () => void }) {
             role="button"
             tabIndex={0}
             onClick={() => {
-              if (phase === 'idle') listenOnce();
+              if (phase === 'idle') {
+                primeSpeech();
+                listenOnce();
+              }
             }}
           >
             <span className="ai-voice-dot" />
