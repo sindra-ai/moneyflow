@@ -3345,10 +3345,10 @@ input {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin: 0 10px 10px;
-  padding: 12px 14px;
+  margin: 8px 12px 14px;
+  padding: 14px 16px;
   border-radius: var(--r-sm);
-  background: var(--fill-1);
+  background: var(--fill-2);
   border: 1px solid var(--hair);
 }
 .txn-drow {
