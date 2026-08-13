@@ -64,6 +64,26 @@ export async function enablePush(userId: string): Promise<PushResult> {
   }
 }
 
+/** Ask the server to send a one-off test push to this device. */
+export async function sendTestPush(): Promise<'ok' | 'nosub' | 'unconfigured' | 'error'> {
+  if (!pushSupported()) return 'error';
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = reg && (await reg.pushManager.getSubscription());
+    if (!sub) return 'nosub';
+    const res = await fetch('/api/push/test', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON() }),
+    });
+    if (res.status === 503) return 'unconfigured';
+    const d = (await res.json()) as { ok?: boolean };
+    return d.ok ? 'ok' : 'error';
+  } catch {
+    return 'error';
+  }
+}
+
 /** Unsubscribe this device and remove its stored subscription. */
 export async function disablePush(): Promise<void> {
   if (!pushSupported()) return;
