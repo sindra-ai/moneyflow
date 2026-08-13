@@ -7,11 +7,13 @@ import { fetchPrice } from '@/lib/marketClient';
 import { HAPTIC } from '@/lib/haptics';
 import { Coins, TrendUp } from './icons';
 
-// Free market proxies (Yahoo) that stand in for a mostly-global-equity pension.
+// GBP-priced London-listed trackers (Yahoo), so the estimate carries no USD/GBP
+// drift. Default is MSCI ACWI — the index PensionBee's Global Leaders Plan and
+// most global-equity pensions follow (developed + emerging large caps).
 const PROXIES = [
-  { symbol: 'URTH', label: 'Global shares' },
-  { symbol: 'VT', label: 'All-World +EM' },
-  { symbol: 'SPY', label: 'US (S&P 500)' },
+  { symbol: 'SSAC.L', label: 'Global (MSCI ACWI)' },
+  { symbol: 'IWRD.L', label: 'Developed (World)' },
+  { symbol: 'VUSA.L', label: 'US (S&P 500)' },
 ];
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

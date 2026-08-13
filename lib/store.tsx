@@ -617,7 +617,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         pension:
           patch === null
             ? null
-            : ({ value: 0, date: "", symbol: "URTH", ...(prev.pension ?? {}), ...patch } as Pension),
+            : ({ value: 0, date: "", symbol: "SSAC.L", ...(prev.pension ?? {}), ...patch } as Pension),
       })),
     []
   );
