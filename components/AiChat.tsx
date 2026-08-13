@@ -570,10 +570,10 @@ export function AiChat({ onClose }: { onClose: () => void }) {
     const isVoice = voiceRef.current;
     let outgoing: Msg[];
     if (isVoice) {
-      voiceMsgs.current = [...voiceMsgs.current, { role: 'user', content: q }].slice(-20);
+      voiceMsgs.current = [...voiceMsgs.current, { role: 'user' as const, content: q }].slice(-20);
       outgoing = voiceMsgs.current;
     } else {
-      outgoing = [...msgs, { role: 'user', content: q }];
+      outgoing = [...msgs, { role: 'user' as const, content: q }];
       setMsgs(outgoing);
     }
     setInput('');
@@ -595,7 +595,7 @@ export function AiChat({ onClose }: { onClose: () => void }) {
       const reply: string =
         data.text || (applied ? `Done — applied ${applied} change${applied === 1 ? '' : 's'}.` : '');
       if (isVoice) {
-        voiceMsgs.current = [...voiceMsgs.current, { role: 'assistant', content: reply || '…' }].slice(-20);
+        voiceMsgs.current = [...voiceMsgs.current, { role: 'assistant' as const, content: reply || '…' }].slice(-20);
         if (applied > 0) HAPTIC.success();
         speak(reply || 'Done.', () => voiceRef.current && listenOnce(true));
       } else {
