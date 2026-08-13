@@ -2877,14 +2877,15 @@ input {
   gap: 6px;
 }
 .sptrend-legend .dot {
+  flex: none;
   width: 9px;
   height: 9px;
   border-radius: 50%;
 }
-.sptrend-legend .dot.out {
+.sptrend-legend .dot-out {
   background: var(--a2);
 }
-.sptrend-legend .dot.in {
+.sptrend-legend .dot-in {
   background: var(--fill-3);
 }
 

@@ -25,7 +25,9 @@ export function Budgets({ monthSpend }: { monthSpend: Txn[] }) {
     .map(([k, v]) => ({ k, v, budget: budgets[k] }))
     .sort((a, b) => (b.budget ? 1 : 0) - (a.budget ? 1 : 0) || b.v - a.v);
   if (!rows.length) return null;
-  const maxV = rows.reduce((m, r) => Math.max(m, r.v), 0) || 1;
+  // Without a budget, a bar shows the category's share of this month's spend
+  // (so nothing reads as a misleading "full" bar just for being the biggest).
+  const totalV = rows.reduce((s, r) => s + r.v, 0) || 1;
 
   const commit = (cat: string) => {
     const v = parseFloat(draft.replace(/[^0-9.]/g, ''));
@@ -41,7 +43,7 @@ export function Budgets({ monthSpend }: { monthSpend: Txn[] }) {
       {rows.map((c) => {
         const accent = CAT_ACCENT[c.k as SpendCat] || 'var(--a1)';
         const over = c.budget != null && c.v > c.budget;
-        const pct = c.budget ? Math.min(100, (c.v / c.budget) * 100) : (c.v / maxV) * 100;
+        const pct = c.budget ? Math.min(100, (c.v / c.budget) * 100) : (c.v / totalV) * 100;
         return (
           <div className="bd-row" key={c.k}>
             <div className="bd-top">
@@ -84,9 +86,9 @@ export function Budgets({ monthSpend }: { monthSpend: Txn[] }) {
             <div className="bd-bar">
               <i
                 style={{
-                  width: `${Math.round(pct)}%`,
+                  width: `${Math.max(3, Math.round(pct))}%`,
                   background: over ? 'var(--bad)' : accent,
-                  opacity: c.budget ? 1 : 0.5,
+                  opacity: c.budget ? 1 : 0.8,
                 }}
               />
             </div>

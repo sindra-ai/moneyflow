@@ -36,11 +36,11 @@ export function SpendTrend({ txns }: { txns: Txn[] }) {
       </div>
       <div className="sptrend-legend">
         <span>
-          <i className="dot out" /> Out
+          <i className="dot dot-out" /> Out
         </span>
         {hasIncome && (
           <span>
-            <i className="dot in" /> In
+            <i className="dot dot-in" /> In
           </span>
         )}
       </div>
