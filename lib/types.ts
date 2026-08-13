@@ -17,6 +17,11 @@ export interface Outgoing {
   category: Category;
   /** true = carries into future months; false = one-off, this month only */
   recurring: boolean;
+  /** id of the bank transaction that auto-marked this paid (reconciliation).
+   *  Once set it is not re-matched, so a manual un-tick sticks. */
+  paidTxnId?: string;
+  /** ISO date the matched payment actually left the account. */
+  paidOn?: string;
 }
 
 export interface MonthData {
@@ -38,6 +43,20 @@ export interface Settings {
   savingsStart: number;
   /** opt-in to due-date reminders */
   reminders: boolean;
+  /** monthly spend caps per spending category (bank data), keyed by SpendCat */
+  budgets?: Record<string, number>;
+  /** opt-in to auto-ticking bills when the matching payment leaves the bank */
+  autoReconcile?: boolean;
+}
+
+/** A savings goal the user is putting money aside for. */
+export interface Goal {
+  id: string;
+  name: string;
+  target: number;
+  saved: number;
+  accent: string;
+  createdAt: number;
 }
 
 /* ------------------------------------------------- bank (Open Banking) -- */
@@ -80,6 +99,8 @@ export interface Store {
   settings: Settings;
   /** linked bank connection — synced so you connect once across devices */
   bank?: BankConn | null;
+  /** savings goals (synced) */
+  goals?: Goal[];
 }
 
 export const ACCENTS = [

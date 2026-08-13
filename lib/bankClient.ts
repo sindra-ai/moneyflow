@@ -145,6 +145,24 @@ export async function loadTransactions(conn: BankConn): Promise<{ txns: Txn[]; c
   return { txns: r.transactions ?? [], conn: fresh };
 }
 
+/** Available balance per account id. Non-critical — returns {} on any error
+ *  (the transactions load already refreshed and persisted the token). */
+export async function loadBalances(conn: BankConn): Promise<Record<string, number>> {
+  try {
+    const r = await post<{
+      balances?: { accountId: string; available: number; current: number }[];
+    }>('/api/bank/balance', {
+      accessToken: conn.tokens.accessToken,
+      accountIds: conn.accounts.map((a) => a.id),
+    });
+    const out: Record<string, number> = {};
+    for (const b of r.balances ?? []) out[b.accountId] = b.available ?? b.current ?? 0;
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 /** Quiet check (on app open / focus): new activity since last viewed?
  *  Returns whether there's new activity plus the (possibly refreshed) conn. */
 export async function checkNewActivity(

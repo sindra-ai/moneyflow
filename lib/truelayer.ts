@@ -106,6 +106,28 @@ export async function getAccounts(accessToken: string): Promise<BankAccount[]> {
   }));
 }
 
+export interface AccountBalance {
+  accountId: string;
+  available: number;
+  current: number;
+  currency: string;
+}
+
+export async function getBalance(
+  accessToken: string,
+  accountId: string,
+): Promise<AccountBalance | null> {
+  const d = await apiGet(`/data/v1/accounts/${accountId}/balance`, accessToken);
+  const b = (d.results ?? [])[0];
+  if (!b) return null;
+  return {
+    accountId,
+    available: Number(b.available ?? b.current ?? 0),
+    current: Number(b.current ?? 0),
+    currency: b.currency || 'GBP',
+  };
+}
+
 export interface Txn {
   id: string;
   date: string; // YYYY-MM-DD

@@ -9,8 +9,19 @@ import React, {
   useRef,
   useState,
 } from "react";
-import type { BankConn, MonthData, Outgoing, Profile, Settings, Store, ThemeMode } from "./types";
+import type {
+  BankConn,
+  BankTxn,
+  Goal,
+  MonthData,
+  Outgoing,
+  Profile,
+  Settings,
+  Store,
+  ThemeMode,
+} from "./types";
 import { defaultStore, newId, seedMonth, DEFAULT_SETTINGS } from "./seed";
+import { matchBills } from "./reconcile";
 import { supabase } from "./supabase";
 import { useAuth } from "./auth";
 
@@ -114,6 +125,7 @@ function loadStore(currentKey: string): Store {
     // Defensive fill for older/partial data.
     parsed.profile = parsed.profile ?? { name: "", avatar: null };
     parsed.settings = { ...DEFAULT_SETTINGS, ...(parsed.settings ?? {}) };
+    parsed.goals = parsed.goals ?? [];
     // Backfill fields added after the currency removal so old items render.
     for (const key of Object.keys(parsed.months)) {
       const m = parsed.months[key];
@@ -172,6 +184,14 @@ interface StoreContextValue {
   // --- bank connection (synced) ---
   bank: BankConn | null;
   setBank: (conn: BankConn | null) => void;
+  /** Tick this real month's bills that have a matching money-out payment in
+   *  the bank feed. Returns how many were newly ticked. */
+  autoReconcile: (txns: BankTxn[]) => number;
+  // --- savings goals (synced) ---
+  goals: Goal[];
+  addGoal: (goal: Omit<Goal, "id" | "createdAt">) => void;
+  updateGoal: (id: string, patch: Partial<Goal>) => void;
+  deleteGoal: (id: string) => void;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
@@ -450,6 +470,61 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  // Auto-tick bills that have a matching payment already gone out of the bank.
+  // Always targets the real current month (not whatever month is being viewed),
+  // and never re-touches a bill that already carries a match — so a manual
+  // un-tick is respected.
+  const autoReconcile = useCallback((txns: BankTxn[]): number => {
+    if (storeRef.current.settings.autoReconcile === false) return 0;
+    const realKey = monthKeyOf();
+    const cur = storeRef.current.months[realKey];
+    if (!cur) return 0;
+    const matches = matchBills(cur.items, txns, realKey);
+    if (!matches.length) return 0;
+    const byItem = new Map(matches.map((m) => [m.itemId, m]));
+    setStore((prev) => {
+      const m = prev.months[realKey];
+      if (!m) return prev;
+      return {
+        ...prev,
+        months: {
+          ...prev.months,
+          [realKey]: {
+            ...m,
+            items: m.items.map((it) => {
+              const mt = byItem.get(it.id);
+              if (!mt || it.paid || it.paidTxnId) return it;
+              return { ...it, paid: true, paidTxnId: mt.txnId, paidOn: mt.date };
+            }),
+          },
+        },
+      };
+    });
+    return matches.length;
+  }, []);
+
+  const addGoal = useCallback(
+    (goal: Omit<Goal, "id" | "createdAt">) =>
+      setStore((prev) => ({
+        ...prev,
+        goals: [...(prev.goals ?? []), { ...goal, id: newId(), createdAt: Date.now() }],
+      })),
+    []
+  );
+  const updateGoal = useCallback(
+    (id: string, patch: Partial<Goal>) =>
+      setStore((prev) => ({
+        ...prev,
+        goals: (prev.goals ?? []).map((g) => (g.id === id ? { ...g, ...patch } : g)),
+      })),
+    []
+  );
+  const deleteGoal = useCallback(
+    (id: string) =>
+      setStore((prev) => ({ ...prev, goals: (prev.goals ?? []).filter((g) => g.id !== id) })),
+    []
+  );
+
   const resetSeed = useCallback(() => {
     const key = monthKeyOf();
     setCurrentKey(key);
@@ -488,6 +563,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     undo,
     bank: store.bank ?? null,
     setBank,
+    autoReconcile,
+    goals: store.goals ?? [],
+    addGoal,
+    updateGoal,
+    deleteGoal,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

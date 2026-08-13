@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { computeTotals, monthKeyOf, useStore } from '@/lib/store';
 import { money, moneyCompact, moneyParts } from '@/lib/format';
 import { daysUntilPayday, history, pacing } from '@/lib/derive';
+import { safeToSpend } from '@/lib/insights';
+import { getCachedTxns } from '@/lib/bankClient';
 import { useCountUp } from '@/lib/useCountUp';
 import { HAPTIC } from '@/lib/haptics';
 import type { Outgoing } from '@/lib/types';
@@ -22,7 +24,8 @@ interface Props {
 }
 
 export function HomeView({ scrollerRef, onAdd, onEdit }: Props) {
-  const { store, month, monthKey, togglePaid, setAllPaid, reorder, deleteItem, undo } = useStore();
+  const { store, month, monthKey, bank, togglePaid, setAllPaid, reorder, deleteItem, undo } =
+    useStore();
   const totals = computeTotals(month);
   const toast = useToast();
 
@@ -33,6 +36,26 @@ export function HomeView({ scrollerRef, onAdd, onEdit }: Props) {
 
   const isCurrent = monthKey === monthKeyOf();
   const untilPay = isCurrent ? daysUntilPayday(store.settings.payday ?? 25) : null;
+
+  // Safe-to-spend uses real bank spending, so it only shows on the live month
+  // with a bank linked. Reconciled bill payments are excluded to avoid
+  // double-counting them against both "bills" and "spent".
+  const safe = (() => {
+    if (!bank || !isCurrent) return null;
+    const cached = getCachedTxns();
+    const txns = (cached?.txns ?? []).filter((t) => bank.selected.includes(t.accountId));
+    if (!txns.length) return null;
+    const reconciledTxnIds = new Set(
+      month.items.map((i) => i.paidTxnId).filter(Boolean) as string[],
+    );
+    return safeToSpend({
+      salary: month.salary,
+      billsTotal: totals.total,
+      txns,
+      reconciledTxnIds,
+      daysToPayday: untilPay,
+    });
+  })();
   const query = q.trim().toLowerCase();
   const filtered = query
     ? month.items.filter((i) => i.name.toLowerCase().includes(query))
@@ -138,6 +161,8 @@ export function HomeView({ scrollerRef, onAdd, onEdit }: Props) {
       <div className="scroll" ref={scrollerRef} onScroll={onScroll}>
         <SalaryDuo leftOver={totals.leftOver} />
 
+        {safe && <SafeCard safe={safe} />}
+
         {untilPay !== null && (
           <div className="payday">
             <Wallet size={17} />
@@ -219,6 +244,41 @@ export function HomeView({ scrollerRef, onAdd, onEdit }: Props) {
 }
 
 /* ------------------------------------------------------------------------ */
+
+function SafeCard({ safe }: { safe: NonNullable<ReturnType<typeof safeToSpend>> }) {
+  // Stacked bar: how much of the salary is already committed (bills) or spent.
+  const base = Math.max(safe.salary, safe.bills + safe.spent, 1);
+  const billsPct = Math.min(100, (safe.bills / base) * 100);
+  const spentPct = Math.min(100 - billsPct, (safe.spent / base) * 100);
+  const over = safe.safe < 0;
+  return (
+    <div className="safe" data-over={over}>
+      <div className="safe-top">
+        <span className="safe-lab">Safe to spend</span>
+        {safe.perDay != null && (
+          <span className="safe-per n">{money(safe.perDay)}/day</span>
+        )}
+      </div>
+      <div className={`safe-fig n ${over ? 'down' : 'up'}`}>{money(safe.safe)}</div>
+      <div className="safe-bar" aria-hidden="true">
+        <i className="seg-bills" style={{ width: `${billsPct}%` }} />
+        <i className="seg-spent" style={{ width: `${spentPct}%` }} />
+      </div>
+      <div className="safe-legend n">
+        <span>
+          <b>{moneyCompact(safe.bills)}</b> bills
+        </span>
+        <span>
+          <b>{moneyCompact(safe.spent)}</b> spent
+        </span>
+        <span>
+          {over ? 'over by ' : ''}
+          <b>{moneyCompact(Math.abs(safe.safe))}</b> {over ? '' : 'left'}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 function SalaryDuo({ leftOver }: { leftOver: number }) {
   const { month, setSalary } = useStore();

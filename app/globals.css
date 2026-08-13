@@ -2609,3 +2609,449 @@ input {
   color: var(--bad);
   padding: 4px 2px;
 }
+
+/* ===================================================================== *
+ * New features — safe-to-spend, weekly digest, budgets, subscriptions,
+ * spend trend, account balances, auto-tick badge, savings goals.
+ * ===================================================================== */
+
+/* --------------------------------------------------- safe to spend ----- */
+.safe {
+  margin-top: 10px;
+  padding: 18px 20px;
+  border-radius: var(--r-lg);
+  background: var(--fill-1);
+  border: 1px solid var(--hair);
+}
+.safe-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.safe-lab {
+  font: var(--t-meta);
+  color: var(--ink-3);
+}
+.safe-per {
+  font: var(--t-meta);
+  font-weight: 640;
+  color: var(--ink-2);
+}
+.safe-fig {
+  font: var(--t-title);
+  font-size: 30px;
+  letter-spacing: -0.02em;
+  margin: 3px 0 12px;
+}
+.safe-fig.up {
+  color: var(--ink);
+}
+.safe-fig.down {
+  color: var(--bad);
+}
+.safe-bar {
+  display: flex;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--fill-2);
+  overflow: hidden;
+}
+.safe-bar i {
+  display: block;
+  height: 100%;
+  transition: width 0.5s var(--spring);
+}
+.safe-bar .seg-bills {
+  background: var(--ink-3);
+}
+.safe-bar .seg-spent {
+  background: linear-gradient(90deg, var(--a1), var(--a2));
+}
+.safe[data-over='true'] .safe-bar .seg-spent {
+  background: var(--bad);
+}
+.safe-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  font: var(--t-meta);
+  color: var(--ink-3);
+}
+.safe-legend b {
+  color: var(--ink-2);
+  font-weight: 640;
+}
+
+/* ------------------------------------------------------ weekly digest -- */
+.digest {
+  margin-top: 12px;
+  padding: 16px 18px;
+  border-radius: var(--r-lg);
+  background: linear-gradient(160deg, var(--wash-a), var(--wash-b));
+  border: 1px solid var(--glass-edge);
+}
+.digest-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.digest-lab {
+  font: var(--t-cap);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.digest-sum {
+  font: var(--t-head);
+  font-weight: 680;
+}
+.digest-line {
+  margin-top: 6px;
+  font: var(--t-body);
+  font-size: 15px;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+.digest-line b {
+  color: var(--ink);
+  font-weight: 640;
+}
+.digest-line b.up {
+  color: var(--good);
+}
+.digest-line b.down {
+  color: var(--bad);
+}
+.digest-big {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--hair);
+  font: var(--t-meta);
+  color: var(--ink-3);
+}
+.digest-big .n {
+  color: var(--ink-2);
+  font-weight: 640;
+}
+
+/* ------------------------------------------------------------ budgets -- */
+.bud-v {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font: var(--t-meta);
+  color: var(--ink-2);
+  background: none;
+  border: none;
+  padding: 0;
+}
+.bud-v .down {
+  color: var(--bad);
+  font-weight: 640;
+}
+.bud-cap {
+  color: var(--ink-3);
+}
+.bud-set {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--a2);
+  font-weight: 640;
+}
+.bud-in {
+  width: 96px;
+  text-align: right;
+  background: var(--fill-2);
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  padding: 3px 8px;
+  color: var(--ink);
+  font: var(--t-meta);
+  font-weight: 640;
+}
+.bd-over {
+  margin-top: 5px;
+  font: var(--t-cap);
+  font-weight: 640;
+  color: var(--bad);
+}
+
+/* --------------------------------------------- recurring / subscriptions */
+.sub-row {
+  align-items: center;
+}
+.sub-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+.sub-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--fill-2);
+  border: 1px solid var(--edge);
+  color: var(--ink-2);
+  font: var(--t-cap);
+  font-weight: 680;
+  letter-spacing: 0.02em;
+}
+.sub-add:active {
+  background: var(--fill-3);
+}
+.sub-add:disabled {
+  color: var(--good);
+  border-color: transparent;
+  background: color-mix(in srgb, var(--good) 16%, transparent);
+}
+.sub-note {
+  margin: 8px 4px 0;
+  font: var(--t-meta);
+  color: var(--ink-3);
+}
+
+/* -------------------------------------------------------------- trend -- */
+.trend {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 128px;
+  padding: 16px 18px 10px;
+  border-radius: var(--r-lg);
+  background: var(--fill-1);
+  border: 1px solid var(--hair);
+}
+.trend-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+}
+.trend-bars {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+}
+.trend-bars i {
+  width: 42%;
+  max-width: 16px;
+  border-radius: 5px 5px 2px 2px;
+  transition: height 0.6s var(--spring);
+}
+.trend-bars .tb-out {
+  background: linear-gradient(180deg, var(--a2), var(--a1));
+}
+.trend-bars .tb-in {
+  background: var(--fill-3);
+}
+.trend-lab {
+  font: var(--t-cap);
+  color: var(--ink-3);
+}
+.trend-legend {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+  font: var(--t-meta);
+  color: var(--ink-3);
+}
+.trend-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.trend-legend .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.trend-legend .dot.out {
+  background: var(--a2);
+}
+.trend-legend .dot.in {
+  background: var(--fill-3);
+}
+
+/* -------------------------------------------------- account balance ---- */
+.acct-bal {
+  margin-top: 8px;
+  font: var(--t-body);
+  font-weight: 680;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+/* ----------------------------------------------- auto-tick match badge -- */
+.rmeta.rmatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--good);
+  font-weight: 600;
+}
+.rmeta.rmatch svg {
+  flex: none;
+}
+
+/* ------------------------------------------------------- savings goals -- */
+.goals {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.goal {
+  padding: 15px 17px;
+  border-radius: var(--r-md);
+  background: var(--fill-1);
+  border: 1px solid var(--hair);
+}
+.goal-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.goal-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--t-body);
+  font-weight: 640;
+}
+.goal-name svg {
+  color: var(--good);
+}
+.goal-fig {
+  font: var(--t-meta);
+  font-weight: 640;
+  white-space: nowrap;
+}
+.goal-of {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.goal-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--fill-2);
+  overflow: hidden;
+  margin: 10px 0;
+}
+.goal-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s var(--spring);
+}
+.goal-acts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.goal-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--fill-2);
+  border: 1px solid var(--edge);
+  color: var(--ink-2);
+  font: var(--t-meta);
+  font-weight: 640;
+}
+.goal-add:active {
+  background: var(--fill-3);
+}
+.goal-del {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: none;
+  border: none;
+  color: var(--ink-3);
+}
+.goal-del:active {
+  color: var(--bad);
+}
+.goal-in {
+  flex: 1;
+  background: var(--fill-2);
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  padding: 8px 12px;
+  color: var(--ink);
+  font: var(--t-meta);
+  font-weight: 600;
+}
+.goal-new {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 15px 17px;
+  border-radius: var(--r-md);
+  background: var(--fill-1);
+  border: 1px solid var(--hair);
+  margin-bottom: 10px;
+}
+.goal-new-acts {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.goal-cancel,
+.goal-save {
+  padding: 8px 16px;
+  border-radius: 999px;
+  font: var(--t-meta);
+  font-weight: 680;
+  border: 1px solid var(--edge);
+}
+.goal-cancel {
+  background: none;
+  color: var(--ink-2);
+}
+.goal-save {
+  background: var(--accent);
+  border-color: transparent;
+  color: #0b0c12;
+}
+.goal-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  justify-content: center;
+  padding: 13px;
+  border-radius: var(--r-md);
+  border: 1.5px dashed var(--edge);
+  background: transparent;
+  color: var(--ink-2);
+  font: var(--t-meta);
+  font-weight: 680;
+}
+.goal-cta:active {
+  border-color: var(--a2);
+  color: var(--ink);
+}
+.goal-cta svg {
+  color: var(--a2);
+}

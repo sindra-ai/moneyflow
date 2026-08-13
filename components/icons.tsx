@@ -158,3 +158,43 @@ export const Mic = (p: P) => (
     <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" />
   </Base>
 );
+
+export const Repeat = (p: P) => (
+  <Base {...p}>
+    <path d="M17 2l4 4-4 4" />
+    <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+    <path d="M7 22l-4-4 4-4" />
+    <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+  </Base>
+);
+
+export const Target = (p: P) => (
+  <Base {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="5" />
+    <circle cx="12" cy="12" r="1" />
+  </Base>
+);
+
+export const TrendUp = (p: P) => (
+  <Base {...p}>
+    <path d="M3 17l6-6 4 4 8-8" />
+    <path d="M15 7h6v6" />
+  </Base>
+);
+
+export const Bolt = (p: P) => (
+  <Base {...p}>
+    <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
+  </Base>
+);
+
+export const Coins = (p: P) => (
+  <Base {...p}>
+    <ellipse cx="9" cy="6" rx="6" ry="3" />
+    <path d="M3 6v6c0 1.66 2.69 3 6 3s6-1.34 6-3V6" />
+    <path d="M15 12.5c1.8-.3 3-1 3-1.9" />
+    <ellipse cx="15" cy="15" rx="6" ry="3" />
+    <path d="M9 15.9v2.1c0 1.66 2.69 3 6 3s6-1.34 6-3v-6" />
+  </Base>
+);

@@ -9,6 +9,7 @@ import { HAPTIC } from '@/lib/haptics';
 import { registerSW, reminderPermission, requestReminderPermission } from '@/lib/reminders';
 import type { ThemeMode } from '@/lib/types';
 import { Sparkline } from './Sparkline';
+import { Goals } from './Goals';
 import { Camera } from './icons';
 
 const AVATAR_PX = 256;
@@ -284,6 +285,38 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
             aria-label="Starting savings balance"
           />
         </div>
+      </div>
+
+      <div className="sec">
+        <h3>Savings goals</h3>
+      </div>
+      <Goals />
+
+      <div className="sec">
+        <h3>Bank</h3>
+      </div>
+      <div className="list">
+        <button
+          className="li"
+          onClick={() => {
+            HAPTIC.light();
+            setSettings({ autoReconcile: store.settings.autoReconcile === false });
+          }}
+        >
+          <div>
+            <div className="li-k">Auto-tick bills</div>
+            <div className="li-s">
+              Marks a bill paid once its matching payment has left your bank — not on the due date.
+            </div>
+          </div>
+          <span
+            className="switch"
+            data-on={store.settings.autoReconcile !== false}
+            aria-hidden="true"
+          >
+            <i />
+          </span>
+        </button>
       </div>
 
       <div className="sec">

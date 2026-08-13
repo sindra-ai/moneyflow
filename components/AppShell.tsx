@@ -13,15 +13,26 @@ import { HomeView } from './HomeView';
 import { CalendarView } from './CalendarView';
 import { SpendingView } from './SpendingView';
 import { ProfileView } from './ProfileView';
-import { checkNewActivity } from '@/lib/bankClient';
+import { checkNewActivity, getCachedTxns } from '@/lib/bankClient';
 import { ItemEditor, type EditorTarget } from './ItemEditor';
 import { AiChat } from './AiChat';
+import { useToast } from './Toast';
 import { Moon, Sparkle, Sun } from './icons';
 
 export function AppShell() {
-  const { ready, store, resolvedTheme, setSettings, addItem, updateItem, deleteItem, setBank } =
-    useStore();
+  const {
+    ready,
+    store,
+    resolvedTheme,
+    setSettings,
+    addItem,
+    updateItem,
+    deleteItem,
+    setBank,
+    autoReconcile,
+  } = useStore();
   const { session, loading } = useAuth();
+  const toast = useToast();
   const [tab, setTab] = useState<Tab>('home');
   const [editor, setEditor] = useState<EditorTarget | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
@@ -94,6 +105,13 @@ export function AppShell() {
       const { hasNew, conn } = await checkNewActivity(cur);
       setBankDot(hasNew);
       if (conn && cur && conn.tokens.accessToken !== cur.tokens.accessToken) setBank(conn);
+      // Tick any bills whose payment has now cleared at the bank.
+      const cached = getCachedTxns();
+      if (cur && cached?.txns?.length) {
+        const n = autoReconcile(cached.txns);
+        if (n > 0)
+          toast({ message: `${n} bill${n === 1 ? '' : 's'} auto-ticked — payment cleared` });
+      }
     };
     void check();
     const onVis = () => {
@@ -101,7 +119,7 @@ export function AppShell() {
     };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
-  }, [bankKey, setBank]);
+  }, [bankKey, setBank, autoReconcile, toast]);
 
   // Surface any bills due soon shortly after load (giving cloud sync a moment
   // to land) and whenever the app is brought back to the foreground.

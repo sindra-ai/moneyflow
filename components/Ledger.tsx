@@ -5,7 +5,14 @@ import type { Outgoing } from '@/lib/types';
 import { initial, money, ordinal } from '@/lib/format';
 import { HAPTIC } from '@/lib/haptics';
 import { groupByDue } from '@/lib/derive';
-import { Check } from './icons';
+import { Bolt, Check } from './icons';
+
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function shortDay(iso?: string): string {
+  if (!iso) return '';
+  const [, m, d] = iso.split('-').map(Number);
+  return `${d} ${MON[(m || 1) - 1]}`;
+}
 
 const HOLD_TOUCH = 240;
 const HOLD_MOUSE = 160;
@@ -320,7 +327,13 @@ export function Ledger({
 
           <div className="rbody">
             <div className="rname">{item.name}</div>
-            {meta.length > 0 && <div className="rmeta">{meta.join(' · ')}</div>}
+            {item.paidTxnId ? (
+              <div className="rmeta rmatch">
+                <Bolt size={11} /> Auto-ticked{item.paidOn ? ` · ${shortDay(item.paidOn)}` : ''}
+              </div>
+            ) : (
+              meta.length > 0 && <div className="rmeta">{meta.join(' · ')}</div>
+            )}
           </div>
 
           <div className="ramt n">{money(item.amount)}</div>

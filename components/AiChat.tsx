@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { computeTotals, useStore } from '@/lib/store';
 import { money, monthLabel } from '@/lib/format';
+import { daysUntilPayday } from '@/lib/derive';
+import { detectRecurring, safeToSpend } from '@/lib/insights';
 import { HAPTIC } from '@/lib/haptics';
 import { ACCENTS, CATEGORIES, type Category } from '@/lib/types';
 import { getCachedTxns } from '@/lib/bankClient';
@@ -49,6 +51,7 @@ function renderRich(text: string) {
 
 export function AiChat({ onClose }: { onClose: () => void }) {
   const {
+    store,
     month,
     monthKey,
     bank,
@@ -188,6 +191,26 @@ export function AiChat({ onClose }: { onClose: () => void }) {
           .map(([k, v]) => [k, r(v)]),
       );
       const dates = spend.map((x) => x.date).filter(Boolean).sort();
+      const subs = detectRecurring(spend);
+      const reconciledTxnIds = new Set(
+        month.items.map((i) => i.paidTxnId).filter(Boolean) as string[],
+      );
+      const safe = safeToSpend({
+        salary: month.salary,
+        billsTotal: t.total,
+        txns: all,
+        reconciledTxnIds,
+        daysToPayday: daysUntilPayday(store.settings.payday ?? 25),
+      });
+      const budgetRows = (() => {
+        const b = store.settings.budgets ?? {};
+        const keys = Object.keys(b);
+        if (!keys.length) return undefined;
+        const byCat: Record<string, number> = {};
+        for (const x of spend.filter((y) => y.date.startsWith(mKey)))
+          byCat[x.category || 'Other'] = (byCat[x.category || 'Other'] ?? 0) + Math.abs(x.amount);
+        return keys.map((k) => ({ category: k, cap: b[k], spent: r(byCat[k] ?? 0) }));
+      })();
       snap.spending = {
         note: 'Actual bank transactions (read-only). Separate from the planned "items"/bills above. Negative amount = money out, positive = money in.',
         historyFrom: dates[0],
@@ -212,6 +235,23 @@ export function AiChat({ onClose }: { onClose: () => void }) {
           category: x.category,
           account: acctName(x.accountId),
         })),
+        safeToSpend: {
+          note: 'What is genuinely left to spend this month: salary − all planned bills − day-to-day spending already gone out (excluding transfers and payments already counted as a tracked bill).',
+          ...safe,
+        },
+        subscriptions: {
+          note: 'Recurring payments detected from repeat charges. monthlyTotal is the normalised per-month cost of all of them.',
+          monthlyTotal: r(subs.reduce((s, x) => s + x.monthly, 0)),
+          items: subs.slice(0, 20).map((x) => ({
+            merchant: x.merchant,
+            amount: x.amount,
+            monthly: x.monthly,
+            cadence: x.cadence,
+            count: x.count,
+            lastDate: x.lastDate,
+          })),
+        },
+        budgets: budgetRows,
       };
     }
 

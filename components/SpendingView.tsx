@@ -12,11 +12,17 @@ import {
   clearCache,
   completeConnect,
   getCachedTxns,
+  loadBalances,
   loadTransactions,
   markSeen,
   type BankConn,
   type Txn,
 } from '@/lib/bankClient';
+import { useToast } from './Toast';
+import { SpendDigest } from './SpendDigest';
+import { SpendTrend } from './SpendTrend';
+import { Budgets } from './Budgets';
+import { Subscriptions } from './Subscriptions';
 import { Check, Plus, Rotate, Wallet } from './icons';
 
 function startOfWeek(d: Date): number {
@@ -48,8 +54,10 @@ export function SpendingView({
   onSeen?: () => void;
 }) {
   // The connection lives in the synced store, so it follows you everywhere.
-  const { bank: conn, setBank } = useStore();
+  const { bank: conn, setBank, autoReconcile } = useStore();
+  const toast = useToast();
   const [txns, setTxns] = useState<Txn[]>([]);
+  const [balances, setBalances] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState(!!initialCode);
   const [needsKeys, setNeedsKeys] = useState(false);
@@ -100,13 +108,20 @@ export function SpendingView({
         setTxns(list);
         markSeen(list);
         onSeen?.();
+        // Tick any bills whose payment has already left the bank.
+        const n = autoReconcile(list);
+        if (n > 0) toast({ message: `${n} bill${n === 1 ? '' : 's'} auto-ticked — payment cleared` });
+        // Balances are a nice-to-have; never block the list on them.
+        void loadBalances(c).then((b) => {
+          if (Object.keys(b).length) setBalances(b);
+        });
       } catch (e) {
         setError((e as Error).message);
       } finally {
         setLoading(false);
       }
     },
-    [onSeen, setBank],
+    [onSeen, setBank, autoReconcile, toast],
   );
 
   // Re-fetch only when the connection (not the selection or order) changes.
@@ -260,14 +275,9 @@ export function SpendingView({
   const weekStart = startOfWeek(now);
   const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const sum = (list: Txn[]) => list.reduce((s, t) => s + Math.abs(t.amount), 0);
+  const monthSpendTxns = spend.filter((t) => t.date.startsWith(monthKey));
   const weekSpend = sum(spend.filter((t) => new Date(t.date).getTime() >= weekStart));
-  const monthSpend = sum(spend.filter((t) => t.date.startsWith(monthKey)));
-
-  const byCat = new Map<string, number>();
-  for (const t of spend.filter((x) => x.date.startsWith(monthKey)))
-    byCat.set(t.category || 'Other', (byCat.get(t.category || 'Other') ?? 0) + Math.abs(t.amount));
-  const cats = [...byCat.entries()].map(([k, v]) => ({ k, v })).sort((a, b) => b.v - a.v);
-  const catMax = cats.reduce((m, c) => Math.max(m, c.v), 0) || 1;
+  const monthSpend = sum(monthSpendTxns);
 
   /* -------- render -------- */
   return (
@@ -314,6 +324,8 @@ export function SpendingView({
               <div className="duo-v n">{money(monthSpend)}</div>
             </div>
           </div>
+
+          <SpendDigest spend={spend} />
 
           <div className="sec">
             <h3>Accounts</h3>
@@ -384,6 +396,9 @@ export function SpendingView({
                       {a.provider || 'Account'}
                       {a.sortLast4 ? ` ·${a.sortLast4}` : ''}
                     </div>
+                    {balances[a.id] != null && (
+                      <div className="acct-bal n">{money(balances[a.id])}</div>
+                    )}
                   </div>
                 </div>
               );
@@ -394,29 +409,24 @@ export function SpendingView({
             </button>
           </div>
 
-          {cats.length > 0 && (
+          {monthSpendTxns.length > 0 && (
             <>
               <div className="sec">
                 <h3>This month by category</h3>
+                <span className="n">tap to set a budget</span>
               </div>
-              <div className="bd">
-                {cats.map((c) => (
-                  <div className="bd-row" key={c.k}>
-                    <div className="bd-top">
-                      <span className="bd-k">{c.k}</span>
-                      <span className="bd-v n">{money(c.v)}</span>
-                    </div>
-                    <div className="bd-bar">
-                      <i
-                        style={{
-                          width: `${Math.round((c.v / catMax) * 100)}%`,
-                          background: CAT_ACCENT[c.k as SpendCat] || 'var(--accent)',
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
+              <Budgets monthSpend={monthSpendTxns} />
+            </>
+          )}
+
+          <Subscriptions spend={spend} />
+
+          {shown.length > 0 && (
+            <>
+              <div className="sec">
+                <h3>Last 6 months</h3>
               </div>
+              <SpendTrend txns={shown} />
             </>
           )}
 
