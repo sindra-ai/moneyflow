@@ -21,21 +21,33 @@ export async function POST(req: Request) {
 
   try {
     let failures = 0;
+    let authFail = false;
     const perAccount = await Promise.all(
       ids.map(async (id) => {
         try {
           return await getTransactions(body.accessToken as string, id);
-        } catch {
+        } catch (e) {
           failures += 1;
+          // Only a genuine auth rejection (401/403) means the session is dead.
+          // Rate limits / 5xx / network blips are transient — don't cry wolf.
+          const msg = (e as Error).message || '';
+          if (/\b40[13]\b/.test(msg) || /invalid_token|unauthori[sz]ed|invalid_grant/i.test(msg)) {
+            authFail = true;
+          }
           return [] as Txn[];
         }
       }),
     );
-    // If every account failed (expired/withdrawn bank session), say so instead
-    // of silently returning an empty list that reads as "no transactions".
+    // Every account failed. Distinguish a truly expired session (reconnect) from
+    // a transient hiccup (just try again) so we don't send people to reconnect
+    // when their connection is actually fine.
     if (failures === ids.length) {
       return NextResponse.json(
-        { error: 'Your bank session has expired — tap Disconnect, then reconnect your bank.' },
+        {
+          error: authFail
+            ? 'Your bank session has expired — tap Disconnect, then reconnect your bank.'
+            : 'Couldn’t reach your bank just now — wait a moment and tap refresh again.',
+        },
         { status: 502 },
       );
     }
