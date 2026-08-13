@@ -513,75 +513,99 @@ export function AiChat({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const listenOnce = (auto = false) => {
+  // Fully detach + stop the current recognition so its callbacks can never
+  // race a newer one (the cause of "Tap to talk" doing nothing).
+  const teardownRec = () => {
+    clearSilence();
+    const r = recRef.current;
+    recRef.current = null;
+    if (r) {
+      try {
+        r.onstart = null;
+        r.onresult = null;
+        r.onend = null;
+        r.onerror = null;
+        r.abort();
+      } catch {
+        /* ignore */
+      }
+    }
+  };
+
+  const listenOnce = (auto = false, retry = true) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return endVoice();
+    teardownRec(); // clear any previous session first
     const rec: SpeechRec = new SR();
     rec.lang = 'en-GB';
     rec.interimResults = true;
     rec.continuous = false;
+    recRef.current = rec;
+    const active = () => recRef.current === rec && voiceRef.current;
     let heard = '';
-    let live = false; // did any event confirm it's actually listening?
+    let live = false;
     const stopSoon = (ms: number) => {
       clearSilence();
       silenceRef.current = window.setTimeout(() => {
-        try {
-          rec.stop();
-        } catch {
-          /* ignore */
+        if (recRef.current === rec) {
+          try {
+            rec.stop();
+          } catch {
+            /* ignore */
+          }
         }
       }, ms);
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (rec as any).onstart = () => {
+    rec.onstart = () => {
+      if (!active()) return;
       live = true;
-      if (voiceRef.current) setPhase('listening');
+      setPhase('listening');
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rec.onresult = (e: any) => {
+      if (!active()) return;
       live = true;
       let t = '';
       for (let i = e.resultIndex; i < e.results.length; i += 1) t += e.results[i][0].transcript;
       heard = t;
       setInput(t);
-      stopSoon(1500); // ~1.5s after you stop talking → send
+      stopSoon(1600); // ~1.6s after you stop talking → send
     };
     rec.onerror = () => {};
     rec.onend = () => {
-      clearSilence();
+      if (recRef.current !== rec) return; // stale — a newer session replaced us
       recRef.current = null;
+      clearSilence();
       if (!voiceRef.current) return;
       const q = heard.trim();
       if (q) {
         setInput('');
         void send(q);
       } else {
-        setPhase('idle'); // heard nothing — wait for a tap (don't loop / hang)
+        setPhase('idle');
       }
     };
-    recRef.current = rec;
     setPhase('listening');
     try {
       rec.start();
     } catch {
-      setPhase('idle');
+      // iOS throws if the last mic session hasn't fully released — retry once.
+      recRef.current = null;
+      if (retry) window.setTimeout(() => voiceRef.current && listenOnce(auto, false), 350);
+      else setPhase('idle');
       return;
     }
-    stopSoon(7000); // safety: never hang on "Listening" if onstart never fires
-    // Auto-restarts (after the reply) can be silently blocked by iOS; if nothing
-    // has happened shortly after, fall back to tap-to-talk rather than hang.
+    stopSoon(7000); // safety: never hang on "Listening"
+    // Auto-restart after a reply is often blocked on iOS; fall back to a
+    // (working) tap-to-talk instead of a dead "Listening".
     if (auto) {
       window.setTimeout(() => {
-        if (voiceRef.current && !live) {
-          try {
-            rec.abort();
-          } catch {
-            /* ignore */
-          }
+        if (recRef.current === rec && voiceRef.current && !live) {
+          teardownRec();
           setPhase('idle');
         }
-      }, 2500);
+      }, 2200);
     }
   };
 
@@ -600,13 +624,7 @@ export function AiChat({ onClose }: { onClose: () => void }) {
   const endVoice = () => {
     voiceRef.current = false;
     setVoiceOn(false);
-    clearSilence();
-    try {
-      recRef.current?.abort();
-    } catch {
-      /* ignore */
-    }
-    recRef.current = null;
+    teardownRec();
     try {
       if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
     } catch {
