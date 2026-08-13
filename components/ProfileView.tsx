@@ -294,7 +294,7 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
       <Goals />
 
       <div className="sec">
-        <h3>Pension</h3>
+        <h3>Pensions &amp; investments</h3>
       </div>
       <Pension />
 

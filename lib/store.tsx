@@ -15,7 +15,7 @@ import type {
   Goal,
   MonthData,
   Outgoing,
-  Pension,
+  Pot,
   Profile,
   Settings,
   Store,
@@ -201,10 +201,11 @@ interface StoreContextValue {
   addGoal: (goal: Omit<Goal, "id" | "createdAt">) => void;
   updateGoal: (id: string, patch: Partial<Goal>) => void;
   deleteGoal: (id: string) => void;
-  // --- pension (synced) ---
-  pension: Pension | null;
-  /** Merge a patch into the pension, or pass null to remove it. */
-  setPension: (patch: Partial<Pension> | null) => void;
+  // --- pension/investment pots (synced) ---
+  pots: Pot[];
+  addPot: (pot: Omit<Pot, "id">) => void;
+  updatePot: (id: string, patch: Partial<Pot>) => void;
+  removePot: (id: string) => void;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
@@ -610,16 +611,39 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const setPension = useCallback(
-    (patch: Partial<Pension> | null) =>
-      setStore((prev) => ({
-        ...prev,
-        pension:
-          patch === null
-            ? null
-            : ({ value: 0, date: "", symbol: "SSAC.L", ...(prev.pension ?? {}), ...patch } as Pension),
-      })),
-    []
+  // Pots live in `store.pots`. An older single `store.pension` is migrated on
+  // first read/mutation (works whether the store came from disk or the cloud).
+  const potsFrom = (s: Store): Pot[] =>
+    s.pots ??
+    (s.pension
+      ? [
+          {
+            id: "legacy-pension",
+            name: "Pension",
+            value: s.pension.value,
+            date: s.pension.date,
+            symbol: s.pension.symbol,
+            baseLevel: s.pension.baseLevel ?? null,
+          },
+        ]
+      : []);
+
+  const mutatePots = useCallback((fn: (list: Pot[]) => Pot[]) => {
+    setStore((prev) => ({ ...prev, pension: null, pots: fn(potsFrom(prev)) }));
+  }, []);
+
+  const addPot = useCallback(
+    (pot: Omit<Pot, "id">) => mutatePots((list) => [...list, { ...pot, id: newId() }]),
+    [mutatePots]
+  );
+  const updatePot = useCallback(
+    (id: string, patch: Partial<Pot>) =>
+      mutatePots((list) => list.map((p) => (p.id === id ? { ...p, ...patch } : p))),
+    [mutatePots]
+  );
+  const removePot = useCallback(
+    (id: string) => mutatePots((list) => list.filter((p) => p.id !== id)),
+    [mutatePots]
   );
 
   const resetSeed = useCallback(() => {
@@ -668,8 +692,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     addGoal,
     updateGoal,
     deleteGoal,
-    pension: store.pension ?? null,
-    setPension,
+    pots: potsFrom(store),
+    addPot,
+    updatePot,
+    removePot,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

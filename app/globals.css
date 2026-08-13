@@ -3201,3 +3201,129 @@ input {
   font-weight: 680;
   margin-right: auto;
 }
+
+/* -------------------------------------------------- pension chart + pots */
+.pchart {
+  margin-top: 16px;
+}
+.pchart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.pchart-lab {
+  font: var(--t-cap);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.pchart-pct {
+  font: var(--t-meta);
+  font-weight: 680;
+}
+.pchart-pct.up {
+  color: var(--good);
+}
+.pchart-pct.down {
+  color: var(--bad);
+}
+.pchart-svg {
+  display: block;
+  width: 100%;
+  height: 92px;
+  margin-top: 8px;
+  overflow: visible;
+}
+.pchart-x {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font: var(--t-cap);
+  color: var(--ink-3);
+}
+
+.pots {
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+  border-radius: var(--r-lg);
+  background: var(--fill-1);
+  border: 1px solid var(--hair);
+  overflow: hidden;
+}
+.pot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 17px;
+  background: none;
+  border: none;
+  text-align: left;
+  width: 100%;
+}
+.pot + .pot {
+  border-top: 1px solid var(--hair);
+}
+.pot:active {
+  background: var(--fill-2);
+}
+.pot-main {
+  min-width: 0;
+  flex: 1;
+}
+.pot-name {
+  font: var(--t-body);
+  font-weight: 640;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pot-meta {
+  margin-top: 2px;
+  font: var(--t-meta);
+  color: var(--ink-3);
+}
+.pot-right {
+  text-align: right;
+  flex: none;
+}
+.pot-val {
+  font: var(--t-body);
+  font-weight: 680;
+}
+.pot-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+  font: var(--t-cap);
+  font-weight: 640;
+}
+.pot-delta.up {
+  color: var(--good);
+}
+.pot-delta.down {
+  color: var(--bad);
+}
+.pot-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: var(--r-md);
+  border: 1.5px dashed var(--edge);
+  background: transparent;
+  color: var(--ink-2);
+  font: var(--t-meta);
+  font-weight: 680;
+}
+.pot-add:active {
+  border-color: var(--a2);
+  color: var(--ink);
+}
+.pot-add svg {
+  color: var(--a2);
+}

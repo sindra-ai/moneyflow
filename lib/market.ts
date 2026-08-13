@@ -25,3 +25,44 @@ export async function getPrice(symbol: string): Promise<number | null> {
     return null;
   }
 }
+
+export interface Series {
+  price: number | null;
+  /** [epoch-ms, close] daily points, oldest first */
+  closes: [number, number][];
+}
+
+/** Daily close history for a ticker over `range` (e.g. '6mo', '1y'). */
+export async function getSeries(symbol: string, range: string): Promise<Series> {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(
+    symbol,
+  )}?interval=1d&range=${encodeURIComponent(range)}`;
+  try {
+    const res = await fetch(url, {
+      headers: { 'user-agent': 'Mozilla/5.0' },
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return { price: null, closes: [] };
+    const data = (await res.json()) as {
+      chart?: {
+        result?: {
+          meta?: { regularMarketPrice?: number };
+          timestamp?: number[];
+          indicators?: { quote?: { close?: (number | null)[] }[] };
+        }[];
+      };
+    };
+    const r = data?.chart?.result?.[0];
+    const ts = r?.timestamp ?? [];
+    const cl = r?.indicators?.quote?.[0]?.close ?? [];
+    const closes: [number, number][] = [];
+    for (let i = 0; i < ts.length; i += 1) {
+      const c = cl[i];
+      if (typeof c === 'number' && Number.isFinite(c) && c > 0) closes.push([ts[i] * 1000, c]);
+    }
+    const price = Number(r?.meta?.regularMarketPrice);
+    return { price: Number.isFinite(price) && price > 0 ? price : null, closes };
+  } catch {
+    return { price: null, closes: [] };
+  }
+}

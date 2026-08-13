@@ -62,6 +62,17 @@ export interface Pension {
   baseLevel?: number | null;
 }
 
+/** A named pension/investment pot. Same anchor+proxy tracking as Pension, but
+ *  the user can have several (each with its own name, value and proxy). */
+export interface Pot {
+  id: string;
+  name: string;
+  value: number;
+  date: string;
+  symbol: string;
+  baseLevel?: number | null;
+}
+
 /** A savings goal the user is putting money aside for. */
 export interface Goal {
   id: string;
@@ -114,8 +125,10 @@ export interface Store {
   bank?: BankConn | null;
   /** savings goals (synced) */
   goals?: Goal[];
-  /** pension/investment pot tracked by anchor + market proxy (synced) */
+  /** legacy single pension (migrated to `pots`) */
   pension?: Pension | null;
+  /** named pension/investment pots tracked by anchor + market proxy (synced) */
+  pots?: Pot[];
 }
 
 export const ACCENTS = [
