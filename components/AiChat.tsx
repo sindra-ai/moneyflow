@@ -19,8 +19,10 @@ interface SpeechRec {
   onresult: ((e: any) => void) | null;
   onend: (() => void) | null;
   onerror: (() => void) | null;
+  onstart?: (() => void) | null;
   start: () => void;
   stop: () => void;
+  abort: () => void;
 }
 
 const CLOSE_MS = 460;
@@ -80,10 +82,11 @@ export function AiChat({ onClose }: { onClose: () => void }) {
   const recRef = useRef<SpeechRec | null>(null);
   const [listening, setListening] = useState(false);
   const [micOk, setMicOk] = useState(false);
-  // Hands-free voice mode: listen → send → speak the reply → listen again.
+  // Hands-free voice mode: listen → (auto-stop on silence) → send → speak → listen.
   const [voiceOn, setVoiceOn] = useState(false);
-  const [phase, setPhase] = useState<'listening' | 'thinking' | 'speaking'>('listening');
+  const [phase, setPhase] = useState<'listening' | 'thinking' | 'speaking' | 'idle'>('listening');
   const voiceRef = useRef(false);
+  const silenceRef = useRef<number | null>(null);
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -399,7 +402,14 @@ export function AiChat({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const listenOnce = () => {
+  const clearSilence = () => {
+    if (silenceRef.current) {
+      window.clearTimeout(silenceRef.current);
+      silenceRef.current = null;
+    }
+  };
+
+  const listenOnce = (auto = false) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return endVoice();
@@ -408,15 +418,34 @@ export function AiChat({ onClose }: { onClose: () => void }) {
     rec.interimResults = true;
     rec.continuous = false;
     let heard = '';
+    let live = false; // did any event confirm it's actually listening?
+    const stopSoon = (ms: number) => {
+      clearSilence();
+      silenceRef.current = window.setTimeout(() => {
+        try {
+          rec.stop();
+        } catch {
+          /* ignore */
+        }
+      }, ms);
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (rec as any).onstart = () => {
+      live = true;
+      if (voiceRef.current) setPhase('listening');
+    };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rec.onresult = (e: any) => {
+      live = true;
       let t = '';
       for (let i = e.resultIndex; i < e.results.length; i += 1) t += e.results[i][0].transcript;
       heard = t;
       setInput(t);
+      stopSoon(1500); // ~1.5s after you stop talking → send
     };
     rec.onerror = () => {};
     rec.onend = () => {
+      clearSilence();
       recRef.current = null;
       if (!voiceRef.current) return;
       const q = heard.trim();
@@ -424,7 +453,7 @@ export function AiChat({ onClose }: { onClose: () => void }) {
         setInput('');
         void send(q);
       } else {
-        listenOnce(); // heard nothing — keep the ear open
+        setPhase('idle'); // heard nothing — wait for a tap (don't loop / hang)
       }
     };
     recRef.current = rec;
@@ -432,7 +461,23 @@ export function AiChat({ onClose }: { onClose: () => void }) {
     try {
       rec.start();
     } catch {
-      /* already running */
+      setPhase('idle');
+      return;
+    }
+    stopSoon(7000); // safety: never hang on "Listening" if onstart never fires
+    // Auto-restarts (after the reply) can be silently blocked by iOS; if nothing
+    // has happened shortly after, fall back to tap-to-talk rather than hang.
+    if (auto) {
+      window.setTimeout(() => {
+        if (voiceRef.current && !live) {
+          try {
+            rec.abort();
+          } catch {
+            /* ignore */
+          }
+          setPhase('idle');
+        }
+      }, 2500);
     }
   };
 
@@ -449,11 +494,13 @@ export function AiChat({ onClose }: { onClose: () => void }) {
   const endVoice = () => {
     voiceRef.current = false;
     setVoiceOn(false);
+    clearSilence();
     try {
-      recRef.current?.stop();
+      recRef.current?.abort();
     } catch {
       /* ignore */
     }
+    recRef.current = null;
     try {
       if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
     } catch {
@@ -490,11 +537,11 @@ export function AiChat({ onClose }: { onClose: () => void }) {
         HAPTIC.success();
         toast({ message: `${applied} change${applied === 1 ? '' : 's'} applied`, action: { label: 'Undo', run: undo } });
       }
-      if (voiceRef.current) speak(reply || 'Done.', () => voiceRef.current && listenOnce());
+      if (voiceRef.current) speak(reply || 'Done.', () => voiceRef.current && listenOnce(true));
     } catch {
       setMsgs((m) => [...m, { role: 'assistant', content: 'Sorry — I couldn’t reach the assistant just now.' }]);
       if (voiceRef.current)
-        speak('Sorry, I could not reach the assistant just now.', () => voiceRef.current && listenOnce());
+        speak('Sorry, I could not reach the assistant just now.', () => voiceRef.current && listenOnce(true));
     } finally {
       setBusy(false);
     }
@@ -533,12 +580,34 @@ export function AiChat({ onClose }: { onClose: () => void }) {
         </div>
 
         {voiceOn && (
-          <div className="ai-voice-status" data-phase={phase}>
+          <div
+            className="ai-voice-status"
+            data-phase={phase}
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              if (phase === 'idle') listenOnce();
+            }}
+          >
             <span className="ai-voice-dot" />
             <span>
-              {phase === 'listening' ? 'Listening…' : phase === 'thinking' ? 'Thinking…' : 'Speaking…'}
+              {phase === 'listening'
+                ? 'Listening…'
+                : phase === 'thinking'
+                  ? 'Thinking…'
+                  : phase === 'speaking'
+                    ? 'Speaking…'
+                    : 'Tap to talk'}
             </span>
-            <button onClick={endVoice}>Stop</button>
+            <button
+              className="ai-voice-stop"
+              onClick={(e) => {
+                e.stopPropagation();
+                endVoice();
+              }}
+            >
+              Stop
+            </button>
           </div>
         )}
 
