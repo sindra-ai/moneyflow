@@ -7,6 +7,7 @@ import { initial, money, monthLabel } from '@/lib/format';
 import { history, savingsSoFar } from '@/lib/derive';
 import { HAPTIC } from '@/lib/haptics';
 import { registerSW, reminderPermission, requestReminderPermission } from '@/lib/reminders';
+import { disablePush, enablePush } from '@/lib/push';
 import type { ThemeMode } from '@/lib/types';
 import { Sparkline } from './Sparkline';
 import { Goals } from './Goals';
@@ -73,8 +74,8 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
   }, []);
 
   const remSub: Record<RemState, string> = {
-    on: "On — you'll get a heads-up when a bill is due soon.",
-    off: 'A heads-up when a bill is due in the next couple of days.',
+    on: "On — a bill due soon pings you, even when the app is closed.",
+    off: 'A heads-up when a bill is due in the next couple of days — even when the app is closed.',
     denied: 'Blocked — turn on notifications for MoneyFlow in your device Settings.',
     unsupported:
       'Add MoneyFlow to your Home Screen first — iPhone only allows reminders for installed apps.',
@@ -85,6 +86,7 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
     if (remState === 'on') {
       setRemState('off');
       setSettings({ reminders: false });
+      void disablePush();
       return;
     }
     if (reminderPermission() === 'unsupported') {
@@ -97,6 +99,9 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
       setRemState('on');
       setSettings({ reminders: true });
       HAPTIC.success();
+      // Also subscribe this device for true push (arrives when the app is
+      // closed). No-ops gracefully until the VAPID keys are configured.
+      if (user) void enablePush(user.id);
     } else {
       setRemState(reminderPermission() === 'denied' ? 'denied' : 'off');
     }
