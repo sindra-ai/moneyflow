@@ -87,10 +87,21 @@ export function AiChat({ onClose }: { onClose: () => void }) {
   const [phase, setPhase] = useState<'listening' | 'thinking' | 'speaking' | 'idle'>('listening');
   const voiceRef = useRef(false);
   const silenceRef = useRef<number | null>(null);
+  // Voice conversation history (kept off-screen so voice mode stays text-free).
+  const voiceMsgs = useRef<Msg[]>([]);
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     setMicOk(!!SR);
+    // Warm the TTS voice list (some browsers load it asynchronously).
+    try {
+      if (typeof speechSynthesis !== 'undefined') {
+        speechSynthesis.getVoices();
+        speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+      }
+    } catch {
+      /* ignore */
+    }
     return () => {
       voiceRef.current = false;
       recRef.current?.stop();
@@ -399,14 +410,41 @@ export function AiChat({ onClose }: { onClose: () => void }) {
     }
   };
 
+  // Pick a warm British female voice where one exists, with sensible fallbacks.
+  const pickVoice = (): SpeechSynthesisVoice | null => {
+    try {
+      const vs = speechSynthesis.getVoices();
+      if (!vs.length) return null;
+      const byName = (re: RegExp) => vs.find((v) => re.test(v.name));
+      const male = /daniel|arthur|oliver|george|male|reed|rishi/i;
+      return (
+        byName(/serena/i) ||
+        byName(/(^|\W)kate/i) ||
+        byName(/martha/i) ||
+        byName(/stephanie/i) ||
+        byName(/fiona/i) ||
+        byName(/google uk english female/i) ||
+        vs.find((v) => /en[-_]GB/i.test(v.lang) && !male.test(v.name)) ||
+        byName(/samantha/i) ||
+        vs.find((v) => /en[-_]GB/i.test(v.lang)) ||
+        vs.find((v) => /^en/i.test(v.lang)) ||
+        null
+      );
+    } catch {
+      return null;
+    }
+  };
+
   const speak = (text: string, onDone?: () => void) => {
     if (typeof speechSynthesis === 'undefined') return onDone?.();
     try {
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(forSpeech(text) || 'Done.');
       u.lang = 'en-GB';
-      const gb = speechSynthesis.getVoices().find((v) => /en[-_]GB/i.test(v.lang));
-      if (gb) u.voice = gb;
+      const v = pickVoice();
+      if (v) u.voice = v;
+      u.rate = 1; // natural pace
+      u.pitch = 1.08; // a touch softer/warmer
       u.onend = () => onDone?.();
       u.onerror = () => onDone?.();
       setPhase('speaking');
@@ -501,6 +539,7 @@ export function AiChat({ onClose }: { onClose: () => void }) {
     if (!SR) return;
     HAPTIC.light();
     primeSpeech(); // unlock iOS text-to-speech within this tap
+    voiceMsgs.current = []; // fresh spoken conversation
     voiceRef.current = true;
     setVoiceOn(true);
     listenOnce();
@@ -527,16 +566,24 @@ export function AiChat({ onClose }: { onClose: () => void }) {
     const q = text.trim();
     if (!q || busy) return;
     HAPTIC.light();
-    const next = [...msgs, { role: 'user' as const, content: q }];
-    setMsgs(next);
+    // In voice mode she just speaks — nothing is written into the chat thread.
+    const isVoice = voiceRef.current;
+    let outgoing: Msg[];
+    if (isVoice) {
+      voiceMsgs.current = [...voiceMsgs.current, { role: 'user', content: q }].slice(-20);
+      outgoing = voiceMsgs.current;
+    } else {
+      outgoing = [...msgs, { role: 'user', content: q }];
+      setMsgs(outgoing);
+    }
     setInput('');
     setBusy(true);
-    if (voiceRef.current) setPhase('thinking');
+    if (isVoice) setPhase('thinking');
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ messages: next, snapshot: buildSnapshot() }),
+        body: JSON.stringify({ messages: outgoing, snapshot: buildSnapshot() }),
       });
       const data = await res.json();
       if (data.needsKey) {
@@ -547,16 +594,21 @@ export function AiChat({ onClose }: { onClose: () => void }) {
       const applied = applyActions(data.actions ?? []);
       const reply: string =
         data.text || (applied ? `Done — applied ${applied} change${applied === 1 ? '' : 's'}.` : '');
-      setMsgs((m) => [...m, { role: 'assistant', content: reply || '…' }]);
-      if (applied > 0) {
-        HAPTIC.success();
-        toast({ message: `${applied} change${applied === 1 ? '' : 's'} applied`, action: { label: 'Undo', run: undo } });
+      if (isVoice) {
+        voiceMsgs.current = [...voiceMsgs.current, { role: 'assistant', content: reply || '…' }].slice(-20);
+        if (applied > 0) HAPTIC.success();
+        speak(reply || 'Done.', () => voiceRef.current && listenOnce(true));
+      } else {
+        setMsgs((m) => [...m, { role: 'assistant', content: reply || '…' }]);
+        if (applied > 0) {
+          HAPTIC.success();
+          toast({ message: `${applied} change${applied === 1 ? '' : 's'} applied`, action: { label: 'Undo', run: undo } });
+        }
       }
-      if (voiceRef.current) speak(reply || 'Done.', () => voiceRef.current && listenOnce(true));
     } catch {
-      setMsgs((m) => [...m, { role: 'assistant', content: 'Sorry — I couldn’t reach the assistant just now.' }]);
-      if (voiceRef.current)
+      if (isVoice)
         speak('Sorry, I could not reach the assistant just now.', () => voiceRef.current && listenOnce(true));
+      else setMsgs((m) => [...m, { role: 'assistant', content: 'Sorry — I couldn’t reach the assistant just now.' }]);
     } finally {
       setBusy(false);
     }
