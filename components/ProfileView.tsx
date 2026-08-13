@@ -7,8 +7,7 @@ import { initial, money, monthLabel } from '@/lib/format';
 import { history, savingsSoFar } from '@/lib/derive';
 import { HAPTIC } from '@/lib/haptics';
 import { registerSW, reminderPermission, requestReminderPermission } from '@/lib/reminders';
-import { disablePush, enablePush, sendTestPush } from '@/lib/push';
-import { useToast } from './Toast';
+import { disablePush, enablePush } from '@/lib/push';
 import type { ThemeMode } from '@/lib/types';
 import { Sparkline } from './Sparkline';
 import { Goals } from './Goals';
@@ -54,23 +53,7 @@ function cropToSquare(file: File): Promise<string> {
 export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivElement> }) {
   const { store, month, monthKey, setProfile, setSettings, resetToSample } = useStore();
   const { user, signOut } = useAuth();
-  const toast = useToast();
   const totals = computeTotals(month);
-
-  const doTest = async () => {
-    HAPTIC.light();
-    const r = await sendTestPush();
-    toast({
-      message:
-        r === 'ok'
-          ? 'Test sent — check your notifications'
-          : r === 'nosub'
-            ? 'Turn reminders on first, then try again'
-            : r === 'unconfigured'
-              ? 'Push isn’t configured on the server yet'
-              : 'Couldn’t send the test just now',
-    });
-  };
   const fileRef = useRef<HTMLInputElement>(null);
   const [confirm, setConfirm] = useState(false);
   const savings = savingsSoFar(store, monthKey);
@@ -360,15 +343,6 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
             <i />
           </span>
         </button>
-        {remState === 'on' && (
-          <button className="li" onClick={() => void doTest()}>
-            <div>
-              <div className="li-k">Send a test notification</div>
-              <div className="li-s">Check push is working on this device</div>
-            </div>
-            <span className="li-v">Test</span>
-          </button>
-        )}
       </div>
 
       <div className="sec">
