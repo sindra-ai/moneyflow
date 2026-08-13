@@ -3327,3 +3327,55 @@ input {
 .pot-add svg {
   color: var(--a2);
 }
+
+/* --------------------------------------------- tap-to-expand a transaction */
+.txn-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.txn-row .rmeta {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.txn-row[data-open='true'] {
+  background: var(--fill-2);
+}
+.txn-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 10px 10px;
+  padding: 12px 14px;
+  border-radius: var(--r-sm);
+  background: var(--fill-1);
+  border: 1px solid var(--hair);
+}
+.txn-drow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+}
+.txn-drow + .txn-drow {
+  border-top: 1px solid var(--hair);
+}
+.txn-drow > span {
+  font: var(--t-meta);
+  color: var(--ink-3);
+  flex: none;
+}
+.txn-drow > b {
+  font: var(--t-meta);
+  font-weight: 640;
+  color: var(--ink);
+  text-align: right;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.txn-drow > b.up {
+  color: var(--good);
+}

@@ -64,6 +64,7 @@ export function SpendingView({
   );
   const [confirmDc, setConfirmDc] = useState(false);
   const [txnQuery, setTxnQuery] = useState('');
+  const [openTxn, setOpenTxn] = useState<string | null>(null);
   const loadedFor = useRef<string>('');
   const codeUsed = useRef(false);
   const connRef = useRef(conn);
@@ -470,32 +471,84 @@ export function SpendingView({
           ) : (
             <div className="group">
               {/* Render a window for performance; totals above still use all. */}
-              {listed.slice(0, 250).map((t) => (
-                <div className="swipe" key={t.id}>
-                  <div className="row">
+              {listed.slice(0, 250).map((t) => {
+                const cat = CAT_ACCENT[(t.category as SpendCat) || 'Other'];
+                const acct = conn?.accounts.find((a) => a.id === t.accountId);
+                const acctName = acct?.name || 'Account';
+                const multi = (conn?.accounts.length ?? 0) > 1;
+                const open = openTxn === t.id;
+                return (
+                  <div className="swipe" key={t.id}>
                     <div
-                      className="glyph"
-                      style={{
-                        background: `color-mix(in srgb, ${CAT_ACCENT[(t.category as SpendCat) || 'Other']} 16%, transparent)`,
-                        color: CAT_ACCENT[(t.category as SpendCat) || 'Other'],
-                      }}
-                      aria-hidden="true"
+                      className="row txn-row"
+                      data-open={open}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setOpenTxn(open ? null : t.id)}
                     >
-                      {(t.merchant || '·')[0].toUpperCase()}
-                    </div>
-                    <div className="rbody">
-                      <div className="rname">{t.merchant}</div>
-                      <div className="rmeta">
-                        {t.category} · {t.date}
+                      <div
+                        className="glyph"
+                        style={{
+                          background: `color-mix(in srgb, ${cat} 16%, transparent)`,
+                          color: cat,
+                        }}
+                        aria-hidden="true"
+                      >
+                        {(t.merchant || '·')[0].toUpperCase()}
+                      </div>
+                      <div className="rbody">
+                        <div className="rname">{t.merchant}</div>
+                        <div className="rmeta">
+                          {multi ? `${acctName} · ` : ''}
+                          {t.category} · {t.date}
+                        </div>
+                      </div>
+                      <div className={`ramt n ${t.amount >= 0 ? 'up' : ''}`}>
+                        {t.amount >= 0 ? '+' : '−'}
+                        {money(Math.abs(t.amount))}
                       </div>
                     </div>
-                    <div className={`ramt n ${t.amount >= 0 ? 'up' : ''}`}>
-                      {t.amount >= 0 ? '+' : '−'}
-                      {money(Math.abs(t.amount))}
-                    </div>
+                    {open && (
+                      <div className="txn-detail">
+                        <div className="txn-drow">
+                          <span>Account</span>
+                          <b>
+                            {acctName}
+                            {acct?.sortLast4 ? ` ·${acct.sortLast4}` : ''}
+                          </b>
+                        </div>
+                        <div className="txn-drow">
+                          <span>Direction</span>
+                          <b className={t.amount >= 0 ? 'up' : ''}>
+                            {t.amount >= 0 ? 'Money in' : 'Money out'}
+                          </b>
+                        </div>
+                        <div className="txn-drow">
+                          <span>Amount</span>
+                          <b className="n">
+                            {t.amount >= 0 ? '+' : '−'}
+                            {money(Math.abs(t.amount))}
+                          </b>
+                        </div>
+                        <div className="txn-drow">
+                          <span>Category</span>
+                          <b>{t.category}</b>
+                        </div>
+                        <div className="txn-drow">
+                          <span>Date</span>
+                          <b>{t.date}</b>
+                        </div>
+                        {acct?.provider && (
+                          <div className="txn-drow">
+                            <span>Bank</span>
+                            <b>{acct.provider}</b>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {listed.length > 250 && (
                 <div className="sp-more">Showing the latest 250 of {listed.length}</div>
               )}
