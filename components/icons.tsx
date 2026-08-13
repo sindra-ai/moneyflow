@@ -198,3 +198,9 @@ export const Coins = (p: P) => (
     <path d="M9 15.9v2.1c0 1.66 2.69 3 6 3s6-1.34 6-3v-6" />
   </Base>
 );
+
+export const Voice = (p: P) => (
+  <Base {...p}>
+    <path d="M6 9v6M10 5v14M14 8v8M18 10v4" />
+  </Base>
+);

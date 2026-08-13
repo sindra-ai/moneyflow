@@ -3379,3 +3379,53 @@ input {
 .txn-drow > b.up {
   color: var(--good);
 }
+
+/* ------------------------------------------------ AI hands-free voice mode */
+.ai-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ai-voice-btn.on {
+  color: var(--a2);
+  background: color-mix(in srgb, var(--a2) 18%, transparent);
+}
+.ai-voice-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 14px 10px;
+  padding: 10px 14px;
+  border-radius: var(--pill);
+  background: var(--fill-2);
+  border: 1px solid var(--hair);
+  font: var(--t-meta);
+  font-weight: 640;
+  color: var(--ink-2);
+}
+.ai-voice-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--a2);
+  animation: voicePulse 1.1s ease-in-out infinite;
+}
+.ai-voice-status[data-phase='thinking'] .ai-voice-dot {
+  background: var(--ink-3);
+}
+.ai-voice-status[data-phase='speaking'] .ai-voice-dot {
+  background: var(--good);
+}
+.ai-voice-status > button {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--bad);
+  font: var(--t-meta);
+  font-weight: 680;
+  padding: 2px 4px;
+}
+@keyframes voicePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(1.45); }
+}

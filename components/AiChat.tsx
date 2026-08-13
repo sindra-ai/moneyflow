@@ -9,7 +9,7 @@ import { HAPTIC } from '@/lib/haptics';
 import { ACCENTS, CATEGORIES, type Category } from '@/lib/types';
 import { getCachedTxns } from '@/lib/bankClient';
 import { useToast } from './Toast';
-import { Close, Mic, Send, Sparkle } from './icons';
+import { Close, Mic, Send, Sparkle, Voice } from './icons';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 interface SpeechRec {
@@ -80,11 +80,23 @@ export function AiChat({ onClose }: { onClose: () => void }) {
   const recRef = useRef<SpeechRec | null>(null);
   const [listening, setListening] = useState(false);
   const [micOk, setMicOk] = useState(false);
+  // Hands-free voice mode: listen → send → speak the reply → listen again.
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [phase, setPhase] = useState<'listening' | 'thinking' | 'speaking'>('listening');
+  const voiceRef = useRef(false);
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     setMicOk(!!SR);
-    return () => recRef.current?.stop();
+    return () => {
+      voiceRef.current = false;
+      recRef.current?.stop();
+      try {
+        if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+      } catch {
+        /* ignore */
+      }
+    };
   }, []);
 
   const toggleMic = () => {
@@ -138,6 +150,7 @@ export function AiChat({ onClose }: { onClose: () => void }) {
 
   const requestClose = () => {
     if (closing.current) return;
+    endVoice();
     closing.current = true;
     setOpen(false);
     timer.current = window.setTimeout(onClose, CLOSE_MS);
@@ -149,6 +162,7 @@ export function AiChat({ onClose }: { onClose: () => void }) {
       monthKey,
       monthLabel: monthLabel(monthKey).label,
       today: new Date().getDate(),
+      userName: store.profile?.name?.trim() || undefined,
       salary: month.salary,
       items: month.items.map((it) => ({
         id: it.id,
@@ -358,6 +372,95 @@ export function AiChat({ onClose }: { onClose: () => void }) {
     return actions.length;
   };
 
+  /* -------- hands-free voice mode -------- */
+
+  // Strip the bits that don't read aloud well (markdown, emoji).
+  const forSpeech = (t: string) =>
+    t
+      .replace(/\*\*/g, '')
+      .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const speak = (text: string, onDone?: () => void) => {
+    if (typeof speechSynthesis === 'undefined') return onDone?.();
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(forSpeech(text) || 'Done.');
+      u.lang = 'en-GB';
+      const gb = speechSynthesis.getVoices().find((v) => /en[-_]GB/i.test(v.lang));
+      if (gb) u.voice = gb;
+      u.onend = () => onDone?.();
+      u.onerror = () => onDone?.();
+      setPhase('speaking');
+      speechSynthesis.speak(u);
+    } catch {
+      onDone?.();
+    }
+  };
+
+  const listenOnce = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return endVoice();
+    const rec: SpeechRec = new SR();
+    rec.lang = 'en-GB';
+    rec.interimResults = true;
+    rec.continuous = false;
+    let heard = '';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => {
+      let t = '';
+      for (let i = e.resultIndex; i < e.results.length; i += 1) t += e.results[i][0].transcript;
+      heard = t;
+      setInput(t);
+    };
+    rec.onerror = () => {};
+    rec.onend = () => {
+      recRef.current = null;
+      if (!voiceRef.current) return;
+      const q = heard.trim();
+      if (q) {
+        setInput('');
+        void send(q);
+      } else {
+        listenOnce(); // heard nothing — keep the ear open
+      }
+    };
+    recRef.current = rec;
+    setPhase('listening');
+    try {
+      rec.start();
+    } catch {
+      /* already running */
+    }
+  };
+
+  const beginVoice = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    HAPTIC.light();
+    voiceRef.current = true;
+    setVoiceOn(true);
+    listenOnce();
+  };
+
+  const endVoice = () => {
+    voiceRef.current = false;
+    setVoiceOn(false);
+    try {
+      recRef.current?.stop();
+    } catch {
+      /* ignore */
+    }
+    try {
+      if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+    } catch {
+      /* ignore */
+    }
+  };
+
   const send = async (text: string) => {
     const q = text.trim();
     if (!q || busy) return;
@@ -366,6 +469,7 @@ export function AiChat({ onClose }: { onClose: () => void }) {
     setMsgs(next);
     setInput('');
     setBusy(true);
+    if (voiceRef.current) setPhase('thinking');
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -386,8 +490,11 @@ export function AiChat({ onClose }: { onClose: () => void }) {
         HAPTIC.success();
         toast({ message: `${applied} change${applied === 1 ? '' : 's'} applied`, action: { label: 'Undo', run: undo } });
       }
+      if (voiceRef.current) speak(reply || 'Done.', () => voiceRef.current && listenOnce());
     } catch {
       setMsgs((m) => [...m, { role: 'assistant', content: 'Sorry — I couldn’t reach the assistant just now.' }]);
+      if (voiceRef.current)
+        speak('Sorry, I could not reach the assistant just now.', () => voiceRef.current && listenOnce());
     } finally {
       setBusy(false);
     }
@@ -409,10 +516,31 @@ export function AiChat({ onClose }: { onClose: () => void }) {
             <Sparkle size={18} />
             <b>Ask MoneyFlow</b>
           </div>
-          <button className="ghost-btn" onClick={requestClose} aria-label="Close">
-            <Close size={17} />
-          </button>
+          <div className="ai-head-actions">
+            {micOk && (
+              <button
+                className={`ghost-btn ai-voice-btn${voiceOn ? ' on' : ''}`}
+                onClick={() => (voiceOn ? endVoice() : beginVoice())}
+                aria-label={voiceOn ? 'Stop voice' : 'Voice check-in'}
+              >
+                <Voice size={18} />
+              </button>
+            )}
+            <button className="ghost-btn" onClick={requestClose} aria-label="Close">
+              <Close size={17} />
+            </button>
+          </div>
         </div>
+
+        {voiceOn && (
+          <div className="ai-voice-status" data-phase={phase}>
+            <span className="ai-voice-dot" />
+            <span>
+              {phase === 'listening' ? 'Listening…' : phase === 'thinking' ? 'Thinking…' : 'Speaking…'}
+            </span>
+            <button onClick={endVoice}>Stop</button>
+          </div>
+        )}
 
         <div className="ai-thread" ref={threadRef}>
           {msgs.length === 0 && !needsKey && (

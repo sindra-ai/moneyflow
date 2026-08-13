@@ -20,6 +20,7 @@ interface Snapshot {
   monthKey: string;
   monthLabel: string;
   today: number;
+  userName?: string;
   salary: number;
   items: SnapItem[];
   totals: { total: number; paid: number; left: number; leftOver: number };
@@ -121,7 +122,10 @@ function systemPrompt(snap: Snapshot): string {
 
 You can answer questions and give reports directly from the data below, and you can make changes using the provided tools. Only make changes the user clearly asks for. When you change something, do it with a tool AND give a short natural-language confirmation. Keep replies concise and friendly; format money like £1,234.56. Use British spelling.
 
-Today is the ${snap.today}${ordinalSuffix(snap.today)}. Current view: ${snap.monthLabel}.
+Today is the ${snap.today}${ordinalSuffix(snap.today)}. Current view: ${snap.monthLabel}.${
+    snap.userName ? ` The user's name is ${snap.userName} — it's natural to greet them by their first name, especially in short/spoken replies.` : ''
+  }
+Replies may be read aloud by a voice assistant, so keep them conversational and concise — a sentence or two is ideal unless asked for detail.
 
 Current data (JSON):
 ${JSON.stringify(snap)}
