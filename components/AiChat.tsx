@@ -27,6 +27,11 @@ interface SpeechRec {
 
 const CLOSE_MS = 460;
 
+// A tiny silent WAV — played inside the first tap to unlock audio playback on
+// iOS, so the fetched neural-voice audio can play later without a gesture.
+const SILENT_WAV =
+  'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+
 interface Msg {
   role: 'user' | 'assistant';
   content: string;
@@ -89,6 +94,7 @@ export function AiChat({ onClose }: { onClose: () => void }) {
   const silenceRef = useRef<number | null>(null);
   // Voice conversation history (kept off-screen so voice mode stays text-free).
   const voiceMsgs = useRef<Msg[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -400,11 +406,19 @@ export function AiChat({ onClose }: { onClose: () => void }) {
   // user gesture first. Call this from every tap that starts a voice turn.
   const primeSpeech = () => {
     try {
-      if (typeof speechSynthesis === 'undefined') return;
-      speechSynthesis.resume();
-      const u = new SpeechSynthesisUtterance(' ');
-      u.volume = 0;
-      speechSynthesis.speak(u);
+      if (typeof speechSynthesis !== 'undefined') {
+        speechSynthesis.resume();
+        const u = new SpeechSynthesisUtterance(' ');
+        u.volume = 0;
+        speechSynthesis.speak(u);
+      }
+    } catch {
+      /* ignore */
+    }
+    try {
+      if (!audioRef.current) audioRef.current = new Audio();
+      audioRef.current.src = SILENT_WAV;
+      void audioRef.current.play().catch(() => {});
     } catch {
       /* ignore */
     }
@@ -435,7 +449,39 @@ export function AiChat({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const speak = (text: string, onDone?: () => void) => {
+  // The good voice: ElevenLabs via /api/tts, played through the primed <audio>.
+  // Resolves false if unavailable so we can fall back to the browser voice.
+  const speakNeural = async (text: string, onDone?: () => void): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ text: forSpeech(text) }),
+      });
+      if (!res.ok) return false; // 503 (no key) or error → fall back
+      if (!voiceRef.current) return true; // user stopped while fetching
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = audioRef.current ?? new Audio();
+      audioRef.current = a;
+      a.src = url;
+      a.onended = () => {
+        URL.revokeObjectURL(url);
+        onDone?.();
+      };
+      a.onerror = () => {
+        URL.revokeObjectURL(url);
+        onDone?.();
+      };
+      setPhase('speaking');
+      await a.play();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const speakBrowser = (text: string, onDone?: () => void) => {
     if (typeof speechSynthesis === 'undefined') return onDone?.();
     try {
       speechSynthesis.cancel();
@@ -443,8 +489,8 @@ export function AiChat({ onClose }: { onClose: () => void }) {
       u.lang = 'en-GB';
       const v = pickVoice();
       if (v) u.voice = v;
-      u.rate = 1; // natural pace
-      u.pitch = 1.08; // a touch softer/warmer
+      u.rate = 1;
+      u.pitch = 1.08;
       u.onend = () => onDone?.();
       u.onerror = () => onDone?.();
       setPhase('speaking');
@@ -452,6 +498,12 @@ export function AiChat({ onClose }: { onClose: () => void }) {
     } catch {
       onDone?.();
     }
+  };
+
+  const speak = (text: string, onDone?: () => void) => {
+    void speakNeural(text, onDone).then((ok) => {
+      if (!ok) speakBrowser(text, onDone);
+    });
   };
 
   const clearSilence = () => {
@@ -557,6 +609,11 @@ export function AiChat({ onClose }: { onClose: () => void }) {
     recRef.current = null;
     try {
       if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+    } catch {
+      /* ignore */
+    }
+    try {
+      audioRef.current?.pause();
     } catch {
       /* ignore */
     }
