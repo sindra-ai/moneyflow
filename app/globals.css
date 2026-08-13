@@ -2818,8 +2818,9 @@ input {
   color: var(--ink-3);
 }
 
-/* -------------------------------------------------------------- trend -- */
-.trend {
+/* --------------------------------------------- spend trend (6 months) -- */
+/* NOTE: prefixed `sptrend` to avoid colliding with the Sparkline's `.trend`. */
+.sptrend {
   display: flex;
   align-items: flex-end;
   gap: 10px;
@@ -2828,8 +2829,9 @@ input {
   border-radius: var(--r-lg);
   background: var(--fill-1);
   border: 1px solid var(--hair);
+  overflow: hidden;
 }
-.trend-col {
+.sptrend-col {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -2837,7 +2839,7 @@ input {
   gap: 8px;
   height: 100%;
 }
-.trend-bars {
+.sptrend-bars {
   flex: 1;
   width: 100%;
   display: flex;
@@ -2845,23 +2847,23 @@ input {
   justify-content: center;
   gap: 3px;
 }
-.trend-bars i {
+.sptrend-bars i {
   width: 42%;
   max-width: 16px;
   border-radius: 5px 5px 2px 2px;
   transition: height 0.6s var(--spring);
 }
-.trend-bars .tb-out {
+.sptrend-bars .tb-out {
   background: linear-gradient(180deg, var(--a2), var(--a1));
 }
-.trend-bars .tb-in {
+.sptrend-bars .tb-in {
   background: var(--fill-3);
 }
-.trend-lab {
+.sptrend-lab {
   font: var(--t-cap);
   color: var(--ink-3);
 }
-.trend-legend {
+.sptrend-legend {
   display: flex;
   justify-content: center;
   gap: 16px;
@@ -2869,20 +2871,20 @@ input {
   font: var(--t-meta);
   color: var(--ink-3);
 }
-.trend-legend span {
+.sptrend-legend span {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
-.trend-legend .dot {
+.sptrend-legend .dot {
   width: 9px;
   height: 9px;
   border-radius: 50%;
 }
-.trend-legend .dot.out {
+.sptrend-legend .dot.out {
   background: var(--a2);
 }
-.trend-legend .dot.in {
+.sptrend-legend .dot.in {
   background: var(--fill-3);
 }
 

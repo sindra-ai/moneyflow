@@ -13,10 +13,10 @@ export function SpendTrend({ txns }: { txns: Txn[] }) {
 
   return (
     <>
-      <div className="trend">
+      <div className="sptrend">
         {points.map((p) => (
-          <div className="trend-col" key={p.key}>
-            <div className="trend-bars">
+          <div className="sptrend-col" key={p.key}>
+            <div className="sptrend-bars">
               <i
                 className="tb-out"
                 style={{ height: `${Math.max(2, Math.round((p.out / max) * 100))}%` }}
@@ -30,11 +30,11 @@ export function SpendTrend({ txns }: { txns: Txn[] }) {
                 />
               )}
             </div>
-            <div className="trend-lab">{p.label}</div>
+            <div className="sptrend-lab">{p.label}</div>
           </div>
         ))}
       </div>
-      <div className="trend-legend">
+      <div className="sptrend-legend">
         <span>
           <i className="dot out" /> Out
         </span>

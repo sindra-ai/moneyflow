@@ -20,15 +20,25 @@ export async function POST(req: Request) {
   }
 
   try {
+    let failures = 0;
     const perAccount = await Promise.all(
       ids.map(async (id) => {
         try {
           return await getTransactions(body.accessToken as string, id);
         } catch {
+          failures += 1;
           return [] as Txn[];
         }
       }),
     );
+    // If every account failed (expired/withdrawn bank session), say so instead
+    // of silently returning an empty list that reads as "no transactions".
+    if (failures === ids.length) {
+      return NextResponse.json(
+        { error: 'Your bank session has expired — tap Disconnect, then reconnect your bank.' },
+        { status: 502 },
+      );
+    }
     const transactions = perAccount
       .flat()
       .map((t) => ({
