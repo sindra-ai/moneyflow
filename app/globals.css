@@ -3527,11 +3527,22 @@ input {
 .ai-msg-doc {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
+  gap: 6px;
+  padding: 6px 11px;
   border-radius: var(--r-sm);
-  background: var(--fill-2);
   font: var(--t-meta);
-  font-weight: 600;
+  font-weight: 640;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Attachments only ride on the (purple) user bubble — dark inset for contrast. */
+.ai-msg.user .ai-msg-doc {
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--on-accent);
+}
+.ai-msg.assistant .ai-msg-doc {
+  background: var(--fill-3);
   color: var(--ink-2);
 }
