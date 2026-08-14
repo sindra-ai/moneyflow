@@ -126,6 +126,7 @@ Today is the ${snap.today}${ordinalSuffix(snap.today)}. Current view: ${snap.mon
     snap.userName ? ` The user's name is ${snap.userName} — it's natural to greet them by their first name, especially in short/spoken replies.` : ''
   }
 Replies may be read aloud by a voice assistant, so keep them conversational and concise — a sentence or two is ideal unless asked for detail.
+The user can attach images, PDFs or text (e.g. a bank/loan statement, a bill letter, a receipt). Read them and answer their question. If a statement shows an outstanding balance, monthly payment, APR or a bill amount, offer to add or update the relevant outgoing using the tools (e.g. add_item), and confirm the exact figures you found.
 
 Current data (JSON):
 ${JSON.stringify(snap)}
@@ -157,7 +158,11 @@ export async function POST(req: Request) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return NextResponse.json({ needsKey: true });
 
-  let body: { messages?: { role: string; content: string }[]; snapshot?: Snapshot };
+  let body: {
+    messages?: { role: string; content: string }[];
+    snapshot?: Snapshot;
+    attachments?: { kind: string; mediaType?: string; data: string; name?: string }[];
+  };
   try {
     body = await req.json();
   } catch {
@@ -167,6 +172,29 @@ export async function POST(req: Request) {
   const snap = body.snapshot;
   if (!snap || !Array.isArray(messages) || messages.length === 0) {
     return NextResponse.json({ error: 'Bad request' }, { status: 400 });
+  }
+
+  // Attach any images/PDFs/text to the latest user turn as content blocks.
+  const apiMessages: { role: string; content: unknown }[] = messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
+  const atts = body.attachments ?? [];
+  if (atts.length) {
+    const last = apiMessages[apiMessages.length - 1];
+    const blocks: unknown[] = [
+      { type: 'text', text: typeof last.content === 'string' && last.content ? last.content : 'Please look at the attached file.' },
+    ];
+    for (const a of atts.slice(0, 5)) {
+      if (a.kind === 'image') {
+        blocks.push({ type: 'image', source: { type: 'base64', media_type: a.mediaType || 'image/jpeg', data: a.data } });
+      } else if (a.kind === 'pdf') {
+        blocks.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: a.data } });
+      } else if (a.kind === 'text') {
+        blocks.push({ type: 'text', text: `Attached file "${a.name || 'file'}":\n${a.data}` });
+      }
+    }
+    last.content = blocks;
   }
 
   try {
@@ -182,7 +210,7 @@ export async function POST(req: Request) {
         max_tokens: 1024,
         system: systemPrompt(snap),
         tools,
-        messages,
+        messages: apiMessages,
       }),
     });
 

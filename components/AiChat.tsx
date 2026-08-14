@@ -8,8 +8,9 @@ import { detectRecurring, safeToSpend } from '@/lib/insights';
 import { HAPTIC } from '@/lib/haptics';
 import { ACCENTS, CATEGORIES, type Category } from '@/lib/types';
 import { getCachedTxns } from '@/lib/bankClient';
+import { fileToAttachment, type ChatAttachment } from '@/lib/attach';
 import { useToast } from './Toast';
-import { Close, Mic, Send, Sparkle, Voice } from './icons';
+import { Close, Mic, Paperclip, Send, Sparkle, Voice } from './icons';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 interface SpeechRec {
@@ -32,9 +33,15 @@ const CLOSE_MS = 460;
 const SILENT_WAV =
   'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 
+interface MsgAtt {
+  kind: string;
+  name: string;
+  preview?: string;
+}
 interface Msg {
   role: 'user' | 'assistant';
   content: string;
+  atts?: MsgAtt[];
 }
 
 const SUGGESTIONS = [
@@ -77,6 +84,18 @@ export function AiChat({ onClose }: { onClose: () => void }) {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [needsKey, setNeedsKey] = useState(false);
+  const [pending, setPending] = useState<ChatAttachment[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    for (const f of files.slice(0, 4)) {
+      const a = await fileToAttachment(f);
+      if (a) setPending((p) => [...p, a].slice(0, 4));
+      else toast({ message: `Couldn’t attach ${f.name}` });
+    }
+  };
 
   const panelRef = useRef<HTMLDivElement>(null);
   const threadRef = useRef<HTMLDivElement>(null);
@@ -639,17 +658,26 @@ export function AiChat({ onClose }: { onClose: () => void }) {
 
   const send = async (text: string) => {
     const q = text.trim();
-    if (!q || busy) return;
-    HAPTIC.light();
-    // In voice mode she just speaks — nothing is written into the chat thread.
     const isVoice = voiceRef.current;
+    // Attachments only apply to the typed chat (not voice).
+    const outAtts = isVoice ? [] : pending;
+    if ((!q && outAtts.length === 0) || busy) return;
+    HAPTIC.light();
     let outgoing: Msg[];
     if (isVoice) {
       voiceMsgs.current = [...voiceMsgs.current, { role: 'user' as const, content: q }].slice(-20);
       outgoing = voiceMsgs.current;
     } else {
-      outgoing = [...msgs, { role: 'user' as const, content: q }];
+      outgoing = [
+        ...msgs,
+        {
+          role: 'user' as const,
+          content: q,
+          atts: outAtts.map((a) => ({ kind: a.kind, name: a.name, preview: a.preview })),
+        },
+      ];
       setMsgs(outgoing);
+      setPending([]);
     }
     setInput('');
     setBusy(true);
@@ -658,7 +686,16 @@ export function AiChat({ onClose }: { onClose: () => void }) {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ messages: outgoing, snapshot: buildSnapshot() }),
+        body: JSON.stringify({
+          messages: outgoing.map((m) => ({ role: m.role, content: m.content })),
+          snapshot: buildSnapshot(),
+          attachments: outAtts.map((a) => ({
+            kind: a.kind,
+            mediaType: a.mediaType,
+            data: a.data,
+            name: a.name,
+          })),
+        }),
       });
       const data = await res.json();
       if (data.needsKey) {
@@ -786,7 +823,20 @@ export function AiChat({ onClose }: { onClose: () => void }) {
 
           {msgs.map((m, i) => (
             <div key={i} className={`ai-msg ${m.role}`}>
-              {m.role === 'assistant' ? renderRich(m.content) : m.content}
+              {m.atts && m.atts.length > 0 && (
+                <div className="ai-msg-atts">
+                  {m.atts.map((a, j) =>
+                    a.preview ? (
+                      <img key={j} src={a.preview} alt={a.name} />
+                    ) : (
+                      <span key={j} className="ai-msg-doc">
+                        <Paperclip size={12} /> {a.name}
+                      </span>
+                    ),
+                  )}
+                </div>
+              )}
+              {m.content && (m.role === 'assistant' ? renderRich(m.content) : m.content)}
             </div>
           ))}
 
@@ -799,6 +849,31 @@ export function AiChat({ onClose }: { onClose: () => void }) {
           )}
         </div>
 
+        {pending.length > 0 && (
+          <div className="ai-atts">
+            {pending.map((a, i) => (
+              <div className="ai-att" key={i}>
+                {a.kind === 'image' && a.preview ? (
+                  <img src={a.preview} alt="" />
+                ) : (
+                  <span className="ai-att-doc">
+                    <Paperclip size={13} />
+                  </span>
+                )}
+                <span className="ai-att-name">{a.name}</span>
+                <button
+                  type="button"
+                  className="ai-att-x"
+                  aria-label={`Remove ${a.name}`}
+                  onClick={() => setPending((p) => p.filter((_, j) => j !== i))}
+                >
+                  <Close size={13} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <form
           className="ai-bar"
           onSubmit={(e) => {
@@ -807,6 +882,22 @@ export function AiChat({ onClose }: { onClose: () => void }) {
             void send(input);
           }}
         >
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*,application/pdf,text/plain,.csv,.md,.json"
+            hidden
+            multiple
+            onChange={onPick}
+          />
+          <button
+            type="button"
+            className="ai-attach"
+            onClick={() => fileRef.current?.click()}
+            aria-label="Attach a photo or document"
+          >
+            <Paperclip size={18} />
+          </button>
           {micOk && (
             <button
               type="button"
@@ -820,11 +911,18 @@ export function AiChat({ onClose }: { onClose: () => void }) {
           <input
             className="ai-input"
             value={input}
-            placeholder={listening ? 'Listening…' : 'Ask or tell me to change something…'}
+            placeholder={
+              pending.length ? 'Ask about the attachment…' : listening ? 'Listening…' : 'Ask, attach, or tell me to change something…'
+            }
             autoComplete="off"
             onChange={(e) => setInput(e.target.value)}
           />
-          <button className="ai-send" type="submit" disabled={busy || !input.trim()} aria-label="Send">
+          <button
+            className="ai-send"
+            type="submit"
+            disabled={busy || (!input.trim() && pending.length === 0)}
+            aria-label="Send"
+          >
             <Send size={18} />
           </button>
         </form>
