@@ -3661,7 +3661,7 @@ input {
   align-items: center;
   gap: 12px;
   padding: 12px 15px;
-  background: var(--fill-1);
+  background: transparent;
   border: none;
   text-align: left;
   width: 100%;

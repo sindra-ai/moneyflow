@@ -144,6 +144,8 @@ export function safeToSpend(opts: {
   txns: BankTxn[];
   reconciledTxnIds?: Set<string>;
   daysToPayday?: number | null;
+  /** extra income already RECEIVED this month (e.g. a paid contract week) */
+  extraReceived?: number;
 }): SafeToSpend {
   const mKey = monthKeyOf();
   const skip = opts.reconciledTxnIds ?? new Set<string>();
@@ -156,7 +158,7 @@ export function safeToSpend(opts: {
         !skip.has(t.id),
     )
     .reduce((s, t) => s + Math.abs(t.amount), 0);
-  const safe = opts.salary - opts.billsTotal - spent;
+  const safe = opts.salary + (opts.extraReceived ?? 0) - opts.billsTotal - spent;
   const d = opts.daysToPayday ?? null;
   return {
     salary: opts.salary,

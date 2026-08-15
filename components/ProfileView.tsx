@@ -59,6 +59,7 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
   const savings = savingsSoFar(store, monthKey);
   const [payday, setPayday] = useState(String(store.settings.payday ?? 25));
   const [savingsStart, setSavingsStart] = useState(String(store.settings.savingsStart ?? 0));
+  const [salaryName, setSalaryName] = useState(store.settings.salaryName ?? '');
 
   // Reminders — 'unsupported' usually means opened in a browser tab rather
   // than installed to the Home Screen (iPhone only allows notifications for
@@ -253,6 +254,21 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
         <div className="save-s">Starting balance plus every past month&apos;s left over</div>
       </div>
       <div className="list">
+        <div className="li">
+          <div>
+            <div className="li-k">Salary source</div>
+            <div className="li-s">Employer name shown on your salary card</div>
+          </div>
+          <input
+            className="rate"
+            style={{ width: 130, textAlign: 'right' }}
+            value={salaryName}
+            placeholder="e.g. Cint"
+            onChange={(e) => setSalaryName(e.target.value)}
+            onBlur={() => setSettings({ salaryName: salaryName.trim() })}
+            aria-label="Salary source"
+          />
+        </div>
         <div className="li">
           <div>
             <div className="li-k">Payday</div>

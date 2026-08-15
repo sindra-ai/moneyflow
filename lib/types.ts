@@ -47,6 +47,8 @@ export interface Settings {
   budgets?: Record<string, number>;
   /** opt-in to auto-ticking bills when the matching payment leaves the bank */
   autoReconcile?: boolean;
+  /** employer / source name shown on the salary card (e.g. "Cint") */
+  salaryName?: string;
 }
 
 /** A pension/investment pot tracked by anchoring a real value and moving it

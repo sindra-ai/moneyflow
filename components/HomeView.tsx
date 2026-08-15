@@ -6,6 +6,7 @@ import { money, moneyCompact, moneyParts } from '@/lib/format';
 import { daysUntilPayday, history, pacing } from '@/lib/derive';
 import { safeToSpend } from '@/lib/insights';
 import { getCachedTxns } from '@/lib/bankClient';
+import { fetchPrice } from '@/lib/marketClient';
 import { useCountUp } from '@/lib/useCountUp';
 import { HAPTIC } from '@/lib/haptics';
 import type { Outgoing } from '@/lib/types';
@@ -38,6 +39,32 @@ export function HomeView({ scrollerRef, onAdd, onEdit }: Props) {
   const isCurrent = monthKey === monthKeyOf();
   const untilPay = isCurrent ? daysUntilPayday(store.settings.payday ?? 25) : null;
 
+  // Live FX for converting received contract income to GBP.
+  const [fx, setFx] = useState<number | null>(null);
+  useEffect(() => {
+    if (store.extraIncome?.currency === 'USD') void fetchPrice('GBPUSD=X').then(setFx);
+  }, [store.extraIncome?.currency]);
+
+  // Extra income that has actually LANDED this month (paid contract weeks) —
+  // real money, so it lifts safe-to-spend. Unpaid/forecast weeks do not.
+  const extraReceived = (() => {
+    const ei = store.extraIncome;
+    if (!ei) return 0;
+    const rate = fx ?? 1.3;
+    const now = new Date();
+    const payDate = (key: string) => {
+      const [y, m, d] = key.split('-').map(Number);
+      const dt = new Date(y, m - 1, d);
+      dt.setDate(dt.getDate() + 9);
+      return dt;
+    };
+    const thisMonth = (dt: Date) =>
+      dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth();
+    return ei.weeks
+      .filter((w) => w.received && thisMonth(payDate(w.key)))
+      .reduce((s, w) => s + (ei.currency === 'GBP' ? w.hours * ei.rate : (w.hours * ei.rate) / rate), 0);
+  })();
+
   // Safe-to-spend uses real bank spending, so it only shows on the live month
   // with a bank linked. Reconciled bill payments are excluded to avoid
   // double-counting them against both "bills" and "spent".
@@ -55,6 +82,7 @@ export function HomeView({ scrollerRef, onAdd, onEdit }: Props) {
       txns,
       reconciledTxnIds,
       daysToPayday: untilPay,
+      extraReceived,
     });
   })();
   const query = q.trim().toLowerCase();
@@ -287,7 +315,8 @@ function SafeCard({ safe }: { safe: NonNullable<ReturnType<typeof safeToSpend>> 
 }
 
 function SalaryDuo({ leftOver }: { leftOver: number }) {
-  const { month, setSalary } = useStore();
+  const { store, month, setSalary } = useStore();
+  const salaryName = store.settings.salaryName?.trim();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const ref = useRef<HTMLInputElement>(null);
@@ -307,7 +336,7 @@ function SalaryDuo({ leftOver }: { leftOver: number }) {
   return (
     <div className="duo">
       <button onClick={start} style={{ textAlign: 'left' }}>
-        <div className="duo-k">Salary in</div>
+        <div className="duo-k">{salaryName ? `${salaryName} salary` : 'Salary in'}</div>
         {editing ? (
           <input
             ref={ref}

@@ -230,13 +230,19 @@ export function ExtraIncome() {
             const dx = sw?.key === w.key ? sw.dx : 0;
             return (
               <div className="xi-week-wrap" key={w.key}>
-                <div className="xi-week-del">
-                  <Trash size={15} /> Delete
-                </div>
+                {dx !== 0 && (
+                  <div className="xi-week-del">
+                    <Trash size={15} /> Delete
+                  </div>
+                )}
                 <button
                   className="xi-week"
                   data-received={!!w.received}
-                  style={{ transform: dx ? `translateX(${dx}px)` : undefined, transition: dx ? 'none' : undefined }}
+                  style={{
+                    transform: dx ? `translateX(${dx}px)` : undefined,
+                    transition: dx ? 'none' : undefined,
+                    background: dx ? 'var(--raised)' : undefined,
+                  }}
                   onTouchStart={(e) => {
                     swStart.current = e.touches[0].clientX;
                     swKey.current = w.key;
