@@ -26,6 +26,8 @@ interface Snapshot {
   totals: { total: number; paid: number; left: number; leftOver: number };
   /** actual bank spending (read-only), present when a bank is connected */
   spending?: unknown;
+  /** temporary extra-income (contract) forecast, present when set up */
+  extraIncome?: unknown;
 }
 
 const tools = [
@@ -126,6 +128,7 @@ Today is the ${snap.today}${ordinalSuffix(snap.today)}. Current view: ${snap.mon
     snap.userName ? ` The user's name is ${snap.userName} — it's natural to greet them by their first name, especially in short/spoken replies.` : ''
   }
 Replies may be read aloud by a voice assistant, so keep them conversational and concise — a sentence or two is ideal unless asked for detail.
+If an "extraIncome" section is present, it's a temporary contract paying weekly in arrears — the amounts are a FORECAST, mostly not yet received. Use it to answer "how much am I expecting", "when does it land", "what will I have once it's paid", etc. Be careful to treat unpaid amounts as expected/incoming, not as money already available to spend.
 The user can attach images, PDFs or text (e.g. a bank/loan statement, a bill letter, a receipt). Read them and answer their question. If a statement shows an outstanding balance, monthly payment, APR or a bill amount, offer to add or update the relevant outgoing using the tools (e.g. add_item), and confirm the exact figures you found.
 
 Current data (JSON):

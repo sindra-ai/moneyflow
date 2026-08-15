@@ -10,6 +10,7 @@ import { useCountUp } from '@/lib/useCountUp';
 import { HAPTIC } from '@/lib/haptics';
 import type { Outgoing } from '@/lib/types';
 import { MonthSwitcher } from './MonthSwitcher';
+import { ExtraIncome } from './ExtraIncome';
 import { Gauge } from './Gauge';
 import { Sparkline } from './Sparkline';
 import { Ledger } from './Ledger';
@@ -162,6 +163,11 @@ export function HomeView({ scrollerRef, onAdd, onEdit }: Props) {
         <SalaryDuo leftOver={totals.leftOver} />
 
         {safe && <SafeCard safe={safe} />}
+
+        <div className="sec">
+          <h3>Extra income</h3>
+        </div>
+        <ExtraIncome />
 
         {untilPay !== null && (
           <div className="payday">

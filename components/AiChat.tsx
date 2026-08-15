@@ -8,6 +8,7 @@ import { detectRecurring, safeToSpend } from '@/lib/insights';
 import { HAPTIC } from '@/lib/haptics';
 import { ACCENTS, CATEGORIES, type Category } from '@/lib/types';
 import { getCachedTxns } from '@/lib/bankClient';
+import { fetchPrice } from '@/lib/marketClient';
 import { fileToAttachment, type ChatAttachment } from '@/lib/attach';
 import { useToast } from './Toast';
 import { Close, Mic, Paperclip, Send, Sparkle, Voice } from './icons';
@@ -85,7 +86,12 @@ export function AiChat({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [needsKey, setNeedsKey] = useState(false);
   const [pending, setPending] = useState<ChatAttachment[]>([]);
+  const [fx, setFx] = useState<number | null>(null); // GBP/USD, for extra income
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (store.extraIncome?.currency === 'USD') void fetchPrice('GBPUSD=X').then(setFx);
+  }, [store.extraIncome?.currency]);
 
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -215,6 +221,39 @@ export function AiChat({ onClose }: { onClose: () => void }) {
       })),
       totals: { total: t.total, paid: t.paid, left: t.left, leftOver: t.leftOver },
     };
+
+    // Temporary extra-income (contract) forecast, converted to GBP.
+    if (store.extraIncome) {
+      const ei = store.extraIncome;
+      const rate = fx ?? 1.3;
+      const toGBP = (n: number) => (ei.currency === 'GBP' ? n : n / rate);
+      const now = new Date();
+      const payDate = (key: string) => {
+        const [y, m, d] = key.split('-').map(Number);
+        const dt = new Date(y, m - 1, d);
+        dt.setDate(dt.getDate() + 9);
+        return dt;
+      };
+      const inMonth = (dt: Date) =>
+        dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth();
+      const wgbp = (h: number) => toGBP(h * ei.rate);
+      const r0 = (n: number) => Math.round(n);
+      snap.extraIncome = {
+        note: 'A temporary extra-income contract, paid weekly in arrears (work a week, get paid the following Wednesday). Amounts are EXPECTED (a forecast) and mostly NOT yet received — never treat unpaid amounts as money already available to spend. Figures below are GBP.',
+        name: ei.name,
+        ratePerHour: ei.rate,
+        currency: ei.currency,
+        weeklyHourCap: ei.capHours,
+        expectedUnpaidGBP: r0(ei.weeks.filter((w) => !w.received).reduce((s, w) => s + wgbp(w.hours), 0)),
+        arrivingThisMonthGBP: r0(
+          ei.weeks.filter((w) => !w.received && inMonth(payDate(w.key))).reduce((s, w) => s + wgbp(w.hours), 0),
+        ),
+        receivedTotalGBP: r0(ei.weeks.filter((w) => w.received).reduce((s, w) => s + wgbp(w.hours), 0)),
+        weeks: ei.weeks
+          .slice(-8)
+          .map((w) => ({ weekOf: w.key, hours: w.hours, received: !!w.received, approxGBP: r0(wgbp(w.hours)) })),
+      };
+    }
 
     // Real bank spending (read-only) so the AI can answer spending questions.
     if (bank) {

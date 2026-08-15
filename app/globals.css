@@ -3546,3 +3546,151 @@ input {
   background: var(--fill-3);
   color: var(--ink-2);
 }
+
+/* -------------------------------------------------- extra / contract income */
+.xi {
+  padding: 18px 20px;
+  border-radius: var(--r-lg);
+  background: linear-gradient(160deg, var(--wash-a), var(--wash-b));
+  border: 1px solid var(--glass-edge);
+}
+.xi-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.xi-name {
+  background: none;
+  border: none;
+  padding: 0;
+  font: var(--t-meta);
+  font-weight: 640;
+  color: var(--ink-2);
+}
+.xi-tag {
+  font: var(--t-cap);
+  font-weight: 640;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--a2);
+}
+.xi-fig {
+  font: var(--t-title);
+  font-size: 28px;
+  letter-spacing: -0.02em;
+  margin: 3px 0 4px;
+}
+.xi-sub {
+  font: var(--t-meta);
+  color: var(--ink-3);
+}
+.xi-sub b {
+  color: var(--good);
+  font-weight: 640;
+}
+.xi-sub b.down {
+  color: var(--bad);
+}
+.xi-log {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.xi-log .in {
+  flex: 1;
+}
+.xi-log-btn {
+  flex: none;
+  padding: 0 18px;
+  border-radius: var(--pill);
+  background: var(--accent);
+  color: #0b0c12;
+  font: var(--t-meta);
+  font-weight: 680;
+  border: none;
+}
+.xi-log-note {
+  margin-top: 7px;
+  font: var(--t-meta);
+  color: var(--ink-3);
+}
+.xi-row {
+  display: flex;
+  gap: 10px;
+}
+.xi-weeks {
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+  border-radius: var(--r-lg);
+  background: var(--fill-1);
+  border: 1px solid var(--hair);
+  overflow: hidden;
+}
+.xi-week {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 15px;
+  background: none;
+  border: none;
+  text-align: left;
+  width: 100%;
+}
+.xi-week + .xi-week {
+  border-top: 1px solid var(--hair);
+}
+.xi-week:active {
+  background: var(--fill-2);
+}
+.xi-week-tick {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1.5px solid var(--edge);
+  color: #0b0c12;
+}
+.xi-week-tick[data-on='true'] {
+  background: var(--good);
+  border-color: transparent;
+}
+.xi-week-body {
+  flex: 1;
+  min-width: 0;
+}
+.xi-week-main {
+  font: var(--t-body);
+  font-weight: 600;
+  font-size: 15px;
+}
+.xi-week-meta {
+  margin-top: 2px;
+  font: var(--t-meta);
+  color: var(--ink-3);
+}
+.xi-week[data-received='true'] .xi-week-amt {
+  color: var(--good);
+}
+.xi-week-amt {
+  font: var(--t-body);
+  font-weight: 680;
+}
+.xi-remove {
+  width: 100%;
+  margin-top: 10px;
+  padding: 11px;
+  border-radius: var(--r-md);
+  background: none;
+  border: 1px solid var(--edge);
+  color: var(--ink-3);
+  font: var(--t-meta);
+  font-weight: 640;
+}
+.xi-remove:active {
+  color: var(--bad);
+  border-color: var(--bad);
+}

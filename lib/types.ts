@@ -73,6 +73,27 @@ export interface Pot {
   baseLevel?: number | null;
 }
 
+/** One work-week of contract/extra income (paid in arrears). */
+export interface IncomeWeek {
+  /** Monday of the work week, 'YYYY-MM-DD' */
+  key: string;
+  hours: number;
+  /** true once the payout has actually landed */
+  received?: boolean;
+}
+
+/** A temporary extra-income stream (e.g. a contract), tracked as a forecast
+ *  separate from the fixed monthly salary. */
+export interface ExtraIncome {
+  name: string;
+  /** pay per hour, in `currency` */
+  rate: number;
+  currency: 'USD' | 'GBP';
+  /** weekly hour cap */
+  capHours: number;
+  weeks: IncomeWeek[];
+}
+
 /** A savings goal the user is putting money aside for. */
 export interface Goal {
   id: string;
@@ -129,6 +150,8 @@ export interface Store {
   pension?: Pension | null;
   /** named pension/investment pots tracked by anchor + market proxy (synced) */
   pots?: Pot[];
+  /** temporary extra-income (contract) tracker (synced) */
+  extraIncome?: ExtraIncome | null;
 }
 
 export const ACCENTS = [

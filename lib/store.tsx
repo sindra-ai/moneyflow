@@ -12,6 +12,7 @@ import React, {
 import type {
   BankConn,
   BankTxn,
+  ExtraIncome,
   Goal,
   MonthData,
   Outgoing,
@@ -206,6 +207,9 @@ interface StoreContextValue {
   addPot: (pot: Omit<Pot, "id">) => void;
   updatePot: (id: string, patch: Partial<Pot>) => void;
   removePot: (id: string) => void;
+  // --- temporary extra-income tracker (synced) ---
+  extraIncome: ExtraIncome | null;
+  setExtraIncome: (patch: Partial<ExtraIncome> | null) => void;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
@@ -646,6 +650,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [mutatePots]
   );
 
+  const setExtraIncome = useCallback(
+    (patch: Partial<ExtraIncome> | null) =>
+      setStore((prev) => ({
+        ...prev,
+        extraIncome:
+          patch === null
+            ? null
+            : ({
+                name: "",
+                rate: 0,
+                currency: "USD",
+                capHours: 40,
+                weeks: [],
+                ...(prev.extraIncome ?? {}),
+                ...patch,
+              } as ExtraIncome),
+      })),
+    []
+  );
+
   const resetSeed = useCallback(() => {
     const key = monthKeyOf();
     setCurrentKey(key);
@@ -696,6 +720,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     addPot,
     updatePot,
     removePot,
+    extraIncome: store.extraIncome ?? null,
+    setExtraIncome,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
