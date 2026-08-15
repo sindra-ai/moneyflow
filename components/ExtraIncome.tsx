@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { computeTotals, useStore } from '@/lib/store';
 import { money, moneyCompact } from '@/lib/format';
 import { fetchPrice } from '@/lib/marketClient';
 import { HAPTIC } from '@/lib/haptics';
-import { Check, Coins } from './icons';
+import { Check, Coins, Trash } from './icons';
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const FALLBACK_FX = 1.3; // GBP/USD if the live rate can't load
@@ -26,8 +26,19 @@ function payDate(key: string): Date {
   return d;
 }
 const fmt = (d: Date) => `${d.getDate()} ${MON[d.getMonth()]}`;
-const sameMonth = (d: Date, now: Date) =>
-  d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+const hrLabel = (n: number) => `${n} hr${n === 1 ? '' : 's'}`;
+/** Pay Wednesdays in the current month — how many payouts can land this month. */
+function payWeeksThisMonth(now: Date): number {
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const d = new Date(y, m, 1);
+  let c = 0;
+  while (d.getMonth() === m) {
+    if (d.getDay() === 3) c += 1;
+    d.setDate(d.getDate() + 1);
+  }
+  return c;
+}
 
 export function ExtraIncome() {
   const { extraIncome: ei, setExtraIncome, month } = useStore();
@@ -39,6 +50,12 @@ export function ExtraIncome() {
   const [dCur, setDCur] = useState<'USD' | 'GBP'>('USD');
   const [dCap, setDCap] = useState('40');
   const [hrs, setHrs] = useState('');
+
+  // Swipe-to-delete a logged week.
+  const [sw, setSw] = useState<{ key: string; dx: number } | null>(null);
+  const swStart = useRef(0);
+  const swKey = useRef<string | null>(null);
+  const swBlock = useRef(false);
 
   useEffect(() => {
     void fetchPrice('GBPUSD=X').then(setFx);
@@ -130,12 +147,15 @@ export function ExtraIncome() {
   const weeks = [...ei!.weeks].sort((a, b) => (a.key < b.key ? 1 : -1));
   const now = new Date();
   const weekGBP = (hours: number) => toGBP(hours * ei!.rate, ei!.currency);
-  const expectedUnpaid = weeks.filter((w) => !w.received).reduce((s, w) => s + weekGBP(w.hours), 0);
-  const arrivingThisMonth = weeks
-    .filter((w) => !w.received && sameMonth(payDate(w.key), now))
-    .reduce((s, w) => s + weekGBP(w.hours), 0);
+
+  // Forecast is the TARGET at full hours (what you're aiming to earn), so you
+  // can see the projection of what you'll have if you max your weekly cap.
+  const weeklyCapGBP = toGBP(ei!.capHours * ei!.rate, ei!.currency);
+  const monthlyPotential = weeklyCapGBP * payWeeksThisMonth(now);
+  const loggedExpected = weeks.filter((w) => !w.received).reduce((s, w) => s + weekGBP(w.hours), 0);
+  const receivedTotal = weeks.filter((w) => w.received).reduce((s, w) => s + weekGBP(w.hours), 0);
   const leftOver = computeTotals(month).leftOver;
-  const projected = leftOver + arrivingThisMonth;
+  const projected = leftOver + monthlyPotential;
 
   const curKey = mondayKey();
   const curWeek = ei!.weeks.find((w) => w.key === curKey);
@@ -160,6 +180,10 @@ export function ExtraIncome() {
     HAPTIC.select();
     setExtraIncome({ weeks: ei!.weeks.map((w) => (w.key === key ? { ...w, received: !w.received } : w)) });
   };
+  const deleteWeek = (key: string) => {
+    HAPTIC.success();
+    setExtraIncome({ weeks: ei!.weeks.filter((w) => w.key !== key) });
+  };
 
   return (
     <>
@@ -169,11 +193,14 @@ export function ExtraIncome() {
             {ei!.name} · {ei!.currency === 'USD' ? '$' : '£'}
             {ei!.rate}/hr
           </button>
-          <span className="xi-tag">expected</span>
+          <span className="xi-tag">forecast · full hrs</span>
         </div>
-        <div className="xi-fig n">{money(expectedUnpaid)}</div>
+        <div className="xi-fig n">
+          {money(weeklyCapGBP)}
+          <span className="xi-per"> /wk</span>
+        </div>
         <div className="xi-sub n">
-          {money(arrivingThisMonth)} arriving this month · projected left over{' '}
+          {money(monthlyPotential)} this month · projected left over{' '}
           <b className={projected >= 0 ? 'up' : 'down'}>{moneyCompact(projected)}</b>
         </div>
 
@@ -182,7 +209,7 @@ export function ExtraIncome() {
             className="in n"
             inputMode="decimal"
             value={hrs}
-            placeholder={curWeek ? `${curWeek.hours} hrs logged` : `Hours this week (max ${ei!.capHours})`}
+            placeholder={curWeek ? `${hrLabel(curWeek.hours)} logged` : `Hours this week (max ${ei!.capHours})`}
             onChange={(e) => setHrs(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') logWeek();
@@ -193,33 +220,63 @@ export function ExtraIncome() {
           </button>
         </div>
         <div className="xi-log-note n">
-          ≈ {money(previewGBP)} · paid {fmt(payDate(curKey))}
+          this week ≈ {money(previewGBP)} · logged {money(loggedExpected)} · received {money(receivedTotal)}
         </div>
       </div>
 
       {weeks.length > 0 && (
         <div className="xi-weeks">
-          {weeks.slice(0, 10).map((w) => (
-            <button
-              key={w.key}
-              className="xi-week"
-              data-received={!!w.received}
-              onClick={() => toggleReceived(w.key)}
-            >
-              <span className="xi-week-tick" data-on={!!w.received}>
-                {w.received && <Check size={11} />}
-              </span>
-              <div className="xi-week-body">
-                <div className="xi-week-main">
-                  Week of {fmt(keyToDate(w.key))} · {w.hours} hrs
+          {weeks.slice(0, 10).map((w) => {
+            const dx = sw?.key === w.key ? sw.dx : 0;
+            return (
+              <div className="xi-week-wrap" key={w.key}>
+                <div className="xi-week-del">
+                  <Trash size={15} /> Delete
                 </div>
-                <div className="xi-week-meta">
-                  {w.received ? 'Received' : `Due ${fmt(payDate(w.key))}`}
-                </div>
+                <button
+                  className="xi-week"
+                  data-received={!!w.received}
+                  style={{ transform: dx ? `translateX(${dx}px)` : undefined, transition: dx ? 'none' : undefined }}
+                  onTouchStart={(e) => {
+                    swStart.current = e.touches[0].clientX;
+                    swKey.current = w.key;
+                  }}
+                  onTouchMove={(e) => {
+                    if (swKey.current !== w.key) return;
+                    const d = e.touches[0].clientX - swStart.current;
+                    setSw(d < 0 ? { key: w.key, dx: Math.max(d, -104) } : null);
+                  }}
+                  onTouchEnd={() => {
+                    const d = sw?.key === w.key ? sw.dx : 0;
+                    if (d < -64) {
+                      swBlock.current = true;
+                      deleteWeek(w.key);
+                    }
+                    setSw(null);
+                    swKey.current = null;
+                  }}
+                  onClick={() => {
+                    if (swBlock.current) {
+                      swBlock.current = false;
+                      return;
+                    }
+                    toggleReceived(w.key);
+                  }}
+                >
+                  <span className="xi-week-tick" data-on={!!w.received}>
+                    {w.received && <Check size={11} />}
+                  </span>
+                  <div className="xi-week-body">
+                    <div className="xi-week-main">
+                      Week of {fmt(keyToDate(w.key))} · {hrLabel(w.hours)}
+                    </div>
+                    <div className="xi-week-meta">{w.received ? 'Received' : `Due ${fmt(payDate(w.key))}`}</div>
+                  </div>
+                  <span className="xi-week-amt n">{money(weekGBP(w.hours))}</span>
+                </button>
               </div>
-              <span className="xi-week-amt n">{money(weekGBP(w.hours))}</span>
-            </button>
-          ))}
+            );
+          })}
         </div>
       )}
 

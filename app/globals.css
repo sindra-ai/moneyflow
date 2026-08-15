@@ -3581,6 +3581,12 @@ input {
   letter-spacing: -0.02em;
   margin: 3px 0 4px;
 }
+.xi-per {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-3);
+  letter-spacing: 0;
+}
 .xi-sub {
   font: var(--t-meta);
   color: var(--ink-3);
@@ -3628,18 +3634,38 @@ input {
   border: 1px solid var(--hair);
   overflow: hidden;
 }
+.xi-week-wrap {
+  position: relative;
+  overflow: hidden;
+}
+.xi-week-wrap + .xi-week-wrap {
+  border-top: 1px solid var(--hair);
+}
+.xi-week-del {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding-right: 18px;
+  background: var(--bad);
+  color: #fff;
+  font: var(--t-meta);
+  font-weight: 680;
+}
 .xi-week {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 15px;
-  background: none;
+  background: var(--fill-1);
   border: none;
   text-align: left;
   width: 100%;
-}
-.xi-week + .xi-week {
-  border-top: 1px solid var(--hair);
+  transition: transform 0.22s var(--ease);
 }
 .xi-week:active {
   background: var(--fill-2);
