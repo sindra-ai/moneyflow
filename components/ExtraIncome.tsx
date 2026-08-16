@@ -45,7 +45,7 @@ export function ExtraIncome() {
   const [fx, setFx] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
-  const [dName, setDName] = useState('Mercor');
+  const [dName, setDName] = useState('');
   const [dRate, setDRate] = useState('80');
   const [dCur, setDCur] = useState<'USD' | 'GBP'>('USD');
   const [dCap, setDCap] = useState('40');
@@ -100,7 +100,7 @@ export function ExtraIncome() {
       <div className="pension-new">
         <label className="pension-field">
           <span>Name</span>
-          <input className="in" value={dName} onChange={(e) => setDName(e.target.value)} placeholder="e.g. Mercor" />
+          <input className="in" value={dName} onChange={(e) => setDName(e.target.value)} placeholder="Client or company" />
         </label>
         <div className="xi-row">
           <label className="pension-field" style={{ flex: 1 }}>

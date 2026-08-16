@@ -181,7 +181,7 @@ export function ItemEditor({ target, onClose, onSave, onDelete }: Props) {
               id="f-name"
               className="in"
               value={name}
-              placeholder="e.g. Everyday Loans"
+              placeholder="Name of the bill"
               autoComplete="off"
               onChange={(e) => setName(e.target.value)}
             />

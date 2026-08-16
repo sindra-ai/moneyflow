@@ -107,7 +107,7 @@ export function Pension() {
           <span>Name</span>
           <input
             className="in"
-            placeholder="e.g. PensionBee"
+            placeholder="Provider name"
             value={name}
             autoFocus={editing === null}
             onChange={(e) => setName(e.target.value)}

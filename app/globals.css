@@ -3975,9 +3975,9 @@ input {
 
 /* ---------------------------------------------- owner: access requests ---- */
 .ar-card {
-  margin: 0 var(--gut) 10px;
-  padding: 15px 16px;
-  border-radius: var(--r-md);
+  margin: 10px 0 0;
+  padding: 16px 18px;
+  border-radius: var(--r-lg);
   background: var(--fill-1);
   border: 1px solid var(--hair);
   display: grid;
@@ -4008,11 +4008,11 @@ input {
 }
 .ar-btn.key { background: var(--accent); border-color: transparent; color: #0a0c16; }
 .ar-btn:disabled { opacity: 0.55; }
-.ar-err { margin: 0 var(--gut) 10px; font: var(--t-meta); color: var(--bad); }
+.ar-err { margin: 10px 0 0; font: var(--t-meta); color: var(--bad); }
 .ar-made {
-  margin: 0 var(--gut) 12px;
-  padding: 16px;
-  border-radius: var(--r-md);
+  margin: 10px 0 0;
+  padding: 18px 20px;
+  border-radius: var(--r-lg);
   background: rgba(75, 227, 168, 0.09);
   border: 1px solid rgba(75, 227, 168, 0.3);
   display: grid;

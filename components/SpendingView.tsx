@@ -60,7 +60,7 @@ export function SpendingView({
   const [connecting, setConnecting] = useState(!!initialCode);
   const [needsKeys, setNeedsKeys] = useState(false);
   const [error, setError] = useState<string | null>(
-    initialError ? `Halifax returned: ${initialError}` : null,
+    initialError ? `Your bank returned: ${initialError}` : null,
   );
   const [confirmDc, setConfirmDc] = useState(false);
   const [txnQuery, setTxnQuery] = useState('');

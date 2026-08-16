@@ -265,7 +265,7 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
             className="rate"
             style={{ width: 130, textAlign: 'right' }}
             value={salaryName}
-            placeholder="e.g. Cint"
+            placeholder="Employer name"
             onChange={(e) => setSalaryName(e.target.value)}
             onBlur={() => setSettings({ salaryName: salaryName.trim() })}
             aria-label="Salary source"
