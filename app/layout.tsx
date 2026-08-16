@@ -12,10 +12,13 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
   },
   icons: {
-    // v4: opaque, full-bleed dark icons (no alpha) so iOS can't composite the
-    // transparent corners onto white. Fresh path also defeats Safari's
-    // path-keyed favicon cache.
-    icon: '/icons/app-icon-v4-192.png',
+    // The browser tab wants the bare mark on transparency. The Home Screen
+    // icon must stay opaque and full-bleed: iOS composites transparent
+    // corners onto white. Fresh paths also defeat Safari's favicon cache.
+    icon: [
+      { url: '/icons/mark-v5-256.png', type: 'image/png' },
+      { url: '/favicon-v5.ico', sizes: 'any' },
+    ],
     apple: '/icons/touch-icon-v4-180.png',
   },
   formatDetection: { telephone: false },
