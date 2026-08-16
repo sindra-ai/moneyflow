@@ -6,18 +6,33 @@
 <title>MoneyFlow &mdash; every pound accounted for</title>
 <meta name="description" content="MoneyFlow reads your real bank feed, ticks off bills the moment the money leaves, and tells you what's genuinely safe to spend." />
 <meta name="theme-color" content="#05060b" />
+<link rel="canonical" href="https://mymoneyflow.co/" />
 <link rel="icon" href="/icons/icon-192.png" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="MoneyFlow" />
+<meta property="og:url" content="https://mymoneyflow.co/" />
+<meta property="og:title" content="MoneyFlow &mdash; every pound accounted for" />
+<meta property="og:description" content="Ticks off bills the moment the money actually leaves your account, and tells you what's genuinely safe to spend." />
+<meta property="og:image" content="https://mymoneyflow.co/og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="MoneyFlow &mdash; every pound accounted for" />
+<meta name="twitter:description" content="Ticks off bills the moment the money actually leaves your account, and tells you what's genuinely safe to spend." />
+<meta name="twitter:image" content="https://mymoneyflow.co/og.png" />
+
 <script>
   document.documentElement.classList.add("js");
   (function () {
-    // The bank sends the user back to "/" (the URI whitelisted with TrueLayer),
+    // The bank returns the user to "/" (the URI whitelisted with TrueLayer),
     // so hand any OAuth result straight to the app instead of swallowing it.
     if (/[?&](code|error)=/.test(location.search)) {
       location.replace("/app" + location.search + location.hash);
       return;
     }
-    // Someone opening the installed home-screen app wants the app, not the
+    // Opening the installed home-screen app should give the app, not the
     // marketing page - its start_url used to be "/".
     var standalone =
       (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
@@ -379,7 +394,12 @@
     h1.display { letter-spacing: -0.045em; }
     .foot { justify-content: center; text-align: center; }
   }
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.32s; }
+
   @media (prefers-reduced-motion: reduce) {
+    .pin { height: auto; }
+    .pin-inner { position: static; height: auto; padding: 40px 0; }
+    .scr-stack > .app-ui { position: relative; opacity: 1; }
     * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     .js .rv { opacity: 1; transform: none; }
     .js .rise > span { transform: none; }
@@ -620,6 +640,87 @@
     perspective: 1500px; perspective-origin: 50% 50%;
   }
 
+
+
+
+  /* ------------------------------------------------------- live market card */
+  .live { padding: 26px 28px; border-radius: var(--r-lg); overflow: hidden;
+    background: linear-gradient(158deg, rgba(255,255,255,0.05), rgba(255,255,255,0.014));
+    border: 1px solid var(--hair); }
+  .live-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
+  .live-k { font-size: 13px; color: var(--ink-3); }
+  .live-v { font-size: clamp(30px, 3.6vw, 44px); font-weight: 600; letter-spacing: -0.04em;
+    line-height: 1; margin-top: 6px; }
+  .live-meta { display: grid; gap: 8px; justify-items: end; }
+  .live-chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px;
+    border-radius: 999px; background: var(--fill-2); border: 1px solid var(--hair);
+    font-size: 12px; font-weight: 600; color: var(--ink-2); }
+  .live[data-state="live"] .live-chip { color: var(--mint);
+    background: rgba(75,227,168,0.12); border-color: transparent; }
+  .live[data-state="offline"] .live-chip { color: var(--ink-3); }
+  .live-sym { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--ink-3); }
+  .live-chart { width: 100%; height: 120px; display: block; margin-top: 14px; }
+  .live-note { font-size: 13.5px; color: var(--ink-3); margin-top: 10px; }
+
+  /* ------------------------------------------- reconciliation play sequence */
+  .play {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px; border-radius: 999px;
+    background: var(--fill-2); border: 1px solid var(--edge); color: var(--ink);
+    font-family: var(--sans); font-size: 11.5px; font-weight: 640; letter-spacing: -0.01em;
+    text-transform: none;
+  }
+  .play:hover { background: var(--fill-3); }
+  #matchDemo .m-txn { opacity: 0; transform: translateY(14px);
+    transition: opacity 0.5s var(--ease), transform 0.6s var(--spring); }
+  #matchDemo .linkline { opacity: 0; transition: opacity 0.4s var(--ease); }
+  #matchDemo .m-foot { display: flex; justify-content: center; margin-top: 14px;
+    opacity: 0; transform: translateY(8px); transition: all 0.5s var(--spring); }
+  #matchDemo .m-tick { width: 24px; height: 24px; flex: none; display: grid; place-items: center;
+    border-radius: 50%; margin-left: 10px; border: 1.5px solid var(--edge); color: transparent;
+    transition: background 0.4s var(--ease), color 0.4s, border-color 0.4s, transform 0.5s var(--spring); }
+  #matchDemo .m-bill { transition: border-color 0.45s var(--ease); }
+
+  #matchDemo[data-phase="2"] .m-txn,
+  #matchDemo[data-phase="3"] .m-txn,
+  #matchDemo[data-phase="4"] .m-txn { opacity: 1; transform: none; }
+  #matchDemo[data-phase="3"] .linkline,
+  #matchDemo[data-phase="4"] .linkline { opacity: 1; }
+  #matchDemo[data-phase="3"] .m-bill,
+  #matchDemo[data-phase="4"] .m-bill { border-color: rgba(75,227,168,0.5); }
+  #matchDemo[data-phase="4"] .m-tick { background: var(--mint); border-color: transparent;
+    color: #06251a; transform: scale(1.1); }
+  #matchDemo[data-phase="4"] .m-foot { opacity: 1; transform: none; }
+
+  /* ------------------------------------------------ pinned screen tour --- */
+  .pin { position: relative; height: 420vh; }
+  .pin-inner { position: sticky; top: 0; height: 100vh; display: grid; align-items: center; }
+  .pin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+  .pin-steps { display: grid; gap: 6px; margin-top: 30px; counter-reset: none; }
+  .pin-steps li {
+    padding: 12px 0 12px 18px; border-left: 2px solid transparent;
+    opacity: 0.32; transition: opacity 0.45s var(--ease), border-color 0.45s var(--ease);
+  }
+  .pin-steps li[data-on="true"] { opacity: 1; border-left-color: var(--a2); }
+  .pin-steps b { font-size: 17px; font-weight: 620; letter-spacing: -0.02em; }
+  .pin-steps p { color: var(--ink-2); font-size: 14.5px; line-height: 1.55; margin-top: 4px; }
+  .scr-stack { position: relative; width: 100%; height: 100%; }
+  .scr-stack > .app-ui { position: absolute; top: 0; left: 0; opacity: 0;
+    transition: opacity 0.5s var(--ease); pointer-events: none; }
+  .scr-stack > .app-ui[data-on="true"] { opacity: 1; pointer-events: auto; }
+  .pin .try { opacity: 0; transition: opacity 0.4s var(--ease); }
+  .pin[data-step="0"] .try { opacity: 1; }
+
+  @media (max-width: 1020px) {
+    .pin { height: 330vh; }
+    .pin-grid { grid-template-columns: 1fr; gap: 20px; }
+    .pin-copy { order: 2; }
+    .pin-copy .h2 { font-size: 26px; }
+    .pin-steps { margin-top: 14px; }
+    .pin-steps li { display: none; padding-left: 14px; }
+    .pin-steps li[data-on="true"] { display: block; }
+  }
+
   /* ------------------------------------------------------ device chrome */
   .device {
     position: relative; width: 296px; height: 604px; border-radius: 46px; padding: 9px;
@@ -757,25 +858,27 @@
     </div>
 
 
-    <div class="shell sec" style="padding-top:0">
-      <div class="split">
-        <div>
-          <h2 class="h2 rv">Not a screenshot.<br /><span class="grad">The actual app.</span></h2>
-          <p class="lede rv" style="margin-top:20px">
-            This is the real interface, running here in the page. Tick a bill and watch the
-            gauge retract and the balance count down &mdash; exactly what happens on your phone
-            the moment a payment clears at the bank.
-          </p>
-          <p class="try rv"><span class="try-dot"></span>Tap a circle on the right to try it</p>
-          <div class="row-cta rv">
-            <a class="btn btn-ghost mag" href="#/reconciliation">How the matching works</a>
+
+    <section class="pin" id="tour">
+      <div class="pin-inner">
+        <div class="shell pin-grid">
+          <div class="pin-copy">
+            <h2 class="h2">Four tabs.<br /><span class="grad">One picture of your money.</span></h2>
+            <ol class="pin-steps">
+          <li data-on="true"><b>Home</b><p>Bills against salary, what&rsquo;s left to pay, and the one number that matters &mdash; what&rsquo;s safe to spend. Tick a bill and watch it move.</p></li>
+          <li data-on="false"><b>Spending</b><p>Every real transaction, auto-categorised, with a plain-English weekly digest and caps you set by tapping a category.</p></li>
+          <li data-on="false"><b>Assistant</b><p>Ask it anything about your money by typing or talking &mdash; and photograph a statement to have the figures pulled out.</p></li>
+          <li data-on="false"><b>Profile</b><p>Pensions tracked against the index they follow, savings goals, and the switches for everything the app does on its own.</p></li>
+            </ol>
+            <p class="try"><span class="try-dot"></span>On Home, tap a circle to tick a bill</p>
           </div>
-        </div>
-        <figure class="art rv" style="display:grid;place-items:center;background:none;border:none;box-shadow:none;padding:0">
-          <div class="device" id="demoPhone" data-live="true">
-          <div class="notch"></div>
-          <div class="screen">
-            <div class="app-ui">
+
+          <div class="phone-wrap">
+            <div class="device" data-live="true">
+              <div class="notch"></div>
+              <div class="screen">
+                <div class="scr-stack">
+                  <div class="app-ui" id="demoPhone" data-on="true">
               <div class="ui-pad">
                 <div class="ui-top">
                   <img class="ui-logo" src="data:image/png;base64,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" alt="" />
@@ -853,10 +956,108 @@
                 <span class="ui-tab">Profile</span>
               </div>
             </div>
+                  <div class="app-ui" data-on="false">
+                  <div class="ui-pad">
+                <div class="ui-top">
+                  <img class="ui-logo" src="data:image/png;base64,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" alt="" />
+                  <div class="ui-actions"><span class="ui-gb">&#10022;</span><span class="ui-gb">&#9788;</span></div>
+                </div>
+                <div class="ui-digest">
+                  <div class="ui-digest-top"><span class="ui-digest-k">This week</span><span class="ui-digest-v num">&pound;276.31</span></div>
+                  <div class="ui-digest-p"><b style="color:#4be3a8">&pound;779 less</b> than last week. Most went on <b>Bills</b>.</div>
+                </div>
+                <div class="ui-secline"><h5>Accounts</h5><span>Disconnect</span></div>
+                <div class="ui-accts">
+                  <div class="ui-acct">
+                    <div class="ui-acct-logo">HALIFAX</div>
+                    <div class="ui-acct-n">Main Account</div>
+                    <div class="ui-acct-m">HALIFAX &middot;5680</div>
+                  </div>
+                  <div class="ui-acct">
+                    <div class="ui-acct-logo">HALIFAX</div>
+                    <div class="ui-acct-n">Second Main</div>
+                    <div class="ui-acct-m">HALIFAX &middot;4560</div>
+                  </div>
+                </div>
+                <div class="ui-secline"><h5>This month by category</h5><span>tap to set a budget</span></div>
+                <div class="ui-bd">
+                  <div>
+                    <div class="ui-bd-top"><span class="ui-bd-k">Bills</span><span class="ui-bd-v num">&pound;762 / &pound;900</span></div>
+                    <div class="ui-bd-bar"><i style="width:85%;background:#7c9cff"></i></div>
+                  </div>
+                  <div>
+                    <div class="ui-bd-top"><span class="ui-bd-k">Eating out</span><span class="ui-bd-v num" style="color:#ff7591">&pound;188 / &pound;150</span></div>
+                    <div class="ui-bd-bar"><i style="width:100%;background:#ff7591"></i></div>
+                  </div>
+                  <div>
+                    <div class="ui-bd-top"><span class="ui-bd-k">Shopping</span><span class="ui-bd-v num">&pound;570 / &pound;700</span></div>
+                    <div class="ui-bd-bar"><i style="width:81%;background:#b98bff"></i></div>
+                  </div>
+                </div>
+              </div>
+                  <div class="ui-nav"><span class="ui-tab">Home</span><span class="ui-tab">Calendar</span><span class="ui-tab" data-on="true">Spending</span><span class="ui-tab">Profile</span></div>
+                </div>
+                  <div class="app-ui" data-on="false">
+                  <div class="ui-pad ui-chat" style="padding-top:46px;padding-bottom:0">
+                <div class="ui-aihead"><b>&#10022;&nbsp; Ask MoneyFlow</b><span class="ui-gb" style="width:32px;height:32px;font-size:13px">&#10005;</span></div>
+                <div class="ui-voice"><i></i>Listening&hellip;<s>Stop</s></div>
+                <div class="ui-thread">
+                  <div class="ui-bub me">How much did I spend on eating out?</div>
+                  <div class="ui-bub ai">&pound;188 so far this month &mdash; <b>&pound;38 over</b> your &pound;150 budget. Nando&rsquo;s and Deliveroo are most of it.</div>
+                  <div class="ui-bub me">What&rsquo;s due this week?</div>
+                  <div class="ui-bub ai">Two bills: <b>David Lloyd &pound;142</b> on the 1st and <b>Vodafone &pound;40</b> on the 3rd.</div>
+                </div>
+                <div class="ui-bar">
+                  <div class="ui-bar-b">&#9741;</div>
+                  <div class="ui-bar-in">Ask, attach, or tell me&hellip;</div>
+                  <div class="ui-bar-b send">&#10148;</div>
+                </div>
+              </div>
+                </div>
+                  <div class="app-ui" data-on="false">
+                  <div class="ui-pad">
+                <div class="ui-top">
+                  <img class="ui-logo" src="data:image/png;base64,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" alt="" />
+                  <div class="ui-actions"><span class="ui-gb">&#10022;</span><span class="ui-gb">&#9788;</span></div>
+                </div>
+                <div class="ui-me"><div class="ui-face">R</div><b>Rohit.K</b></div>
+                <div class="ui-secline"><h5>Pensions &amp; investments</h5></div>
+                <div class="ui-pension">
+                  <div class="ui-pension-top"><span class="ui-pension-k">Total &middot; estimated</span><span class="ui-pension-tag">2 pots</span></div>
+                  <div class="ui-pension-v num">&asymp; &pound;63,770</div>
+                  <div class="ui-pension-d num">&#9650; 12.8% over 6 months</div>
+                </div>
+                <div class="ui-pots">
+                  <div class="ui-pot">
+                    <div><div class="ui-pot-n">PensionBee</div><div class="ui-pot-m">Global (MSCI ACWI)</div></div>
+                    <span class="ui-pot-v num">&pound;59,564</span>
+                  </div>
+                  <div class="ui-pot">
+                    <div><div class="ui-pot-n">Workplace</div><div class="ui-pot-m">Developed (World)</div></div>
+                    <span class="ui-pot-v num">&pound;4,206</span>
+                  </div>
+                </div>
+                <div class="ui-secline"><h5>Notifications</h5></div>
+                <div class="ui-list">
+                  <div class="ui-li">
+                    <div><div class="ui-li-k">Due-date reminders</div><div class="ui-li-s">A bill due soon pings you, even when the app is closed.</div></div>
+                    <span class="ui-sw"></span>
+                  </div>
+                  <div class="ui-li">
+                    <div><div class="ui-li-k">Auto-tick bills</div><div class="ui-li-s">Marks a bill paid once its payment has left your bank.</div></div>
+                    <span class="ui-sw"></span>
+                  </div>
+                </div>
+              </div>
+                  <div class="ui-nav"><span class="ui-tab">Home</span><span class="ui-tab">Calendar</span><span class="ui-tab">Spending</span><span class="ui-tab" data-on="true">Profile</span></div>
+                </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </figure>
+        </div>
       </div>
-    </div>
+    </section>
 
     <div class="shell statement rv">
       <p>Most money apps tell you what you <b>spent</b>. This one tells you what you can
@@ -912,21 +1113,41 @@
           </div>
         </div>
 
-        <figure class="art rv">
-          <figcaption class="art-lab"><span>Live match</span><span>11 Aug</span></figcaption>
-          <div class="mini-card">
+        <figure class="art rv" id="matchDemo" data-phase="0">
+          <figcaption class="art-lab">
+            <span>Live match</span>
+            <button class="play" data-play>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              Watch it clear
+            </button>
+          </figcaption>
+
+          <div class="mini-card m-bill">
             <span class="mini-glyph" style="background:rgba(138,162,255,0.16);color:#8aa2ff">E</span>
             <div><div class="mc-n">Everyday Loans</div><div class="mc-m">Planned bill &middot; due 1st</div></div>
             <span class="mc-a num">&pound;360.00</span>
+            <span class="m-tick">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </span>
           </div>
-          <div class="linkline" aria-hidden="true"><svg width="100%" height="30" viewBox="0 0 300 30" preserveAspectRatio="none"><path class="ld" d="M150 0 L150 30" stroke="#8aa2ff" stroke-width="2" fill="none" /></svg></div>
-          <div class="mini-card">
+
+          <div class="linkline" aria-hidden="true">
+            <svg width="100%" height="30" viewBox="0 0 300 30" preserveAspectRatio="none">
+              <path class="ld" d="M150 0 L150 30" stroke="#8aa2ff" stroke-width="2" fill="none" />
+            </svg>
+          </div>
+
+          <div class="mini-card m-txn">
             <span class="mini-glyph" style="background:rgba(255,255,255,0.07);color:#9ba2bd">H</span>
             <div><div class="mc-n">EVERYDAY LNS</div><div class="mc-m">Halifax &middot; debit &middot; 5 Aug</div></div>
             <span class="mc-a num">&minus;&pound;360.00</span>
           </div>
-          <div style="display:flex;justify-content:center;margin-top:14px">
-            <span class="tickpill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Marked paid automatically</span>
+
+          <div class="m-foot">
+            <span class="tickpill">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              Marked paid automatically
+            </span>
           </div>
         </figure>
       </div>
@@ -1203,6 +1424,25 @@
         </figure>
       </div>
 
+      <div class="shell rv" style="margin-top:44px">
+        <div class="live" id="liveIdx" data-state="loading">
+          <div class="live-head">
+            <div>
+              <div class="live-k">MSCI ACWI &middot; the index your plan follows</div>
+              <div class="live-v num" data-price>&mdash;</div>
+            </div>
+            <div class="live-meta">
+              <span class="live-chip" data-chip>Fetching live price&hellip;</span>
+              <span class="live-sym num">SSAC.L &middot; GBP</span>
+            </div>
+          </div>
+          <canvas class="live-chart" height="120" data-chart aria-hidden="true"></canvas>
+          <p class="live-note" data-note>
+            Pulled live from the market, the same source the app uses to move your pension between updates.
+          </p>
+        </div>
+      </div>
+
       <div class="bento">
         <div class="card w3 rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg></span><h4>Savings goals</h4>
           <p>Name it, target it, watch the bar fill &mdash; it turns green when you get there.</p></div>
@@ -1288,20 +1528,21 @@
   var VERT = "attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}";
   var FRAG = [
     "precision highp float;",
-    "uniform vec2 r;uniform float t;uniform vec2 m;",
+    "uniform vec2 r;uniform float t;uniform vec2 m;uniform float hue;uniform float pulse;",
     "mat2 rot(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}",
     "float map(vec3 p){",
     "  p.xz*=rot(t*0.16);p.xy*=rot(t*0.11);",
     "  float d=length(p)-1.16;",
     "  d+=0.17*sin(2.4*p.x+t*0.8)*sin(2.4*p.y+t*0.7)*sin(2.4*p.z+t*0.95);",
     "  d+=0.045*sin(6.0*p.y+t*1.4);",
+    "  d-=pulse*0.10*sin(4.0*p.x+t*2.0)*sin(4.0*p.z+t*1.7);",
     "  return d*0.58;",
     "}",
     "vec3 nrm(vec3 p){vec2 e=vec2(0.0016,0.);return normalize(vec3(",
     "  map(p+e.xyy)-map(p-e.xyy),map(p+e.yxy)-map(p-e.yxy),map(p+e.yyx)-map(p-e.yyx)));}",
     "vec3 pal(float x){",
 "  vec3 ir=0.5+0.5*cos(6.28318*(vec3(0.62,0.54,0.80)*x+vec3(0.12,0.30,0.58)));",
-"  vec3 brand=mix(vec3(0.541,0.635,1.0),vec3(0.725,0.545,1.0),clamp(x,0.0,1.0));",
+"  vec3 brand=mix(vec3(0.541,0.635,1.0),vec3(0.725,0.545,1.0),clamp(x+hue,0.0,1.0));",
 "  return mix(brand,ir,0.55);",
 "}",
     "void main(){",
@@ -1362,6 +1603,8 @@
         uni.r = gl.getUniformLocation(prog, "r");
         uni.t = gl.getUniformLocation(prog, "t");
         uni.m = gl.getUniformLocation(prog, "m");
+        uni.hue = gl.getUniformLocation(prog, "hue");
+        uni.pulse = gl.getUniformLocation(prog, "pulse");
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         glOk = true;
@@ -1370,6 +1613,13 @@
   }
 
   var mouse = { x: 0, y: 0 }, sm = { x: 0, y: 0 }, t0 = 0;
+  // The orb is not wallpaper: its colour answers the page you are on, and it
+  // swells briefly when you interact with the phone.
+  var hueTgt = 0, hueCur = 0, pulseCur = 0;
+  var ACCENTS = { home: 0, reconciliation: 0.16, assistant: 0.34, wealth: -0.16, security: 0.5 };
+  function orbAccent(step) { hueTgt = (ACCENTS[document.body.dataset.route] || 0) + step * 0.06; }
+  function orbPulse() { pulseCur = 1; }
+  window.orbAccent = orbAccent;
   function sizeGL() {
     if (!glOk) return;
     var dpr = Math.min(devicePixelRatio || 1, 1.6);
@@ -1385,6 +1635,10 @@
     gl.uniform2f(uni.r, cv.width, cv.height);
     gl.uniform1f(uni.t, (ts - t0) / 1000);
     gl.uniform2f(uni.m, sm.x, sm.y);
+    hueCur += (hueTgt - hueCur) * 0.03;
+    pulseCur += (0 - pulseCur) * 0.04;
+    gl.uniform1f(uni.hue, hueCur);
+    gl.uniform1f(uni.pulse, pulseCur);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     requestAnimationFrame(frame);
   }
@@ -1472,9 +1726,138 @@
       t.addEventListener("click", function () {
         paid[i] = !paid[i];
         render(true);
+        orbPulse();
       });
     });
     render(false);
+  }
+
+
+  /* ---------------------------------------- pinned tour: scroll drives screen */
+  function tourStep() {
+    var pin = document.getElementById("tour");
+    if (!pin) return;
+    var stack = pin.querySelectorAll(".scr-stack > .app-ui");
+    var steps = pin.querySelectorAll(".pin-steps li");
+    var n = stack.length;
+    if (!n) return;
+    var r = pin.getBoundingClientRect();
+    var travel = Math.max(pin.offsetHeight - innerHeight, 1);
+    var p = Math.min(1, Math.max(0, -r.top / travel));
+    var i = Math.min(n - 1, Math.floor(p * n * 0.999));
+    if (pin.dataset.step === String(i)) return;   // only touch the DOM on change
+    pin.dataset.step = String(i);
+    for (var k = 0; k < n; k++) stack[k].dataset.on = k === i ? "true" : "false";
+    for (var j = 0; j < steps.length; j++) steps[j].dataset.on = j === i ? "true" : "false";
+    orbAccent(i);                                  // the orb follows the screen
+  }
+
+  /* ------------------------------ reconciliation: play the match end to end */
+  function bindPlay() {
+    var stage = document.getElementById("matchDemo");
+    if (!stage) return;
+    var btn = stage.querySelector("[data-play]");
+    if (!btn || btn.dataset.bound) return;
+    btn.dataset.bound = "1";
+    var timers = [];
+    function reset() {
+      timers.forEach(clearTimeout); timers = [];
+      stage.dataset.phase = "0";
+    }
+    btn.addEventListener("click", function () {
+      reset();
+      HAPTIC_PULSE();
+      ["1", "2", "3", "4"].forEach(function (ph, k) {
+        timers.push(setTimeout(function () { stage.dataset.phase = ph; }, 260 + k * 900));
+      });
+      timers.push(setTimeout(function () { stage.dataset.phase = "4"; }, 260 + 4 * 900));
+    });
+  }
+  function HAPTIC_PULSE() { if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} } }
+
+
+  /* ------------------------------------------------------ live market data */
+  // The app already exposes /api/market. When this page is served from the app
+  // itself the figure below is genuinely live; anywhere else it falls back to a
+  // clearly-labelled static reading rather than pretending.
+  function bindLive() {
+    var box = document.getElementById("liveIdx");
+    if (!box || box.dataset.done) return;
+    box.dataset.done = "1";
+    var priceEl = box.querySelector("[data-price]");
+    var chip = box.querySelector("[data-chip]");
+    var note = box.querySelector("[data-note]");
+    var cvs = box.querySelector("[data-chart]");
+    var FALLBACK = { price: 9274, closes: null };
+
+    function gbp(p) { return "\u00A3" + (p / 100).toFixed(2); }
+
+    function draw(closes) {
+      var ctx = cvs.getContext("2d");
+      var dpr = Math.min(devicePixelRatio || 1, 2);
+      var W = cvs.offsetWidth, H = 120;
+      cvs.width = W * dpr; cvs.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+      var pts = closes && closes.length > 2
+        ? closes.map(function (c) { return c[1]; })
+        : [8219, 8320, 8280, 8460, 8530, 8490, 8680, 8790, 8740, 8910, 9040, 9010, 9160, 9230, 9274];
+      var min = Math.min.apply(null, pts), max = Math.max.apply(null, pts), pad = 10;
+      var span = (max - min) || 1;
+      var x = function (i) { return pad + (i / (pts.length - 1)) * (W - pad * 2); };
+      var y = function (v) { return H - pad - ((v - min) / span) * (H - pad * 2); };
+      var line = new Path2D();
+      pts.forEach(function (v, i) { i ? line.lineTo(x(i), y(v)) : line.moveTo(x(i), y(v)); });
+      var fill = new Path2D(line);
+      fill.lineTo(x(pts.length - 1), H); fill.lineTo(x(0), H); fill.closePath();
+      var fg = ctx.createLinearGradient(0, 0, 0, H);
+      fg.addColorStop(0, "rgba(185,139,255,0.26)"); fg.addColorStop(1, "rgba(185,139,255,0)");
+      ctx.fillStyle = fg; ctx.fill(fill);
+      var lg = ctx.createLinearGradient(0, 0, W, 0);
+      lg.addColorStop(0, "#8aa2ff"); lg.addColorStop(1, "#b98bff");
+      ctx.strokeStyle = lg; ctx.lineWidth = 2.4; ctx.lineJoin = "round"; ctx.lineCap = "round";
+      ctx.stroke(line);
+      ctx.fillStyle = "#b98bff";
+      ctx.beginPath(); ctx.arc(x(pts.length - 1), y(pts[pts.length - 1]), 3.6, 0, Math.PI * 2); ctx.fill();
+    }
+
+    function settle(price, closes, live) {
+      priceEl.textContent = gbp(price);
+      box.dataset.state = live ? "live" : "offline";
+      chip.textContent = live ? "Live \u00B7 updated just now" : "Last known reading";
+      if (!live) {
+        note.textContent =
+          "This page is a preview, so the figure above is a saved reading. On the live site it is fetched from the market in real time.";
+      }
+      draw(closes);
+    }
+
+    var done = false;
+    var timeout = setTimeout(function () {
+      if (!done) { done = true; settle(FALLBACK.price, null, false); }
+    }, 3500);
+
+    fetch("/api/market", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ symbol: "SSAC.L", range: "6mo" })
+    })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (d) {
+        if (done) return;
+        done = true; clearTimeout(timeout);
+        if (typeof d.price === "number") settle(d.price, d.closes, true);
+        else settle(FALLBACK.price, null, false);
+      })
+      .catch(function () {
+        if (done) return;
+        done = true; clearTimeout(timeout);
+        settle(FALLBACK.price, null, false);
+      });
+
+    addEventListener("resize", function () {
+      if (box.dataset.state !== "loading") draw(null);
+    }, { passive: true });
   }
 
   /* ============================================================== router */
@@ -1546,9 +1929,13 @@
       });
     }, 60);
     cv.style.opacity = "";
+    orbAccent(0);
     bindCards();
     bindDemo();
+    bindPlay();
+    bindLive();
     fitPhones();
+    tourStep();
   }
 
   var routing = false;
@@ -1563,8 +1950,11 @@
     curtain.classList.remove("out");
     curtain.classList.add("in");
     setTimeout(function () {
-      paint(route);
-      scrollTo(0, 0);
+      // The curtain stays the signature moment; View Transitions just make the
+      // swap underneath it atomic where the browser supports them.
+      var swap = function () { paint(route); scrollTo(0, 0); };
+      if (document.startViewTransition) document.startViewTransition(swap);
+      else swap();
       curtain.classList.remove("in");
       curtain.classList.add("out");
       setTimeout(function () { routing = false; }, 560);
@@ -1597,6 +1987,7 @@
   var nav = document.getElementById("nav");
   addEventListener("scroll", function () {
     nav.dataset.stuck = scrollY > 20 ? "true" : "false";
+    tourStep();
     var home = document.body.dataset.route === "home";
     var base = home ? 1 : 0.24;
     var f = Math.max(home ? 0.1 : 0.06, base - scrollY / (innerHeight * 0.85) * base);
