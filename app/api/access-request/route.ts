@@ -9,7 +9,9 @@ export const dynamic = 'force-dynamic';
 // screen. The request is filed in Supabase and pushed straight to the owner's
 // devices, so it arrives on the phone rather than sitting in a table unread.
 
-const OWNER_EMAIL = process.env.OWNER_EMAIL || 'info@sindra.ai';
+// The account whose devices get notified. This is the app login, which is not
+// the same address as the one on the deploys. Override with OWNER_EMAIL.
+const OWNER_EMAIL = process.env.OWNER_EMAIL || 'r_kalyana@outlook.com';
 
 const clean = (v: unknown, max: number) =>
   typeof v === 'string' ? v.trim().replace(/\s+/g, ' ').slice(0, max) : '';
