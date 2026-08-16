@@ -4055,3 +4055,17 @@ input {
 .cp-row { display: flex; gap: 9px; margin-top: 2px; }
 
 .pot-stale { font: var(--t-meta); color: #ffb84d; margin-top: 3px; }
+
+.pension-hint { font: var(--t-meta); color: var(--ink-3); line-height: 1.5; margin-top: 7px; }
+.pension-drift {
+  margin-top: 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: rgba(255, 184, 77, 0.12);
+  border: 1px solid rgba(255, 184, 77, 0.3);
+  color: #ffb84d;
+  font: var(--t-meta);
+  line-height: 1.5;
+  text-align: left;
+  width: 100%;
+}

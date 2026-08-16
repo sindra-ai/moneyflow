@@ -248,12 +248,12 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
       )}
 
       <div className="sec">
-        <h3>Savings</h3>
+        <h3>Left after bills</h3>
       </div>
       <div className="save-card">
-        <div className="save-k">Saved so far</div>
+        <div className="save-k">Left after bills, so far</div>
         <div className={`save-v n ${savings >= 0 ? 'up' : 'down'}`}>{money(savings)}</div>
-        <div className="save-s">Starting balance plus every past month&apos;s left over</div>
+        <div className="save-s">Salary minus tracked bills for every past month, plus your starting balance. Day-to-day spending is <b>not</b> taken off, so this is not what you have saved.</div>
       </div>
       <div className="list">
         <div className="li">

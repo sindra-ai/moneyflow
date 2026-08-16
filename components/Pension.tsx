@@ -43,6 +43,8 @@ export function Pension() {
   const [name, setName] = useState('');
   const [val, setVal] = useState('');
   const [sym, setSym] = useState(PROXIES[0].symbol);
+  const [custom, setCustom] = useState('');
+  const [drift, setDrift] = useState<{ off: number; pct: number; days: number } | null>(null);
 
   const symbolsKey = [...new Set(pots.map((p) => p.symbol))].sort().join(',');
   useEffect(() => {
@@ -92,8 +94,14 @@ export function Pension() {
       const base = await fetchPrice(sym);
       setPrices((prev) => ({ ...prev, [sym]: base ?? prev[sym] ?? null }));
       const patch = { name: nm, value: Math.round(v * 100) / 100, symbol: sym, baseLevel: base, date: today() };
-      if (existing) updatePot(existing.id, patch);
-      else addPot(patch);
+      if (existing) {
+        const was = estimateOf(existing);
+        updatePot(existing.id, patch);
+        const off = v - was;
+        if (Math.abs(off) >= 1) {
+          setDrift({ off, pct: was > 0 ? (off / was) * 100 : 0, days: staleDays(existing.date) });
+        }
+      } else addPot(patch);
     }
     HAPTIC.success();
     setEditing(undefined);
@@ -134,7 +142,29 @@ export function Pension() {
                 {p.label}
               </button>
             ))}
+            <button data-on={!PROXIES.some((p) => p.symbol === sym)} onClick={() => setSym(custom || 'CUSTOM')}>
+              Custom
+            </button>
           </div>
+          {!PROXIES.some((p) => p.symbol === sym) && (
+            <>
+              <input
+                className="in"
+                placeholder="Yahoo ticker, e.g. SWDA.L"
+                value={custom}
+                autoCapitalize="characters"
+                onChange={(e) => {
+                  const v = e.target.value.trim().toUpperCase();
+                  setCustom(v);
+                  setSym(v || 'CUSTOM');
+                }}
+              />
+              <p className="pension-hint">
+                If your plan is not an index tracker, the generic proxies will drift.
+                Find the benchmark on your provider&apos;s factsheet and use its ticker.
+              </p>
+            </>
+          )}
         </div>
         <div className="pension-acts">
           {typeof editing === 'string' && (
@@ -182,6 +212,13 @@ export function Pension() {
           <span className="pension-proxy-tag">{pots.length} pot{pots.length === 1 ? '' : 's'}</span>
         </div>
         <div className="pension-fig n">≈ {money(Math.round(total))}</div>
+        {drift && (
+          <button className="pension-drift" onClick={() => setDrift(null)}>
+            The estimate was {drift.off >= 0 ? 'under' : 'over'} by {money(Math.abs(Math.round(drift.off)))}
+            {' '}({Math.abs(drift.pct).toFixed(1)}%) after {drift.days} day{drift.days === 1 ? '' : 's'}.
+            {Math.abs(drift.pct) > 1 ? ' Worth trying a closer benchmark.' : ' That proxy is tracking well.'}
+          </button>
+        )}
         {pots.length > 0 && <PensionChart pots={pots} />}
       </div>
 
