@@ -26,14 +26,10 @@
 <script>
   document.documentElement.classList.add("js");
   (function () {
-    // The bank returns the user to "/" (the URI whitelisted with TrueLayer),
-    // so hand any OAuth result straight to the app instead of swallowing it.
     if (/[?&](code|error)=/.test(location.search)) {
       location.replace("/app" + location.search + location.hash);
       return;
     }
-    // Opening the installed home-screen app should give the app, not the
-    // marketing page - its start_url used to be "/".
     var standalone =
       (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
       window.navigator.standalone === true;
@@ -69,6 +65,7 @@
       system-ui, sans-serif;
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
     --shell: 1200px;
+    --page-top: 152px;
     color-scheme: dark;
   }
 
@@ -120,6 +117,8 @@
   /* ------------------------------------------------------------------ nav */
   .nav {
     flex-wrap: wrap;
+    align-content: center;
+    row-gap: 0;
     position: fixed; top: 16px; left: 50%; translate: -50% 0; z-index: 60;
     width: min(100% - 28px, 1120px);
     display: flex; align-items: center; gap: 16px;
@@ -199,8 +198,14 @@
 
   /* ---------------------------------------------------------------- pages */
   main { position: relative; z-index: 2; }
-  .page { padding: 152px 0 0; }
-  .page-hero { min-height: 62vh; display: flex; flex-direction: column; justify-content: center; }
+  .page { padding: var(--page-top) 0 0; }
+  .page-hero .lede { max-width: 44ch; }
+  .page-hero {
+    min-height: calc(100vh - var(--page-top));
+    min-height: calc(100svh - var(--page-top));
+    display: flex; flex-direction: column; justify-content: center;
+    padding-bottom: 24px;
+  }
 
   .kicker {
     display: inline-flex; align-items: center; gap: 9px; align-self: flex-start;
@@ -375,17 +380,17 @@
       radial-gradient(90% 46% at 62% 26%, transparent 0%, rgba(5,6,11,0.55) 62%, var(--ground) 100%),
       linear-gradient(180deg, rgba(5,6,11,0.45) 0%, transparent 26%, rgba(5,6,11,0.7) 76%, var(--ground) 100%); }
     .nav-links { display: none; }
-    .nav { gap: 10px; }
+    .nav { column-gap: 10px; row-gap: 0; }
     .burger { display: flex; }
     .sheet { display: flex; }
     .cur { display: none; }
   }
   @media (max-width: 560px) {
-    .nav { padding: 8px 8px 8px 14px; gap: 8px; }
+    .nav { padding: 8px 8px 8px 14px; column-gap: 8px; row-gap: 0; }
     .nav .btn-key { padding: 10px 15px; font-size: 13.5px; }
     .brand { font-size: 15px; }
     .brand img { width: 26px; height: 26px; }
-    .page { padding-top: 116px; }
+    :root { --page-top: 116px; }
     .sec { padding: 68px 0; }
     .bento { grid-template-columns: 1fr; gap: 14px; }
     .stats { grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -556,7 +561,10 @@
   .ui-secline span { font-size: 12px; color: var(--ui-ink-3); }
   .ui-accts { display: flex; gap: 12px; }
   .ui-acct { flex: 0 0 auto; width: 168px; padding: 15px; border-radius: 20px; background: var(--ui-fill-1); border: 1px solid var(--ui-hair); }
-  .ui-acct-logo { width: 38px; height: 38px; border-radius: 11px; background: #0d5eb4; display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 800; letter-spacing: -0.03em; }
+  /* "HALIFAX" at 11px is wider than a 38px tile, so it spilled out of the blue. */
+  .ui-acct-logo { width: 38px; height: 38px; border-radius: 11px; background: #0d5eb4;
+    display: grid; place-items: center; overflow: hidden; color: #fff;
+    font-size: 7px; font-weight: 800; letter-spacing: -0.01em; line-height: 1; }
   .ui-acct-n { margin-top: 12px; font-size: 16.5px; font-weight: 640; letter-spacing: -0.01em; }
   .ui-acct-m { margin-top: 2px; font-size: 13px; color: var(--ui-ink-3); }
   .ui-bd { padding: 18px; border-radius: 28px; background: var(--ui-fill-1); border: 1px solid var(--ui-hair); display: grid; gap: 14px; }
@@ -652,6 +660,7 @@
   .live-v { font-size: clamp(30px, 3.6vw, 44px); font-weight: 600; letter-spacing: -0.04em;
     line-height: 1; margin-top: 6px; }
   .live-meta { display: grid; gap: 8px; justify-items: end; }
+  @media (max-width: 700px) { .live-meta { justify-items: start; } }
   .live-chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px;
     border-radius: 999px; background: var(--fill-2); border: 1px solid var(--hair);
     font-size: 12px; font-weight: 600; color: var(--ink-2); }
@@ -692,8 +701,36 @@
     color: #06251a; transform: scale(1.1); }
   #matchDemo[data-phase="4"] .m-foot { opacity: 1; transform: none; }
 
+
+  /* ---- app chrome inside the tour's Home screen ---- */
+  .ui-payday { display: flex; align-items: center; justify-content: center; gap: 9px;
+    width: 100%; margin-top: 12px; padding: 13px 16px; border-radius: 14px;
+    background: var(--ui-fill-1); border: 1px solid var(--ui-hair);
+    font-size: 13px; font-weight: 600; color: var(--ui-ink-2); }
+  .ui-payday svg { color: var(--a2); }
+  .ui-quick { display: flex; gap: 8px; margin-top: 14px; }
+  .ui-quick button { flex: 1; height: 46px; display: flex; align-items: center;
+    justify-content: center; gap: 7px; border-radius: 14px; font-size: 13px; font-weight: 600;
+    background: var(--ui-fill-1); border: 1px solid var(--ui-hair); color: var(--ui-ink-2);
+    transition: transform 0.28s var(--spring), filter 0.3s; }
+  .ui-quick button.key { background: #fff; border-color: transparent; color: #0a0c16; }
+  .ui-quick button.pay { background: linear-gradient(135deg, #a98bff, #7b5cff 55%, #6a49ff);
+    border-color: transparent; color: #fff;
+    box-shadow: 0 14px 30px -12px rgba(123, 92, 255, 0.75); }
+  .app-ui[data-paying="true"] .ui-quick button.pay { transform: scale(0.94); filter: brightness(1.25); }
+  .ui-sec { display: flex; align-items: center; justify-content: space-between; margin: 20px 0 10px; }
+  .ui-sec h5 { font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ui-ink-3); }
+  .ui-seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px;
+    background: var(--ui-fill-1); border: 1px solid var(--ui-hair); }
+  .ui-seg i { font-style: normal; font-size: 11px; font-weight: 600; color: var(--ui-ink-3);
+    padding: 5px 11px; border-radius: 999px; }
+  .ui-seg i[data-on="true"] { background: linear-gradient(120deg, var(--a1), var(--a2)); color: #0a0c16; }
+  /* the screen scrolls itself as you move through the first step */
+  .ui-scroller { transition: transform 0.45s var(--ease); will-change: transform; }
+
   /* ------------------------------------------------ pinned screen tour --- */
-  .pin { position: relative; height: 420vh; }
+  .pin { position: relative; height: 330vh; }
   .pin-inner { position: sticky; top: 0; height: 100vh; display: grid; align-items: center; }
   .pin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
   .pin-steps { display: grid; gap: 6px; margin-top: 30px; counter-reset: none; }
@@ -706,14 +743,15 @@
   .pin-steps p { color: var(--ink-2); font-size: 14.5px; line-height: 1.55; margin-top: 4px; }
   .scr-stack { position: relative; width: 100%; height: 100%; }
   .scr-stack > .app-ui { position: absolute; top: 0; left: 0; opacity: 0;
-    transition: opacity 0.5s var(--ease); pointer-events: none; }
+    transition: opacity 0.36s var(--ease); pointer-events: none; }
   .scr-stack > .app-ui[data-on="true"] { opacity: 1; pointer-events: auto; }
   .pin .try { opacity: 0; transition: opacity 0.4s var(--ease); }
   .pin[data-step="0"] .try { opacity: 1; }
 
   @media (max-width: 1020px) {
-    .pin { height: 330vh; }
-    .pin-grid { grid-template-columns: 1fr; gap: 20px; }
+    .pin { height: 290vh; }
+    .pin-inner { align-items: start; padding-top: 86px; }
+    .pin-grid { grid-template-columns: 1fr; gap: 16px; }
     .pin-copy { order: 2; }
     .pin-copy .h2 { font-size: 26px; }
     .pin-steps { margin-top: 14px; }
@@ -808,9 +846,8 @@
         <span class="rise"><span class="soft">Before you spend it.</span></span>
       </h1>
       <p class="lede rv">
-        MoneyFlow reads your real bank feed, ticks off bills the moment the money
-        actually leaves, and tells you what&rsquo;s genuinely safe to spend &mdash;
-        then answers out loud when you ask.
+Ticks off bills the moment the money actually leaves &mdash;
+        then tells you what&rsquo;s safe to spend.
       </p>
       <div class="row-cta rv">
         <a class="btn btn-key btn-lg mag" href="#/reconciliation">See how it works</a>
@@ -879,7 +916,7 @@
               <div class="screen">
                 <div class="scr-stack">
                   <div class="app-ui" id="demoPhone" data-on="true">
-              <div class="ui-pad">
+              <div class="ui-pad ui-scroller">
                 <div class="ui-top">
                   <img class="ui-logo" src="data:image/png;base64,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" alt="" />
                   <div class="ui-actions"><span class="ui-gb">&#10022;</span><span class="ui-gb">&#9788;</span></div>
@@ -927,6 +964,22 @@
                   <div class="ui-safe-bar"><i class="sb-1"></i><i class="sb-2"></i></div>
                 </div>
 
+                <div class="ui-payday">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="4"/><path d="M3 10h18"/></svg>
+                  Payday in 9 days
+                </div>
+
+                <div class="ui-quick">
+                  <button class="key">+ Add</button>
+                  <button class="pay" data-payall>&#10003;&#10003; Pay all</button>
+                  <button>&#8635; Reset</button>
+                </div>
+
+                <div class="ui-sec">
+                  <h5>Outgoings</h5>
+                  <span class="ui-seg"><i data-on="true">Order</i><i>Due date</i></span>
+                </div>
+
                 <div class="ui-group">
                   <div class="ui-row" data-bill>
                     <span class="ui-glyph" style="background:rgba(75,227,168,0.16);color:#4be3a8">E</span>
@@ -944,6 +997,15 @@
                       <div class="ui-rmeta">Due 1st</div>
                     </div>
                     <span class="ui-ramt num">&pound;142.00</span>
+                    <button class="ui-tick" data-tick aria-label="Toggle paid"></button>
+                  </div>
+                  <div class="ui-row" data-bill>
+                    <span class="ui-glyph" style="background:rgba(185,139,255,0.16);color:#b98bff">V</span>
+                    <div class="ui-rbody">
+                      <div class="ui-rname">Vodafone</div>
+                      <div class="ui-rmeta">Due 3rd</div>
+                    </div>
+                    <span class="ui-ramt num">&pound;40.00</span>
                     <button class="ui-tick" data-tick aria-label="Toggle paid"></button>
                   </div>
                 </div>
@@ -1091,8 +1153,8 @@
         <span class="rise"><span>when it&rsquo;s due.</span></span>
       </h1>
       <p class="lede rv">
-        It&rsquo;s paid when the money leaves. Most apps tick a bill off on its due date
-        and hope. MoneyFlow waits for the actual debit to appear in your feed.
+It&rsquo;s paid when the money leaves. So MoneyFlow waits for the
+        debit to actually appear.
       </p>
     </div>
 
@@ -1275,8 +1337,8 @@
         <span class="rise"><span class="soft">So just ask.</span></span>
       </h1>
       <p class="lede rv">
-        Every question you&rsquo;d otherwise build a spreadsheet for, answered from your
-        real transactions. Type it, speak it, or photograph the letter it arrived in.
+Answered from your real transactions. Type it, say it out loud,
+        or photograph it.
       </p>
     </div>
 
@@ -1355,8 +1417,8 @@
         <span class="rise"><span class="soft">Not the whole of it.</span></span>
       </h1>
       <p class="lede rv">
-        Spending, savings and a pension that moves with the market &mdash; without a
-        single provider API, because none exists.
+Spending, savings, and a pension that moves with the market
+        every day.
       </p>
     </div>
 
@@ -1424,7 +1486,7 @@
         </figure>
       </div>
 
-      <div class="shell rv" style="margin-top:44px">
+      <div class="rv" style="margin-top:44px">
         <div class="live" id="liveIdx" data-state="loading">
           <div class="live-head">
             <div>
@@ -1476,8 +1538,8 @@
         <span class="rise"><span class="soft">It can never move money.</span></span>
       </h1>
       <p class="lede rv">
-        The connection runs through Open Banking, authorised on your bank&rsquo;s own screen,
-        with read-only access. There is no payment permission to misuse &mdash; it doesn&rsquo;t exist.
+Open Banking, authorised on your bank&rsquo;s own screen.
+        Read-only, always.
       </p>
     </div>
 
@@ -1720,6 +1782,14 @@
         : money(left / 12).replace(/\.\d\d$/, "") + " a day for 12 days";
     }
 
+    // the pinned tour drives these too, so expose a hook for "pay all"
+    window.__mfPayAll = function (all) {
+      var changed = false;
+      for (var i = 0; i < paid.length; i++) {
+        if (paid[i] !== all) { paid[i] = all; changed = true; }
+      }
+      if (changed) render(true);
+    };
     rows.forEach(function (r, i) {
       var t = r.querySelector("[data-tick]");
       if (!t) return;
@@ -1744,8 +1814,33 @@
     var r = pin.getBoundingClientRect();
     var travel = Math.max(pin.offsetHeight - innerHeight, 1);
     var p = Math.min(1, Math.max(0, -r.top / travel));
-    var i = Math.min(n - 1, Math.floor(p * n * 0.999));
-    if (pin.dataset.step === String(i)) return;   // only touch the DOM on change
+    // Ease the ramp so the first screen changes early - a full screen-height of
+    // scrolling with nothing moving reads as the page being broken.
+    var eased = Math.pow(p, 0.9);
+    var i = Math.min(n - 1, Math.floor(eased * n * 0.999));
+
+    // Step one behaves like someone actually using the app: the screen scrolls
+    // itself, then Pay all fires and the bills tick.
+    var home = pin.querySelector("#demoPhone");
+    if (home) {
+      var sub = Math.min(1, Math.max(0, eased * n - 0));
+      var scroller = home.querySelector(".ui-scroller");
+      if (scroller) {
+        var over = Math.max(0, scroller.scrollHeight - 791 + 120);
+        var t = Math.min(1, Math.max(0, (sub - 0.12) / 0.7));   // settle, then scroll
+        scroller.style.transform = "translateY(" + (-over * t).toFixed(1) + "px)";
+      }
+      var fire = i === 0 && sub > 0.62;
+      if (home.dataset.paying !== String(fire)) {
+        home.dataset.paying = String(fire);
+        if (window.__mfPayAll) window.__mfPayAll(fire);
+      }
+      if (i > 0 && home.dataset.paying === "true") {
+        home.dataset.paying = "false";
+        if (window.__mfPayAll) window.__mfPayAll(false);
+      }
+    }
+    if (pin.dataset.step === String(i)) return;   // only swap screens on change
     pin.dataset.step = String(i);
     for (var k = 0; k < n; k++) stack[k].dataset.on = k === i ? "true" : "false";
     for (var j = 0; j < steps.length; j++) steps[j].dataset.on = j === i ? "true" : "false";
@@ -2033,6 +2128,13 @@
       if (wrap.parentElement) wrap.parentElement.style.overflow = "visible";
       var avail = (wrap.parentElement && wrap.parentElement.clientWidth) || innerWidth;
       var sc = Math.min(1, (avail - 8) / 296);
+      // Inside the pinned tour the phone shares one viewport with the nav and
+      // the step copy, so it has to fit the available HEIGHT too or it clips.
+      var pin = dev.closest && dev.closest(".pin");
+      if (pin) {
+        var reserve = innerWidth <= 1020 ? 250 : 120;   // nav + copy
+        sc = Math.min(sc, Math.max(0.42, (innerHeight - reserve) / 604));
+      }
       // Centre the rotation so the spill is symmetric, then reserve room for it.
       dev.style.transformStyle = "preserve-3d";
       dev.style.transformOrigin = "50% 50%";
