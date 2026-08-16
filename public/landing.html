@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>MoneyFlow &mdash; every pound accounted for</title>
+<title>MoneyFlow &middot; every pound accounted for</title>
 <meta name="description" content="MoneyFlow reads your real bank feed, ticks off bills the moment the money leaves, and tells you what's genuinely safe to spend." />
 <meta name="theme-color" content="#05060b" />
 <link rel="canonical" href="https://mymoneyflow.co/" />
@@ -13,13 +13,13 @@
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="MoneyFlow" />
 <meta property="og:url" content="https://mymoneyflow.co/" />
-<meta property="og:title" content="MoneyFlow &mdash; every pound accounted for" />
+<meta property="og:title" content="MoneyFlow &middot; every pound accounted for" />
 <meta property="og:description" content="Ticks off bills the moment the money actually leaves your account, and tells you what's genuinely safe to spend." />
 <meta property="og:image" content="https://mymoneyflow.co/og.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="MoneyFlow &mdash; every pound accounted for" />
+<meta name="twitter:title" content="MoneyFlow &middot; every pound accounted for" />
 <meta name="twitter:description" content="Ticks off bills the moment the money actually leaves your account, and tells you what's genuinely safe to spend." />
 <meta name="twitter:image" content="https://mymoneyflow.co/og.png" />
 
@@ -308,6 +308,7 @@
 
   /* oversized statement line */
   .statement { padding: 118px 0 96px; }
+  .pin + .statement, .pin ~ .statement { padding-top: 132px; }
   .statement p {
     font-size: clamp(30px, 5.1vw, 66px); font-weight: 200; line-height: 1.06;
     letter-spacing: -0.04em; max-width: 17ch; text-wrap: balance; color: var(--ink-2);
@@ -755,7 +756,7 @@
     .pin-copy { order: 2; }
     .pin-copy .h2 { font-size: 26px; }
     .pin-steps { margin-top: 14px; }
-    .pin-steps li { display: none; padding-left: 14px; }
+    .pin-steps li { display: none; padding: 10px 0 0; border-left: none; }
     .pin-steps li[data-on="true"] { display: block; }
   }
 
@@ -807,7 +808,7 @@
     <a href="#/wealth">Wealth</a>
     <a href="#/security">Security</a>
   </div>
-  <div class="nav-cta"><a class="btn btn-key mag" href="/app">Open the app</a></div>
+  <div class="nav-cta"><a class="btn btn-key mag" href="#/">Open the app</a></div>
   <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">
     <i></i><i></i>
   </button>
@@ -846,7 +847,7 @@
         <span class="rise"><span class="soft">Before you spend it.</span></span>
       </h1>
       <p class="lede rv">
-Ticks off bills the moment the money actually leaves &mdash;
+Ticks off bills the moment the money actually leaves,
         then tells you what&rsquo;s safe to spend.
       </p>
       <div class="row-cta rv">
@@ -867,13 +868,13 @@ Ticks off bills the moment the money actually leaves &mdash;
         <div class="card w3 rv">
           <span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span>
           <h4>It waits for the money to move</h4>
-          <p>A bill isn&rsquo;t paid on its due date &mdash; it&rsquo;s paid when the debit clears.
+          <p>A bill isn&rsquo;t paid on its due date. It&rsquo;s paid when the debit clears.
             MoneyFlow matches the payment on name and amount, then ticks it with the date it really went out.</p>
         </div>
         <div class="card w3 rv">
           <span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9v6M10 5v14M14 8v8M18 10v4"/></svg></span>
           <h4>Ask it anything, out loud</h4>
-          <p>A natural British voice answering from your actual transactions &mdash; and it reads
+          <p>A natural British voice answering from your actual transactions, and it reads
             statements you photograph, pulling the figures out for you.</p>
         </div>
         <div class="card rv">
@@ -902,9 +903,9 @@ Ticks off bills the moment the money actually leaves &mdash;
           <div class="pin-copy">
             <h2 class="h2">Four tabs.<br /><span class="grad">One picture of your money.</span></h2>
             <ol class="pin-steps">
-          <li data-on="true"><b>Home</b><p>Bills against salary, what&rsquo;s left to pay, and the one number that matters &mdash; what&rsquo;s safe to spend. Tick a bill and watch it move.</p></li>
+          <li data-on="true"><b>Home</b><p>Bills against salary, what&rsquo;s left to pay, and the one number that matters: what&rsquo;s safe to spend. Tick a bill and watch it move.</p></li>
           <li data-on="false"><b>Spending</b><p>Every real transaction, auto-categorised, with a plain-English weekly digest and caps you set by tapping a category.</p></li>
-          <li data-on="false"><b>Assistant</b><p>Ask it anything about your money by typing or talking &mdash; and photograph a statement to have the figures pulled out.</p></li>
+          <li data-on="false"><b>Assistant</b><p>Ask it anything about your money by typing or talking, and photograph a statement to have the figures pulled out.</p></li>
           <li data-on="false"><b>Profile</b><p>Pensions tracked against the index they follow, savings goals, and the switches for everything the app does on its own.</p></li>
             </ol>
             <p class="try"><span class="try-dot"></span>On Home, tap a circle to tick a bill</p>
@@ -1065,7 +1066,7 @@ Ticks off bills the moment the money actually leaves &mdash;
                 <div class="ui-voice"><i></i>Listening&hellip;<s>Stop</s></div>
                 <div class="ui-thread">
                   <div class="ui-bub me">How much did I spend on eating out?</div>
-                  <div class="ui-bub ai">&pound;188 so far this month &mdash; <b>&pound;38 over</b> your &pound;150 budget. Nando&rsquo;s and Deliveroo are most of it.</div>
+                  <div class="ui-bub ai">&pound;188 so far this month, <b>&pound;38 over</b> your &pound;150 budget. Nando&rsquo;s and Deliveroo are most of it.</div>
                   <div class="ui-bub me">What&rsquo;s due this week?</div>
                   <div class="ui-bub ai">Two bills: <b>David Lloyd &pound;142</b> on the 1st and <b>Vodafone &pound;40</b> on the 3rd.</div>
                 </div>
@@ -1128,10 +1129,10 @@ Ticks off bills the moment the money actually leaves &mdash;
 
     <div class="shell rv" style="margin-top:20px">
       <div class="closer">
-        <h3>Stop guessing what&rsquo;s left in the account.</h3>
-        <p>Add it to your home screen and it behaves like any other app on the phone &mdash;
-          notifications, offline, the lot.</p>
-        <a class="btn btn-key btn-lg mag" href="/app">Open MoneyFlow</a>
+        <h3>Your money, finally in focus.</h3>
+        <p>Add it to your home screen and it runs like any other app on your phone,
+          with notifications and offline access.</p>
+        <a class="btn btn-key btn-lg mag" href="#/">Open MoneyFlow</a>
       </div>
     </div>
 
@@ -1314,10 +1315,10 @@ It&rsquo;s paid when the money leaves. So MoneyFlow waits for the
 
     <div class="shell rv" style="margin-top:20px">
       <div class="closer">
-        <h3>Stop guessing what&rsquo;s left in the account.</h3>
-        <p>Add it to your home screen and it behaves like any other app on the phone &mdash;
-          notifications, offline, the lot.</p>
-        <a class="btn btn-key btn-lg mag" href="/app">Open MoneyFlow</a>
+        <h3>Your money, finally in focus.</h3>
+        <p>Add it to your home screen and it runs like any other app on your phone,
+          with notifications and offline access.</p>
+        <a class="btn btn-key btn-lg mag" href="#/">Open MoneyFlow</a>
       </div>
     </div>
 
@@ -1354,7 +1355,7 @@ Answered from your real transactions. Type it, say it out loud,
                 <div class="ui-voice"><i></i>Listening&hellip;<s>Stop</s></div>
                 <div class="ui-thread">
                   <div class="ui-bub me">How much did I spend on eating out?</div>
-                  <div class="ui-bub ai">&pound;188 so far this month &mdash; <b>&pound;38 over</b> your &pound;150 budget. Nando&rsquo;s and Deliveroo are most of it.</div>
+                  <div class="ui-bub ai">&pound;188 so far this month, <b>&pound;38 over</b> your &pound;150 budget. Nando&rsquo;s and Deliveroo are most of it.</div>
                   <div class="ui-bub me">What&rsquo;s due this week?</div>
                   <div class="ui-bub ai">Two bills: <b>David Lloyd &pound;142</b> on the 1st and <b>Vodafone &pound;40</b> on the 3rd.</div>
                 </div>
@@ -1375,7 +1376,7 @@ Answered from your real transactions. Type it, say it out loud,
                 <p>A natural British voice, not a robot reading a table. Ask on the walk home and listen to the reply.</p></div></div>
             <div class="feat rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.49"/></svg></span>
               <div><h4>Reads what you send it</h4>
-                <p>Photograph a loan statement or drop in a PDF payslip. It pulls out the balance, the payment, the APR &mdash; and offers to file them.</p></div></div>
+                <p>Photograph a loan statement or drop in a PDF payslip. It pulls out the balance, the payment and the APR, then offers to file them.</p></div></div>
             <div class="feat rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
               <div><h4>Does the admin too</h4>
                 <p>&ldquo;Add my council tax at &pound;180 on the 5th.&rdquo; It&rsquo;s in your ledger before you&rsquo;ve locked the phone.</p></div></div>
@@ -1385,7 +1386,7 @@ Answered from your real transactions. Type it, say it out loud,
 
       <div class="bento">
         <div class="card w3 rv"><h4>&ldquo;How much am I spending on subscriptions?&rdquo;</h4>
-          <p>Nine recurring payments totalling &pound;2,278 a month &mdash; and Netflix went from
+          <p>Nine recurring payments totalling &pound;2,278 a month, and Netflix went from
             &pound;10.99 to &pound;15.99 in July.</p></div>
         <div class="card w3 rv"><h4>&ldquo;What&rsquo;s due this week?&rdquo;</h4>
           <p>Two bills: David Lloyd &pound;142 on the 1st, Vodafone &pound;40 on the 3rd.</p></div>
@@ -1394,10 +1395,10 @@ Answered from your real transactions. Type it, say it out loud,
 
     <div class="shell rv" style="margin-top:20px">
       <div class="closer">
-        <h3>Stop guessing what&rsquo;s left in the account.</h3>
-        <p>Add it to your home screen and it behaves like any other app on the phone &mdash;
-          notifications, offline, the lot.</p>
-        <a class="btn btn-key btn-lg mag" href="/app">Open MoneyFlow</a>
+        <h3>Your money, finally in focus.</h3>
+        <p>Add it to your home screen and it runs like any other app on your phone,
+          with notifications and offline access.</p>
+        <a class="btn btn-key btn-lg mag" href="#/">Open MoneyFlow</a>
       </div>
     </div>
 
@@ -1429,7 +1430,7 @@ Spending, savings, and a pension that moves with the market
           <p class="lede rv" style="margin-top:20px">
             You enter the real value from your provider once. MoneyFlow captures the index
             price at that moment and re-prices your pot each day against the exact index your
-            plan follows &mdash; MSCI ACWI, in pounds. Re-enter it monthly and the drift resets to zero.
+            plan follows: MSCI ACWI, priced in pounds. Re-enter it monthly and the drift resets to zero.
           </p>
           <div class="feat-list">
             <div class="feat rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg></span>
@@ -1491,7 +1492,7 @@ Spending, savings, and a pension that moves with the market
           <div class="live-head">
             <div>
               <div class="live-k">MSCI ACWI &middot; the index your plan follows</div>
-              <div class="live-v num" data-price>&mdash;</div>
+              <div class="live-v num" data-price>&hellip;</div>
             </div>
             <div class="live-meta">
               <span class="live-chip" data-chip>Fetching live price&hellip;</span>
@@ -1507,7 +1508,7 @@ Spending, savings, and a pension that moves with the market
 
       <div class="bento">
         <div class="card w3 rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg></span><h4>Savings goals</h4>
-          <p>Name it, target it, watch the bar fill &mdash; it turns green when you get there.</p></div>
+          <p>Name it, target it, watch the bar fill. It turns green when you get there.</p></div>
         <div class="card w3 rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></span><h4>Contract income</h4>
           <p>Log your hours and see the forecast, deliberately kept out of your spendable
             balance until the payment actually lands.</p></div>
@@ -1516,10 +1517,10 @@ Spending, savings, and a pension that moves with the market
 
     <div class="shell rv" style="margin-top:20px">
       <div class="closer">
-        <h3>Stop guessing what&rsquo;s left in the account.</h3>
-        <p>Add it to your home screen and it behaves like any other app on the phone &mdash;
-          notifications, offline, the lot.</p>
-        <a class="btn btn-key btn-lg mag" href="/app">Open MoneyFlow</a>
+        <h3>Your money, finally in focus.</h3>
+        <p>Add it to your home screen and it runs like any other app on your phone,
+          with notifications and offline access.</p>
+        <a class="btn btn-key btn-lg mag" href="#/">Open MoneyFlow</a>
       </div>
     </div>
 
@@ -1569,10 +1570,10 @@ Open Banking, authorised on your bank&rsquo;s own screen.
 
     <div class="shell rv" style="margin-top:20px">
       <div class="closer">
-        <h3>Stop guessing what&rsquo;s left in the account.</h3>
-        <p>Add it to your home screen and it behaves like any other app on the phone &mdash;
-          notifications, offline, the lot.</p>
-        <a class="btn btn-key btn-lg mag" href="/app">Open MoneyFlow</a>
+        <h3>Your money, finally in focus.</h3>
+        <p>Add it to your home screen and it runs like any other app on your phone,
+          with notifications and offline access.</p>
+        <a class="btn btn-key btn-lg mag" href="#/">Open MoneyFlow</a>
       </div>
     </div>
 
@@ -2132,7 +2133,7 @@ Open Banking, authorised on your bank&rsquo;s own screen.
       // the step copy, so it has to fit the available HEIGHT too or it clips.
       var pin = dev.closest && dev.closest(".pin");
       if (pin) {
-        var reserve = innerWidth <= 1020 ? 250 : 120;   // nav + copy
+        var reserve = innerWidth <= 1020 ? 320 : 120;   // nav + heading + step copy
         sc = Math.min(sc, Math.max(0.42, (innerHeight - reserve) / 604));
       }
       // Centre the rotation so the spill is symmetric, then reserve room for it.
@@ -2144,7 +2145,38 @@ Open Banking, authorised on your bank&rsquo;s own screen.
       phones.push(ph);
       applyPhone(ph);
     });
+    fitPinned();
   }
+
+  // The reserve above is a first guess. Measure what the pinned column actually
+  // costs and shrink the phone until the whole thing sits inside one sticky
+  // screen, so the section below can never scroll up over the step copy.
+  function fitPinned() {
+    document.querySelectorAll(".pin").forEach(function (pin) {
+      var inner = pin.querySelector(".pin-inner");
+      var grid = pin.querySelector(".pin-grid");
+      if (!inner || !grid) return;
+      for (var pass = 0; pass < 5; pass++) {
+        var over = grid.getBoundingClientRect().bottom - inner.getBoundingClientRect().bottom;
+        if (over <= 8) break;
+        var changed = false;
+        for (var i = 0; i < phones.length; i++) {
+          var ph = phones[i];
+          if (!pin.contains(ph.el)) continue;
+          var next = Math.max(0.3, ph.scale - (over + 12) / 604);
+          if (next < ph.scale - 0.002) {
+            ph.scale = next;
+            applyPhone(ph);
+            var wrap = ph.el.parentElement;
+            if (wrap) wrap.style.height = Math.round(604 * next + TILT_PAD * 2) + "px";
+            changed = true;
+          }
+        }
+        if (!changed) break;
+      }
+    });
+  }
+
   addEventListener("resize", fitPhones, { passive: true });
 
   if (finePointer) {
