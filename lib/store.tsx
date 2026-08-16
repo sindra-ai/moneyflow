@@ -29,6 +29,9 @@ import { supabase } from "./supabase";
 import { useAuth } from "./auth";
 
 const STORAGE_KEY = "moneyflow:v1";
+// Which account the data in localStorage belongs to, so one user's device
+// state can never bleed into (or seed) another user's account.
+const OWNER_KEY = "moneyflow:owner";
 
 /* ------------------------------------------------------------------ dates */
 // Exported so v2's components / derive.ts can import them from the store.
@@ -268,6 +271,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
     let cancelled = false;
     (async () => {
+      try {
+        const owner = window.localStorage.getItem(OWNER_KEY);
+        if (owner && owner !== user.id) {
+          window.localStorage.removeItem(STORAGE_KEY);
+          clearCache(); // bank transactions are device-local too
+          setStore(defaultStore(monthKeyOf()));
+        }
+        window.localStorage.setItem(OWNER_KEY, user.id);
+      } catch {
+        /* storage unavailable - ignore */
+      }
       const { data, error } = await supabase
         .from("user_state")
         .select("data, updated_at")
@@ -279,10 +293,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setStore(cloud);
         lastSync.current = (data?.updated_at as string) ?? null;
       } else {
+        // A brand-new account starts clean. It must NOT inherit whatever is
+        // sitting in this device's localStorage, which may be someone else's.
+        const fresh = defaultStore(monthKeyOf());
+        setStore(fresh);
         const now = new Date().toISOString();
         await supabase
           .from("user_state")
-          .upsert({ user_id: user.id, data: storeRef.current, updated_at: now });
+          .upsert({ user_id: user.id, data: fresh, updated_at: now });
         lastSync.current = now;
       }
       cloudLoaded.current = true;

@@ -405,9 +405,9 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
         >
           <div>
             <div className="li-k warn">
-              {confirm ? 'Tap again to confirm' : 'Reset to sample data'}
+              {confirm ? 'Tap again to confirm' : 'Clear all data'}
             </div>
-            <div className="li-s">Replaces every month with the starter list</div>
+            <div className="li-s">Removes every outgoing and starts you fresh</div>
           </div>
           <div className="li-v warn">Reset</div>
         </button>
