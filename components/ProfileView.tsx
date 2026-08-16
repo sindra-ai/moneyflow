@@ -13,6 +13,7 @@ import { Sparkline } from './Sparkline';
 import { Goals } from './Goals';
 import { Pension } from './Pension';
 import { Camera } from './icons';
+import { AccessRequests } from './AccessRequests';
 
 const AVATAR_PX = 256;
 
@@ -360,6 +361,8 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
           </span>
         </button>
       </div>
+
+      <AccessRequests />
 
       <div className="sec">
         <h3>Account</h3>

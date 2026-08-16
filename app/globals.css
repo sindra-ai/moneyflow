@@ -3971,3 +3971,60 @@ input {
   .login-bg i { animation: none; }
   .login-card { animation: none; }
 }
+
+
+/* ---------------------------------------------- owner: access requests ---- */
+.ar-card {
+  margin: 0 var(--gut) 10px;
+  padding: 15px 16px;
+  border-radius: var(--r-md);
+  background: var(--fill-1);
+  border: 1px solid var(--hair);
+  display: grid;
+  gap: 10px;
+}
+.ar-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.ar-name { font-weight: 620; letter-spacing: -0.01em; }
+.ar-email { font: var(--t-meta); color: var(--ink-2); margin-top: 2px; word-break: break-all; }
+.ar-when { font: var(--t-meta); color: var(--ink-3); white-space: nowrap; }
+.ar-why {
+  font: var(--t-meta);
+  color: var(--ink-2);
+  line-height: 1.55;
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: var(--fill-1);
+}
+.ar-row, .ar-made-row { display: flex; gap: 9px; }
+.ar-btn {
+  flex: 1;
+  padding: 11px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--edge);
+  background: var(--fill-2);
+  color: var(--ink);
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.ar-btn.key { background: var(--accent); border-color: transparent; color: #0a0c16; }
+.ar-btn:disabled { opacity: 0.55; }
+.ar-err { margin: 0 var(--gut) 10px; font: var(--t-meta); color: var(--bad); }
+.ar-made {
+  margin: 0 var(--gut) 12px;
+  padding: 16px;
+  border-radius: var(--r-md);
+  background: rgba(75, 227, 168, 0.09);
+  border: 1px solid rgba(75, 227, 168, 0.3);
+  display: grid;
+  gap: 7px;
+}
+.ar-made-k { font: var(--t-meta); color: var(--good); font-weight: 640; }
+.ar-made-e { font: var(--t-meta); color: var(--ink-2); word-break: break-all; }
+.ar-made-p {
+  font-size: 21px;
+  font-weight: 640;
+  letter-spacing: 0.04em;
+  user-select: all;
+  word-break: break-all;
+}
+.ar-made p { font: var(--t-meta); color: var(--ink-2); line-height: 1.5; }

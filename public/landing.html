@@ -79,8 +79,11 @@
     font-size: 17px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
+    /* clip, not hidden: hidden turns body into a scroll container, which is
+       what breaks position: sticky. clip stops sideways drift without that. */
+    overflow-x: clip;
   }
+  html { overflow-x: clip; }
   h1, h2, h3, h4, p, figure, ul, li { margin: 0; }
   ul { padding: 0; list-style: none; }
   a { color: inherit; text-decoration: none; }
@@ -714,6 +717,14 @@
     text-transform: none;
   }
   .play:hover { background: var(--fill-3); }
+  .play-auto { color: var(--ink-2); }
+  .play-auto i { width: 6px; height: 6px; border-radius: 50%; background: var(--mint);
+    box-shadow: 0 0 0 0 rgba(75, 227, 168, 0.5); animation: playPulse 2.2s infinite; }
+  @keyframes playPulse {
+    70% { box-shadow: 0 0 0 7px rgba(75, 227, 168, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(75, 227, 168, 0); }
+  }
+  @media (prefers-reduced-motion: reduce) { .play-auto i { animation: none; } }
   #matchDemo .m-txn { opacity: 0; transform: translateY(14px);
     transition: opacity 0.5s var(--ease), transform 0.6s var(--spring); }
   #matchDemo .linkline { opacity: 0; transition: opacity 0.4s var(--ease); }
@@ -1232,7 +1243,7 @@ It&rsquo;s paid when the money leaves. So MoneyFlow waits for the
                 <p>Both have to line up before anything is ticked. Salary landing in your account never triggers it.</p></div></div>
             <div class="feat rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
               <div><h4>Messy feeds survive it</h4>
-                <p>&ldquo;Vodaphone&rdquo; in your list still matches VODAFONE on the statement. Real bank descriptions are ugly.</p></div></div>
+                <p>&ldquo;Loop Mobil&rdquo; in your list still matches LOOPMOBILE LTD on the statement. Real bank descriptions are ugly.</p></div></div>
             <div class="feat rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></span>
               <div><h4>Your correction sticks</h4>
                 <p>Un-tick something and it stays un-ticked. The app never argues with you twice.</p></div></div>
@@ -1242,10 +1253,7 @@ It&rsquo;s paid when the money leaves. So MoneyFlow waits for the
         <figure class="art rv" id="matchDemo" data-phase="0">
           <figcaption class="art-lab">
             <span>Live match</span>
-            <button class="play" data-play>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-              Watch it clear
-            </button>
+            <span class="play play-auto" aria-hidden="true"><i></i>Matching</span>
           </figcaption>
 
           <div class="mini-card m-bill">
@@ -1926,25 +1934,32 @@ Open Banking, authorised on your bank&rsquo;s own screen.
   /* ------------------------------ reconciliation: play the match end to end */
   function bindPlay() {
     var stage = document.getElementById("matchDemo");
-    if (!stage) return;
-    var btn = stage.querySelector("[data-play]");
-    if (!btn || btn.dataset.bound) return;
-    btn.dataset.bound = "1";
+    if (!stage || stage.dataset.bound) return;
+    stage.dataset.bound = "1";
+
+    // Reduced motion gets the finished state rather than a loop.
+    if (reduce) { stage.dataset.phase = "4"; return; }
+
     var timers = [];
-    function reset() {
-      timers.forEach(clearTimeout); timers = [];
+    function clear() { timers.forEach(clearTimeout); timers = []; }
+    function cycle() {
+      clear();
       stage.dataset.phase = "0";
-    }
-    btn.addEventListener("click", function () {
-      reset();
-      HAPTIC_PULSE();
       ["1", "2", "3", "4"].forEach(function (ph, k) {
-        timers.push(setTimeout(function () { stage.dataset.phase = ph; }, 260 + k * 900));
+        timers.push(setTimeout(function () { stage.dataset.phase = ph; }, 300 + k * 900));
       });
-      timers.push(setTimeout(function () { stage.dataset.phase = "4"; }, 260 + 4 * 900));
-    });
+      timers.push(setTimeout(cycle, 300 + 3 * 900 + 2600));   // hold the result, then again
+    }
+
+    // Only runs while it is actually on screen.
+    if (!("IntersectionObserver" in window)) { cycle(); return; }
+    new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) cycle();
+        else { clear(); stage.dataset.phase = "0"; }
+      });
+    }, { threshold: 0.3 }).observe(stage);
   }
-  function HAPTIC_PULSE() { if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} } }
 
 
   /* ------------------------------------------------------ live market data */
