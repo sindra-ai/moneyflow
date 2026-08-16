@@ -562,7 +562,7 @@
   .ui-secline span { font-size: 12px; color: var(--ui-ink-3); }
   .ui-accts { display: flex; gap: 12px; }
   .ui-acct { flex: 0 0 auto; width: 168px; padding: 15px; border-radius: 20px; background: var(--ui-fill-1); border: 1px solid var(--ui-hair); }
-  /* "HALIFAX" at 11px is wider than a 38px tile, so it spilled out of the blue. */
+  /* The bank name at 11px is wider than a 38px tile, so it spilled out of the blue. */
   .ui-acct-logo { width: 38px; height: 38px; border-radius: 11px; background: #0d5eb4;
     display: grid; place-items: center; overflow: hidden; color: #fff;
     font-size: 7px; font-weight: 800; letter-spacing: -0.01em; line-height: 1; }
@@ -645,7 +645,7 @@
      above and below it. */
   .phone-wrap {
     width: 100%;
-    display: grid; place-items: center;
+    display: grid; align-items: start; justify-items: center;
     perspective: 1500px; perspective-origin: 50% 50%;
   }
 
@@ -734,7 +734,7 @@
   .pin { position: relative; height: 330vh; }
   .pin-inner { position: sticky; top: 0; height: 100vh; display: grid; align-items: center; }
   .pin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
-  .pin-steps { display: grid; gap: 6px; margin-top: 30px; counter-reset: none; }
+  .pin-steps { display: grid; gap: 6px; margin-top: 30px; padding: 0; list-style: none; }
   .pin-steps li {
     padding: 12px 0 12px 18px; border-left: 2px solid transparent;
     opacity: 0.32; transition: opacity 0.45s var(--ease), border-color 0.45s var(--ease);
@@ -751,8 +751,8 @@
 
   @media (max-width: 1020px) {
     .pin { height: 290vh; }
-    .pin-inner { align-items: start; padding-top: 86px; }
-    .pin-grid { grid-template-columns: 1fr; gap: 16px; }
+    .pin-inner { align-items: start; padding-top: 78px; }
+    .pin-grid { grid-template-columns: 1fr; gap: 30px; }
     .pin-copy { order: 2; }
     .pin-copy .h2 { font-size: 26px; }
     .pin-steps { margin-top: 14px; }
@@ -901,12 +901,12 @@ Ticks off bills the moment the money actually leaves,
       <div class="pin-inner">
         <div class="shell pin-grid">
           <div class="pin-copy">
-            <h2 class="h2">Four tabs.<br /><span class="grad">One picture of your money.</span></h2>
+            <h2 class="h2">One app.<br /><span class="grad">Every part of your money.</span></h2>
             <ol class="pin-steps">
-          <li data-on="true"><b>Home</b><p>Bills against salary, what&rsquo;s left to pay, and the one number that matters: what&rsquo;s safe to spend. Tick a bill and watch it move.</p></li>
-          <li data-on="false"><b>Spending</b><p>Every real transaction, auto-categorised, with a plain-English weekly digest and caps you set by tapping a category.</p></li>
-          <li data-on="false"><b>Assistant</b><p>Ask it anything about your money by typing or talking, and photograph a statement to have the figures pulled out.</p></li>
-          <li data-on="false"><b>Profile</b><p>Pensions tracked against the index they follow, savings goals, and the switches for everything the app does on its own.</p></li>
+          <li data-on="true"><b>Home</b><p>Bills against salary, and the one number that matters: what&rsquo;s safe to spend.</p></li>
+          <li data-on="false"><b>Spending</b><p>Every real transaction, categorised, with caps you set by tapping a category.</p></li>
+          <li data-on="false"><b>Assistant</b><p>Ask about your money by typing or talking, or photograph a statement.</p></li>
+          <li data-on="false"><b>Pensions</b><p>Each pot valued against the index it follows, so the total moves with the market.</p></li>
             </ol>
             <p class="try"><span class="try-dot"></span>On Home, tap a circle to tick a bill</p>
           </div>
@@ -939,29 +939,29 @@ Ticks off bills the moment the money actually leaves,
                   </svg>
                   <div class="ui-gauge-mid">
                     <div class="ui-gauge-lab">Left to pay</div>
-                    <div class="ui-figure num">&pound;1,284<i>.19</i></div>
-                    <div class="ui-pace num">&pound;107 a day for 12 days</div>
+                    <div class="ui-figure num">&pound;1,046<i>.50</i></div>
+                    <div class="ui-pace num">&pound;87 a day for 12 days</div>
                   </div>
                 </div>
 
                 <div class="ui-duo">
                   <div>
-                    <div class="ui-duo-k">Cint salary</div>
-                    <div class="ui-duo-v num">&pound;5,230</div>
+                    <div class="ui-duo-k">Kestrel salary</div>
+                    <div class="ui-duo-v num">&pound;4,180</div>
                   </div>
                   <span class="ui-rule"></span>
                   <div>
                     <div class="ui-duo-k">Left over</div>
-                    <div class="ui-duo-v num up">&pound;1,706</div>
+                    <div class="ui-duo-v num up">&pound;1,392</div>
                   </div>
                 </div>
 
                 <div class="ui-safe">
                   <div class="ui-safe-top">
                     <span class="ui-safe-lab">Safe to spend</span>
-                    <span class="ui-safe-lab num">&pound;61/day</span>
+                    <span class="ui-safe-lab num">&pound;57/day</span>
                   </div>
-                  <div class="ui-safe-fig num">&pound;742.60</div>
+                  <div class="ui-safe-fig num">&pound;684.20</div>
                   <div class="ui-safe-bar"><i class="sb-1"></i><i class="sb-2"></i></div>
                 </div>
 
@@ -983,30 +983,30 @@ Ticks off bills the moment the money actually leaves,
 
                 <div class="ui-group">
                   <div class="ui-row" data-bill>
-                    <span class="ui-glyph" style="background:rgba(75,227,168,0.16);color:#4be3a8">E</span>
+                    <span class="ui-glyph" style="background:rgba(75,227,168,0.16);color:#4be3a8">H</span>
                     <div class="ui-rbody">
-                      <div class="ui-rname">Everyday Loans</div>
+                      <div class="ui-rname">Harbour Loans</div>
                       <div class="ui-rmeta tick">&#10003; Auto-ticked &middot; 5 Aug</div>
                     </div>
-                    <span class="ui-ramt num">&pound;360.00</span>
+                    <span class="ui-ramt num">&pound;310.00</span>
                     <button class="ui-tick on" data-tick aria-label="Toggle paid">&#10003;</button>
                   </div>
                   <div class="ui-row" data-bill>
-                    <span class="ui-glyph" style="background:rgba(138,162,255,0.16);color:#8aa2ff">D</span>
+                    <span class="ui-glyph" style="background:rgba(138,162,255,0.16);color:#8aa2ff">P</span>
                     <div class="ui-rbody">
-                      <div class="ui-rname">David Lloyd</div>
+                      <div class="ui-rname">Pulse Gym</div>
                       <div class="ui-rmeta">Due 1st</div>
                     </div>
-                    <span class="ui-ramt num">&pound;142.00</span>
+                    <span class="ui-ramt num">&pound;48.00</span>
                     <button class="ui-tick" data-tick aria-label="Toggle paid"></button>
                   </div>
                   <div class="ui-row" data-bill>
-                    <span class="ui-glyph" style="background:rgba(185,139,255,0.16);color:#b98bff">V</span>
+                    <span class="ui-glyph" style="background:rgba(185,139,255,0.16);color:#b98bff">L</span>
                     <div class="ui-rbody">
-                      <div class="ui-rname">Vodafone</div>
+                      <div class="ui-rname">Loop Mobile</div>
                       <div class="ui-rmeta">Due 3rd</div>
                     </div>
-                    <span class="ui-ramt num">&pound;40.00</span>
+                    <span class="ui-ramt num">&pound;24.00</span>
                     <button class="ui-tick" data-tick aria-label="Toggle paid"></button>
                   </div>
                 </div>
@@ -1026,35 +1026,35 @@ Ticks off bills the moment the money actually leaves,
                   <div class="ui-actions"><span class="ui-gb">&#10022;</span><span class="ui-gb">&#9788;</span></div>
                 </div>
                 <div class="ui-digest">
-                  <div class="ui-digest-top"><span class="ui-digest-k">This week</span><span class="ui-digest-v num">&pound;276.31</span></div>
-                  <div class="ui-digest-p"><b style="color:#4be3a8">&pound;779 less</b> than last week. Most went on <b>Bills</b>.</div>
+                  <div class="ui-digest-top"><span class="ui-digest-k">This week</span><span class="ui-digest-v num">&pound;214.80</span></div>
+                  <div class="ui-digest-p"><b style="color:#4be3a8">&pound;392 less</b> than last week. Most went on <b>Bills</b>.</div>
                 </div>
                 <div class="ui-secline"><h5>Accounts</h5><span>Disconnect</span></div>
                 <div class="ui-accts">
                   <div class="ui-acct">
-                    <div class="ui-acct-logo">HALIFAX</div>
+                    <div class="ui-acct-logo">NORTHBANK</div>
                     <div class="ui-acct-n">Main Account</div>
-                    <div class="ui-acct-m">HALIFAX &middot;5680</div>
+                    <div class="ui-acct-m">NORTHBANK &middot;2214</div>
                   </div>
                   <div class="ui-acct">
-                    <div class="ui-acct-logo">HALIFAX</div>
+                    <div class="ui-acct-logo">NORTHBANK</div>
                     <div class="ui-acct-n">Second Main</div>
-                    <div class="ui-acct-m">HALIFAX &middot;4560</div>
+                    <div class="ui-acct-m">NORTHBANK &middot;7830</div>
                   </div>
                 </div>
                 <div class="ui-secline"><h5>This month by category</h5><span>tap to set a budget</span></div>
                 <div class="ui-bd">
                   <div>
-                    <div class="ui-bd-top"><span class="ui-bd-k">Bills</span><span class="ui-bd-v num">&pound;762 / &pound;900</span></div>
-                    <div class="ui-bd-bar"><i style="width:85%;background:#7c9cff"></i></div>
+                    <div class="ui-bd-top"><span class="ui-bd-k">Bills</span><span class="ui-bd-v num">&pound;640 / &pound;800</span></div>
+                    <div class="ui-bd-bar"><i style="width:80%;background:#7c9cff"></i></div>
                   </div>
                   <div>
-                    <div class="ui-bd-top"><span class="ui-bd-k">Eating out</span><span class="ui-bd-v num" style="color:#ff7591">&pound;188 / &pound;150</span></div>
+                    <div class="ui-bd-top"><span class="ui-bd-k">Eating out</span><span class="ui-bd-v num" style="color:#ff7591">&pound;164 / &pound;130</span></div>
                     <div class="ui-bd-bar"><i style="width:100%;background:#ff7591"></i></div>
                   </div>
                   <div>
-                    <div class="ui-bd-top"><span class="ui-bd-k">Shopping</span><span class="ui-bd-v num">&pound;570 / &pound;700</span></div>
-                    <div class="ui-bd-bar"><i style="width:81%;background:#b98bff"></i></div>
+                    <div class="ui-bd-top"><span class="ui-bd-k">Shopping</span><span class="ui-bd-v num">&pound;415 / &pound;520</span></div>
+                    <div class="ui-bd-bar"><i style="width:80%;background:#b98bff"></i></div>
                   </div>
                 </div>
               </div>
@@ -1066,9 +1066,9 @@ Ticks off bills the moment the money actually leaves,
                 <div class="ui-voice"><i></i>Listening&hellip;<s>Stop</s></div>
                 <div class="ui-thread">
                   <div class="ui-bub me">How much did I spend on eating out?</div>
-                  <div class="ui-bub ai">&pound;188 so far this month, <b>&pound;38 over</b> your &pound;150 budget. Nando&rsquo;s and Deliveroo are most of it.</div>
+                  <div class="ui-bub ai">&pound;164 so far this month, <b>&pound;34 over</b> your &pound;130 budget. Takeaways are most of it.</div>
                   <div class="ui-bub me">What&rsquo;s due this week?</div>
-                  <div class="ui-bub ai">Two bills: <b>David Lloyd &pound;142</b> on the 1st and <b>Vodafone &pound;40</b> on the 3rd.</div>
+                  <div class="ui-bub ai">Two bills: <b>Pulse Gym &pound;48</b> on the 1st and <b>Loop Mobile &pound;24</b> on the 3rd.</div>
                 </div>
                 <div class="ui-bar">
                   <div class="ui-bar-b">&#9741;</div>
@@ -1083,21 +1083,21 @@ Ticks off bills the moment the money actually leaves,
                   <img class="ui-logo" src="data:image/png;base64,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" alt="" />
                   <div class="ui-actions"><span class="ui-gb">&#10022;</span><span class="ui-gb">&#9788;</span></div>
                 </div>
-                <div class="ui-me"><div class="ui-face">R</div><b>Rohit.K</b></div>
+                <div class="ui-me"><div class="ui-face">S</div><b>Sam Rivera</b></div>
                 <div class="ui-secline"><h5>Pensions &amp; investments</h5></div>
                 <div class="ui-pension">
                   <div class="ui-pension-top"><span class="ui-pension-k">Total &middot; estimated</span><span class="ui-pension-tag">2 pots</span></div>
-                  <div class="ui-pension-v num">&asymp; &pound;63,770</div>
+                  <div class="ui-pension-v num">&asymp; &pound;48,220</div>
                   <div class="ui-pension-d num">&#9650; 12.8% over 6 months</div>
                 </div>
                 <div class="ui-pots">
                   <div class="ui-pot">
-                    <div><div class="ui-pot-n">PensionBee</div><div class="ui-pot-m">Global (MSCI ACWI)</div></div>
-                    <span class="ui-pot-v num">&pound;59,564</span>
+                    <div><div class="ui-pot-n">Beacon Pension</div><div class="ui-pot-m">Global (MSCI ACWI)</div></div>
+                    <span class="ui-pot-v num">&pound;41,280</span>
                   </div>
                   <div class="ui-pot">
                     <div><div class="ui-pot-n">Workplace</div><div class="ui-pot-m">Developed (World)</div></div>
-                    <span class="ui-pot-v num">&pound;4,206</span>
+                    <span class="ui-pot-v num">&pound;6,940</span>
                   </div>
                 </div>
                 <div class="ui-secline"><h5>Notifications</h5></div>
@@ -1186,9 +1186,9 @@ It&rsquo;s paid when the money leaves. So MoneyFlow waits for the
           </figcaption>
 
           <div class="mini-card m-bill">
-            <span class="mini-glyph" style="background:rgba(138,162,255,0.16);color:#8aa2ff">E</span>
-            <div><div class="mc-n">Everyday Loans</div><div class="mc-m">Planned bill &middot; due 1st</div></div>
-            <span class="mc-a num">&pound;360.00</span>
+            <span class="mini-glyph" style="background:rgba(138,162,255,0.16);color:#8aa2ff">H</span>
+            <div><div class="mc-n">Harbour Loans</div><div class="mc-m">Planned bill &middot; due 1st</div></div>
+            <span class="mc-a num">&pound;310.00</span>
             <span class="m-tick">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
             </span>
@@ -1201,9 +1201,9 @@ It&rsquo;s paid when the money leaves. So MoneyFlow waits for the
           </div>
 
           <div class="mini-card m-txn">
-            <span class="mini-glyph" style="background:rgba(255,255,255,0.07);color:#9ba2bd">H</span>
-            <div><div class="mc-n">EVERYDAY LNS</div><div class="mc-m">Halifax &middot; debit &middot; 5 Aug</div></div>
-            <span class="mc-a num">&minus;&pound;360.00</span>
+            <span class="mini-glyph" style="background:rgba(255,255,255,0.07);color:#9ba2bd">N</span>
+            <div><div class="mc-n">HARBOUR LNS</div><div class="mc-m">Northbank &middot; debit &middot; 5 Aug</div></div>
+            <span class="mc-a num">&minus;&pound;310.00</span>
           </div>
 
           <div class="m-foot">
@@ -1245,49 +1245,49 @@ It&rsquo;s paid when the money leaves. So MoneyFlow waits for the
                   </svg>
                   <div class="ui-gauge-mid">
                     <div class="ui-gauge-lab">Left to pay</div>
-                    <div class="ui-figure num">&pound;1,284<i>.19</i></div>
-                    <div class="ui-pace num">&pound;107 a day for 12 days</div>
+                    <div class="ui-figure num">&pound;1,046<i>.50</i></div>
+                    <div class="ui-pace num">&pound;87 a day for 12 days</div>
                   </div>
                 </div>
 
                 <div class="ui-duo">
                   <div>
-                    <div class="ui-duo-k">Cint salary</div>
-                    <div class="ui-duo-v num">&pound;5,230</div>
+                    <div class="ui-duo-k">Kestrel salary</div>
+                    <div class="ui-duo-v num">&pound;4,180</div>
                   </div>
                   <span class="ui-rule"></span>
                   <div>
                     <div class="ui-duo-k">Left over</div>
-                    <div class="ui-duo-v num up">&pound;1,706</div>
+                    <div class="ui-duo-v num up">&pound;1,392</div>
                   </div>
                 </div>
 
                 <div class="ui-safe">
                   <div class="ui-safe-top">
                     <span class="ui-safe-lab">Safe to spend</span>
-                    <span class="ui-safe-lab num">&pound;61/day</span>
+                    <span class="ui-safe-lab num">&pound;57/day</span>
                   </div>
-                  <div class="ui-safe-fig num">&pound;742.60</div>
+                  <div class="ui-safe-fig num">&pound;684.20</div>
                   <div class="ui-safe-bar"><i class="sb-1"></i><i class="sb-2"></i></div>
                 </div>
 
                 <div class="ui-group">
                   <div class="ui-row">
-                    <span class="ui-glyph" style="background:rgba(75,227,168,0.16);color:#4be3a8">E</span>
+                    <span class="ui-glyph" style="background:rgba(75,227,168,0.16);color:#4be3a8">H</span>
                     <div class="ui-rbody">
-                      <div class="ui-rname">Everyday Loans</div>
+                      <div class="ui-rname">Harbour Loans</div>
                       <div class="ui-rmeta tick">&#10003; Auto-ticked &middot; 5 Aug</div>
                     </div>
-                    <span class="ui-ramt num">&pound;360.00</span>
+                    <span class="ui-ramt num">&pound;310.00</span>
                     <span class="ui-tick on">&#10003;</span>
                   </div>
                   <div class="ui-row">
-                    <span class="ui-glyph" style="background:rgba(138,162,255,0.16);color:#8aa2ff">D</span>
+                    <span class="ui-glyph" style="background:rgba(138,162,255,0.16);color:#8aa2ff">P</span>
                     <div class="ui-rbody">
-                      <div class="ui-rname">David Lloyd</div>
+                      <div class="ui-rname">Pulse Gym</div>
                       <div class="ui-rmeta">Due 1st</div>
                     </div>
-                    <span class="ui-ramt num">&pound;142.00</span>
+                    <span class="ui-ramt num">&pound;48.00</span>
                     <span class="ui-tick"></span>
                   </div>
                 </div>
@@ -1355,9 +1355,9 @@ Answered from your real transactions. Type it, say it out loud,
                 <div class="ui-voice"><i></i>Listening&hellip;<s>Stop</s></div>
                 <div class="ui-thread">
                   <div class="ui-bub me">How much did I spend on eating out?</div>
-                  <div class="ui-bub ai">&pound;188 so far this month, <b>&pound;38 over</b> your &pound;150 budget. Nando&rsquo;s and Deliveroo are most of it.</div>
+                  <div class="ui-bub ai">&pound;164 so far this month, <b>&pound;34 over</b> your &pound;130 budget. Takeaways are most of it.</div>
                   <div class="ui-bub me">What&rsquo;s due this week?</div>
-                  <div class="ui-bub ai">Two bills: <b>David Lloyd &pound;142</b> on the 1st and <b>Vodafone &pound;40</b> on the 3rd.</div>
+                  <div class="ui-bub ai">Two bills: <b>Pulse Gym &pound;48</b> on the 1st and <b>Loop Mobile &pound;24</b> on the 3rd.</div>
                 </div>
                 <div class="ui-bar">
                   <div class="ui-bar-b">&#9741;</div>
@@ -1386,10 +1386,10 @@ Answered from your real transactions. Type it, say it out loud,
 
       <div class="bento">
         <div class="card w3 rv"><h4>&ldquo;How much am I spending on subscriptions?&rdquo;</h4>
-          <p>Nine recurring payments totalling &pound;2,278 a month, and Netflix went from
-            &pound;10.99 to &pound;15.99 in July.</p></div>
+          <p>Nine recurring payments totalling &pound;1,940 a month, and one streaming plan
+            went from &pound;10.99 to &pound;15.99 in July.</p></div>
         <div class="card w3 rv"><h4>&ldquo;What&rsquo;s due this week?&rdquo;</h4>
-          <p>Two bills: David Lloyd &pound;142 on the 1st, Vodafone &pound;40 on the 3rd.</p></div>
+          <p>Two bills: Pulse Gym &pound;48 on the 1st, Loop Mobile &pound;24 on the 3rd.</p></div>
       </div>
     </div>
 
@@ -1451,21 +1451,21 @@ Spending, savings, and a pension that moves with the market
                   <img class="ui-logo" src="data:image/png;base64,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" alt="" />
                   <div class="ui-actions"><span class="ui-gb">&#10022;</span><span class="ui-gb">&#9788;</span></div>
                 </div>
-                <div class="ui-me"><div class="ui-face">R</div><b>Rohit.K</b></div>
+                <div class="ui-me"><div class="ui-face">S</div><b>Sam Rivera</b></div>
                 <div class="ui-secline"><h5>Pensions &amp; investments</h5></div>
                 <div class="ui-pension">
                   <div class="ui-pension-top"><span class="ui-pension-k">Total &middot; estimated</span><span class="ui-pension-tag">2 pots</span></div>
-                  <div class="ui-pension-v num">&asymp; &pound;63,770</div>
+                  <div class="ui-pension-v num">&asymp; &pound;48,220</div>
                   <div class="ui-pension-d num">&#9650; 12.8% over 6 months</div>
                 </div>
                 <div class="ui-pots">
                   <div class="ui-pot">
-                    <div><div class="ui-pot-n">PensionBee</div><div class="ui-pot-m">Global (MSCI ACWI)</div></div>
-                    <span class="ui-pot-v num">&pound;59,564</span>
+                    <div><div class="ui-pot-n">Beacon Pension</div><div class="ui-pot-m">Global (MSCI ACWI)</div></div>
+                    <span class="ui-pot-v num">&pound;41,280</span>
                   </div>
                   <div class="ui-pot">
                     <div><div class="ui-pot-n">Workplace</div><div class="ui-pot-m">Developed (World)</div></div>
-                    <span class="ui-pot-v num">&pound;4,206</span>
+                    <span class="ui-pot-v num">&pound;6,940</span>
                   </div>
                 </div>
                 <div class="ui-secline"><h5>Notifications</h5></div>
@@ -1553,7 +1553,7 @@ Open Banking, authorised on your bank&rsquo;s own screen.
           <p>Your data sits in your own Supabase project behind row-level security, not in a
             shared analytics pipeline being resold to advertisers.</p></div>
         <div class="card rv"><h4>Authorised at the bank</h4>
-          <p>You approve on Halifax&rsquo;s screen. Your credentials never touch the app.</p></div>
+          <p>You approve on your bank&rsquo;s own screen. Your credentials never touch the app.</p></div>
         <div class="card rv"><h4>Revoke any time</h4>
           <p>Disconnect in the app, or from your bank. Access ends immediately.</p></div>
         <div class="card rv"><h4>No ads, no upsells</h4>
@@ -2114,6 +2114,17 @@ Open Banking, authorised on your bank&rsquo;s own screen.
   }
 
   var TILT_PAD = 46; // clearance so the tilted frame never touches its neighbours
+  // Without a fine pointer nothing tilts, so that clearance is dead space.
+  function PAD() { return finePointer ? TILT_PAD : 8; }
+
+  // scale() leaves the layout box at its full 604px, so a scaled phone renders
+  // (604 - 604*sc)/2 below its own box top. Pull it back up and size the wrapper
+  // to the box you can actually see, or the gap below the phone silently closes.
+  function sizeWrap(dev, wrap, sc) {
+    var pad = PAD();
+    dev.style.marginTop = (pad - 302 * (1 - sc)).toFixed(1) + "px";
+    wrap.style.height = Math.round(604 * sc + pad * 2) + "px";
+  }
   function fitPhones() {
     phones = [];
     document.querySelectorAll(".device").forEach(function (dev) {
@@ -2140,7 +2151,7 @@ Open Banking, authorised on your bank&rsquo;s own screen.
       dev.style.transformStyle = "preserve-3d";
       dev.style.transformOrigin = "50% 50%";
       dev.style.willChange = "transform";
-      wrap.style.height = Math.round(604 * sc + TILT_PAD * 2) + "px";
+      sizeWrap(dev, wrap, sc);
       var ph = { el: dev, scale: sc, ry: finePointer ? -13 : 0, rx: finePointer ? 5 : 0, ty: -13, tx: 5 };
       phones.push(ph);
       applyPhone(ph);
@@ -2168,7 +2179,7 @@ Open Banking, authorised on your bank&rsquo;s own screen.
             ph.scale = next;
             applyPhone(ph);
             var wrap = ph.el.parentElement;
-            if (wrap) wrap.style.height = Math.round(604 * next + TILT_PAD * 2) + "px";
+            if (wrap) sizeWrap(ph.el, wrap, next);
             changed = true;
           }
         }
