@@ -21,6 +21,9 @@ export const metadata: Metadata = {
     ],
     apple: '/icons/touch-icon-v4-180.png',
   },
+  // The app itself is a private login. Keep it out of search results; the
+  // marketing site at / is the page that should rank.
+  robots: { index: false, follow: false },
   formatDetection: { telephone: false },
 };
 

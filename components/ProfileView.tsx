@@ -14,6 +14,7 @@ import { Goals } from './Goals';
 import { Pension } from './Pension';
 import { Camera } from './icons';
 import { AccessRequests } from './AccessRequests';
+import { ChangePassword } from './ChangePassword';
 
 const AVATAR_PX = 256;
 
@@ -374,6 +375,7 @@ export function ProfileView({ scrollerRef }: { scrollerRef: RefObject<HTMLDivEle
             <div className="li-s">{user?.email}</div>
           </div>
         </div>
+        <ChangePassword />
         <button className="li" onClick={() => void signOut()}>
           <div>
             <div className="li-k warn">Sign out</div>

@@ -4028,3 +4028,28 @@ input {
   word-break: break-all;
 }
 .ar-made p { font: var(--t-meta); color: var(--ink-2); line-height: 1.5; }
+
+
+/* ------------------------------------------------- change password ------- */
+.cp-fields { display: grid; gap: 9px; width: 100%; }
+.cp-in {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 13px;
+  border: 1px solid var(--edge);
+  background: var(--fill-1);
+  color: var(--ink);
+  font-size: 16px; /* 16px or iOS zooms the page on focus */
+}
+.cp-in:focus { outline: none; border-color: rgba(185, 139, 255, 0.6); background: var(--fill-2); }
+.cp-show {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--t-meta);
+  color: var(--ink-2);
+}
+.cp-note { font: var(--t-meta); color: var(--ink-3); }
+.cp-note.bad { color: var(--bad); }
+.cp-note.ok { color: var(--good); }
+.cp-row { display: flex; gap: 9px; margin-top: 2px; }
