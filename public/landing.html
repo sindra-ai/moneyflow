@@ -1,0 +1,1702 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>MoneyFlow &mdash; every pound accounted for</title>
+<meta name="description" content="MoneyFlow reads your real bank feed, ticks off bills the moment the money leaves, and tells you what's genuinely safe to spend." />
+<meta name="theme-color" content="#05060b" />
+<link rel="icon" href="/icons/icon-192.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<script>
+  document.documentElement.classList.add("js");
+  (function () {
+    // The bank sends the user back to "/" (the URI whitelisted with TrueLayer),
+    // so hand any OAuth result straight to the app instead of swallowing it.
+    if (/[?&](code|error)=/.test(location.search)) {
+      location.replace("/app" + location.search + location.hash);
+      return;
+    }
+    // Someone opening the installed home-screen app wants the app, not the
+    // marketing page - its start_url used to be "/".
+    var standalone =
+      (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+      window.navigator.standalone === true;
+    if (standalone) location.replace("/app");
+  })();
+</script>
+</head>
+<body>
+<style>
+  :root {
+    --ground: #05060b;
+    --a1: #8aa2ff;
+    --a2: #b98bff;
+    --mint: #4be3a8;
+    --rose: #ff7591;
+    --ink: #f4f6ff;
+    --ink-2: #9ba2bd;
+    --ink-3: #626879;
+    --hair: rgba(255, 255, 255, 0.07);
+    --edge: rgba(255, 255, 255, 0.1);
+    --fill-1: rgba(255, 255, 255, 0.034);
+    --fill-2: rgba(255, 255, 255, 0.062);
+    --fill-3: rgba(255, 255, 255, 0.1);
+    --glass: rgba(16, 18, 27, 0.6);
+    --r-lg: 28px;
+    --r-md: 20px;
+    --r-sm: 14px;
+    --pill: 999px;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --spring: cubic-bezier(0.34, 1.4, 0.44, 1);
+    --swift: cubic-bezier(0.65, 0, 0.35, 1);
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI",
+      system-ui, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    --shell: 1200px;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  h1, h2, h3, h4, p, figure, ul, li { margin: 0; }
+  ul { padding: 0; list-style: none; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; border: none; background: none; cursor: pointer; }
+  canvas { display: block; }
+  :focus-visible { outline: 2px solid var(--a1); outline-offset: 4px; border-radius: 6px; }
+
+  .shell { width: min(100% - 44px, var(--shell)); margin-inline: auto; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ------------------------------------------------------------- webgl orb */
+  #gl {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 1.4s var(--ease);
+    pointer-events: none;
+  }
+  #gl.on { opacity: 1; }
+  body[data-route="home"] #gl { opacity: 1; }
+  body:not([data-route="home"]) #gl { opacity: 0.24; }
+
+  .veil {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background:
+      linear-gradient(90deg, var(--ground) 4%, rgba(5, 6, 11, 0.82) 26%, transparent 58%),
+      radial-gradient(120% 70% at 50% 0%, transparent 34%, rgba(5, 6, 11, 0.5) 74%, var(--ground) 100%),
+      linear-gradient(180deg, transparent 58%, var(--ground) 97%);
+  }
+
+  /* ------------------------------------------------------------------ nav */
+  .nav {
+    position: fixed; top: 16px; left: 50%; translate: -50% 0; z-index: 60;
+    width: min(100% - 28px, 1120px);
+    display: flex; align-items: center; gap: 16px;
+    padding: 9px 9px 9px 18px;
+    border-radius: var(--pill);
+    border: 1px solid transparent;
+    transition: background 0.5s var(--ease), border-color 0.5s var(--ease), box-shadow 0.5s var(--ease);
+  }
+  .nav[data-stuck="true"] {
+    background: rgba(9, 10, 17, 0.72);
+    border-color: var(--hair);
+    backdrop-filter: blur(28px) saturate(1.7);
+    -webkit-backdrop-filter: blur(28px) saturate(1.7);
+    box-shadow: 0 20px 50px -30px #000;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: -0.02em; }
+  .brand img { width: 30px; height: 30px; filter: drop-shadow(0 4px 14px rgba(150, 132, 255, 0.5)); }
+  .nav-links { display: flex; gap: 4px; margin-left: 12px; }
+  .nav-links a {
+    position: relative; padding: 8px 14px; border-radius: var(--pill);
+    font-size: 14px; font-weight: 500; color: var(--ink-2);
+    transition: color 0.25s, background 0.25s;
+  }
+  .nav-links a:hover { color: var(--ink); background: var(--fill-1); }
+  .nav-links a[data-on="true"] { color: var(--ink); background: var(--fill-2); }
+  .nav-cta { margin-left: auto; }
+
+  .burger { display: none; width: 40px; height: 40px; border-radius: 50%;
+    background: var(--fill-2); border: 1px solid var(--edge); place-items: center; gap: 5px;
+    flex-direction: column; flex: none; }
+  .burger i { display: block; width: 15px; height: 1.5px; border-radius: 2px; background: var(--ink);
+    transition: transform 0.35s var(--ease), opacity 0.25s; }
+  .burger[aria-expanded="true"] i:first-child { transform: translateY(3.2px) rotate(45deg); }
+  .burger[aria-expanded="true"] i:last-child { transform: translateY(-3.2px) rotate(-45deg); }
+
+  .sheet {
+    position: fixed; z-index: 59; top: 74px; left: 50%; translate: -50% 0;
+    width: min(100% - 28px, 1120px);
+    display: none; flex-direction: column;
+    padding: 8px; border-radius: 26px;
+    background: rgba(9, 10, 17, 0.9); border: 1px solid var(--hair);
+    backdrop-filter: blur(28px) saturate(1.6); -webkit-backdrop-filter: blur(28px) saturate(1.6);
+    box-shadow: 0 30px 70px -34px #000;
+    opacity: 0; transform: translateY(-10px); pointer-events: none;
+    transition: opacity 0.32s var(--ease), transform 0.32s var(--ease);
+  }
+  .sheet.open { opacity: 1; transform: none; pointer-events: auto; }
+  .sheet a { padding: 15px 18px; border-radius: 18px; font-size: 16.5px; font-weight: 560;
+    color: var(--ink-2); transition: background 0.25s, color 0.25s; }
+  .sheet a:hover, .sheet a[data-on="true"] { background: var(--fill-2); color: var(--ink); }
+
+  .btn {
+    position: relative; display: inline-flex; align-items: center; gap: 9px;
+    padding: 12px 22px; border-radius: var(--pill);
+    font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em;
+    transition: transform 0.35s var(--spring), box-shadow 0.35s var(--ease), background 0.25s;
+    white-space: nowrap; will-change: transform;
+  }
+  .btn-key { background: linear-gradient(120deg, var(--a1), var(--a2)); color: #08090f;
+    box-shadow: 0 14px 36px -16px rgba(150, 132, 255, 0.9); }
+  .btn-key:hover { box-shadow: 0 20px 48px -14px rgba(150, 132, 255, 1); }
+  .btn-ghost { background: var(--fill-2); border: 1px solid var(--edge); }
+  .btn-ghost:hover { background: var(--fill-3); }
+  .btn-lg { padding: 16px 30px; font-size: 16px; }
+
+  /* ---------------------------------------------------------------- pages */
+  main { position: relative; z-index: 2; }
+  .page { padding: 152px 0 0; }
+  .page-hero { min-height: 62vh; display: flex; flex-direction: column; justify-content: center; }
+
+  .kicker {
+    display: inline-flex; align-items: center; gap: 9px; align-self: flex-start;
+    padding: 7px 14px 7px 10px; border-radius: var(--pill);
+    background: var(--fill-1); border: 1px solid var(--hair);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-2); margin-bottom: 26px;
+  }
+  .kicker i { width: 6px; height: 6px; border-radius: 50%; background: var(--mint); }
+
+  h1.display {
+    font-size: clamp(46px, 7.4vw, 104px);
+    font-weight: 600; line-height: 0.94; letter-spacing: -0.055em;
+    text-wrap: balance; margin-bottom: 26px;
+  }
+  h1.display .soft { font-weight: 200; color: var(--ink-2); }
+  .h2 {
+    font-size: clamp(31px, 4.4vw, 52px);
+    font-weight: 600; letter-spacing: -0.042em; line-height: 1.04; text-wrap: balance;
+  }
+  .lede { color: var(--ink-2); font-size: clamp(16.5px, 1.5vw, 19px); line-height: 1.6; max-width: 58ch; }
+  .grad { background: linear-gradient(100deg, var(--a1) 5%, var(--a2) 58%, #eadfff 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+  /* masked word reveal */
+  .rise { display: inline-block; overflow: hidden; vertical-align: bottom; }
+  .rise > span { display: inline-block; transform: translateY(105%); }
+  .js .in .rise > span, .js .rise.go > span {
+    transform: none; transition: transform 0.95s var(--ease);
+  }
+
+  .row-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 38px; }
+
+  /* --------------------------------------------------------------- blocks */
+  .sec { padding: 106px 0; }
+  .sec-head { display: grid; gap: 18px; max-width: 780px; }
+  .split { margin-top: 54px; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+  .split.flip .art { order: -1; }
+
+  .feat-list { display: grid; gap: 22px; margin-top: 32px; }
+  .feat { display: grid; grid-template-columns: 36px 1fr; gap: 16px; align-items: start; }
+  .feat .ic { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center;
+    background: var(--fill-2); border: 1px solid var(--hair); color: var(--a1); }
+  .feat h4 { font-size: 16.5px; font-weight: 600; letter-spacing: -0.02em; }
+  .feat p { color: var(--ink-2); font-size: 14.5px; line-height: 1.55; margin-top: 4px; }
+
+  /* spotlight card */
+  .card {
+    position: relative; overflow: hidden;
+    border-radius: var(--r-lg); background: var(--fill-1); border: 1px solid var(--hair);
+    padding: 28px;
+    transition: border-color 0.35s, transform 0.5s var(--ease);
+  }
+  .card::before {
+    content: ""; position: absolute; inset: 0; opacity: 0;
+    background: radial-gradient(320px circle at var(--mx, 50%) var(--my, 50%),
+      rgba(150, 140, 255, 0.16), transparent 68%);
+    transition: opacity 0.4s;
+  }
+  .card:hover { border-color: var(--edge); transform: translateY(-5px); }
+  .card:hover::before { opacity: 1; }
+  .card > * { position: relative; }
+  .card .ic { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center;
+    background: var(--fill-2); color: var(--a2); margin-bottom: 14px; }
+  .card h4 { font-size: 17px; font-weight: 600; letter-spacing: -0.022em; }
+  .card p { color: var(--ink-2); font-size: 14.5px; line-height: 1.56; margin-top: 8px; }
+
+  .bento { margin-top: 46px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px; }
+  .bento .card { grid-column: span 2; }
+  .bento .card.w3 { grid-column: span 3; }
+
+  .art {
+    position: relative; border-radius: var(--r-lg); padding: 26px; overflow: hidden;
+    background: linear-gradient(158deg, rgba(255,255,255,0.05), rgba(255,255,255,0.014));
+    border: 1px solid var(--hair); box-shadow: 0 40px 80px -46px #000;
+  }
+  .art-lab { display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--ink-3); margin-bottom: 16px; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 46px; }
+  .stat { padding: 26px 22px; border-radius: var(--r-md); background: var(--fill-1); border: 1px solid var(--hair); }
+  .stat .v { font-size: clamp(29px, 3.4vw, 40px); font-weight: 600; letter-spacing: -0.045em;
+    line-height: 1; min-height: clamp(29px, 3.4vw, 40px); display: flex; align-items: flex-end; }
+  .stat .v-word { font-size: clamp(20px, 2.3vw, 29px); white-space: nowrap; }
+  .stat .k { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-3); margin-top: 11px; }
+
+  /* --------------------------------------------------------- page nav feet */
+  .nextup { margin-top: 20px; border-top: 1px solid var(--hair); padding: 34px 0 0; }
+  .nextup a {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 18px;
+    padding: 30px 0; border-bottom: 1px solid var(--hair);
+    transition: padding-inline 0.5s var(--ease), color 0.3s;
+  }
+  .nextup a:hover { padding-inline: 14px; }
+  .nextup .nx-k { font-size: 13px; font-weight: 560; letter-spacing: -0.01em; color: var(--ink-3); }
+  .nextup .nx-t { font-size: clamp(26px, 3.4vw, 40px); font-weight: 600; letter-spacing: -0.04em; }
+  .nextup a:hover .nx-t { color: var(--a2); }
+
+  /* oversized statement line */
+  .statement { padding: 118px 0 96px; }
+  .statement p {
+    font-size: clamp(30px, 5.1vw, 66px); font-weight: 200; line-height: 1.06;
+    letter-spacing: -0.04em; max-width: 17ch; text-wrap: balance; color: var(--ink-2);
+  }
+  .statement b { font-weight: 600; color: var(--ink); }
+
+  /* closing call to action */
+  .closer {
+    position: relative; overflow: hidden; border-radius: 36px;
+    padding: clamp(44px, 6vw, 84px) clamp(26px, 5vw, 68px);
+    background: linear-gradient(140deg, rgba(138,162,255,0.19), rgba(185,139,255,0.13) 56%, rgba(255,255,255,0.028));
+    border: 1px solid var(--edge);
+    display: grid; gap: 18px; justify-items: center; text-align: center;
+  }
+  .closer h3 { font-size: clamp(28px, 4.2vw, 50px); font-weight: 600; letter-spacing: -0.042em;
+    line-height: 1.04; text-wrap: balance; }
+  .closer p { color: var(--ink-2); max-width: 44ch; }
+  .closer::after {
+    content: ""; position: absolute; width: 560px; height: 560px; border-radius: 50%;
+    top: -290px; left: 50%; translate: -50% 0; pointer-events: none; filter: blur(20px);
+    background: radial-gradient(circle, rgba(185,139,255,0.3), transparent 66%);
+  }
+
+  footer { border-top: 1px solid var(--hair); padding: 40px 0 54px; margin-top: 80px; position: relative; z-index: 2; }
+  .foot { display: flex; justify-content: space-between; gap: 22px; align-items: center; flex-wrap: wrap;
+    color: var(--ink-3); font-size: 13px; }
+  .foot-links { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+  .foot-links a:hover { color: var(--ink-2); }
+
+  /* --------------------------------------------------------- transition */
+  .curtain { position: fixed; inset: 0; z-index: 80; display: flex; pointer-events: none; }
+  .curtain i {
+    flex: 1; background: linear-gradient(180deg, #10121d, #07080e);
+    transform: scaleY(0); transform-origin: bottom;
+  }
+  .curtain.in i { transform: scaleY(1); transition: transform 0.52s var(--swift); }
+  .curtain.out i { transform: scaleY(0); transform-origin: top; transition: transform 0.52s var(--swift); }
+  .curtain.in i:nth-child(1), .curtain.out i:nth-child(1) { transition-delay: 0s; }
+  .curtain.in i:nth-child(2), .curtain.out i:nth-child(2) { transition-delay: 0.05s; }
+  .curtain.in i:nth-child(3), .curtain.out i:nth-child(3) { transition-delay: 0.1s; }
+  .curtain.in i:nth-child(4), .curtain.out i:nth-child(4) { transition-delay: 0.15s; }
+  .curtain.in i:nth-child(5), .curtain.out i:nth-child(5) { transition-delay: 0.2s; }
+
+  /* scroll reveal */
+  .js .rv { opacity: 0; transform: translateY(28px); }
+  .js .rv.in { opacity: 1; transform: none; transition: opacity 0.9s var(--ease), transform 0.9s var(--ease); }
+
+  /* cursor */
+  .cur { position: fixed; z-index: 95; top: 0; left: 0; width: 26px; height: 26px; margin: -13px 0 0 -13px;
+    border-radius: 50%; border: 1px solid rgba(160, 150, 255, 0.6); pointer-events: none;
+    transition: width 0.3s var(--ease), height 0.3s var(--ease), margin 0.3s var(--ease), opacity 0.3s;
+    opacity: 0; mix-blend-mode: difference; }
+  .cur.on { opacity: 1; }
+  .cur.big { width: 54px; height: 54px; margin: -27px 0 0 -27px; background: rgba(160, 150, 255, 0.14); }
+
+  /* grain */
+  .grain { position: fixed; inset: 0; z-index: 3; pointer-events: none; opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+  @media (max-width: 1020px) {
+    .split { grid-template-columns: 1fr; gap: 40px; }
+    .split.flip .art { order: 0; }
+    .bento { grid-template-columns: repeat(2, 1fr); }
+    .bento .card, .bento .card.w3 { grid-column: span 1; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    /* narrow screens put copy over the orb, so let type win */
+    body[data-route="home"] #gl { opacity: 0.5; }
+    body:not([data-route="home"]) #gl { opacity: 0.16; }
+    .veil { background:
+      radial-gradient(90% 46% at 62% 26%, transparent 0%, rgba(5,6,11,0.55) 62%, var(--ground) 100%),
+      linear-gradient(180deg, rgba(5,6,11,0.45) 0%, transparent 26%, rgba(5,6,11,0.7) 76%, var(--ground) 100%); }
+    .nav-links { display: none; }
+    .burger { display: flex; }
+    .sheet { display: flex; }
+    .cur { display: none; }
+  }
+  @media (max-width: 560px) {
+    .nav { padding: 8px 8px 8px 14px; }
+    .page { padding-top: 116px; }
+    .sec { padding: 68px 0; }
+    .bento { grid-template-columns: 1fr; gap: 14px; }
+    .stats { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat { padding: 20px 16px; }
+    .card { padding: 22px; }
+    h1.display { letter-spacing: -0.045em; }
+    .foot { justify-content: center; text-align: center; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    .js .rv { opacity: 1; transform: none; }
+    .js .rise > span { transform: none; }
+  }
+</style>
+
+<style>
+  /* The screen renders the app at its real 375px width, then scales down, so
+     every value below is the app's own (gauge 260x178 r104, rows 66, nav 62). */
+  .app-ui {
+    --ui-ink: #f2f4fd; --ui-ink-2: #9ba2bd; --ui-ink-3: #656b85;
+    --ui-fill-1: rgba(255, 255, 255, 0.038);
+    --ui-hair: rgba(255, 255, 255, 0.065);
+    --ui-track: rgba(255, 255, 255, 0.08);
+    width: 375px; height: 791px; flex: none;
+    transform: scale(0.74133);
+    transform-origin: 0 0;
+    position: relative;
+    color: var(--ui-ink);
+    display: flex; flex-direction: column;
+  }
+  .ui-pad { padding: 0 20px 104px; }
+
+  .ui-top { height: 46px; margin-top: 46px; display: flex; align-items: center; justify-content: space-between; }
+  .ui-logo { width: 34px; height: 34px; display: block; }
+  .ui-actions { display: flex; gap: 8px; }
+  .ui-gb {
+    width: 38px; height: 38px; display: grid; place-items: center;
+    border-radius: 999px; background: var(--ui-fill-1); border: 1px solid var(--ui-hair);
+    color: var(--ui-ink-2); font-size: 15px;
+  }
+
+  .ui-month { display: flex; align-items: center; justify-content: center; gap: 18px; height: 38px; }
+  .ui-month b { font-size: 17px; font-weight: 620; letter-spacing: -0.01em; }
+  .ui-month span { color: var(--ui-ink-3); font-size: 19px; }
+
+  .ui-gauge { position: relative; width: 260px; height: 178px; margin: 2px auto 0; }
+  .arc-track { stroke: var(--ui-track); }
+  .arc-fill {
+    stroke: url(#gaugeGrad);
+    filter: drop-shadow(0 0 10px rgba(150, 140, 255, 0.5));
+    stroke-dasharray: 435.6;
+    stroke-dashoffset: 435.6;
+    transition: stroke-dashoffset 1.9s var(--ease);
+  }
+  .device[data-live="true"] .arc-fill { stroke-dashoffset: 118; }
+  .ui-gauge-mid {
+    position: absolute; inset: 0; padding-top: 12px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .ui-gauge-lab { font-size: 13px; font-weight: 500; color: var(--ui-ink-3); }
+  .ui-figure {
+    font-size: 40px; font-weight: 600; line-height: 1; letter-spacing: -0.045em;
+    margin-top: 4px; display: flex; align-items: baseline;
+  }
+  .ui-figure i { font-style: normal; font-size: 22px; }
+  .ui-pace { margin-top: 7px; font-size: 13px; font-weight: 500; color: var(--ui-ink-3); }
+
+  .ui-duo {
+    display: grid; grid-template-columns: 1fr 1px 1fr; align-items: center; gap: 16px;
+    margin-top: 18px; padding: 16px 18px; border-radius: 28px;
+    background: var(--ui-fill-1); border: 1px solid var(--ui-hair);
+  }
+  .ui-rule { width: 1px; height: 30px; background: var(--ui-hair); }
+  .ui-duo-k { font-size: 13px; font-weight: 500; color: var(--ui-ink-3); }
+  .ui-duo-v { font-size: 22px; font-weight: 640; letter-spacing: -0.02em; margin-top: 2px; }
+
+  .ui-safe {
+    margin-top: 10px; padding: 16px 18px; border-radius: 28px;
+    background: linear-gradient(160deg, rgba(138,162,255,0.13), rgba(185,139,255,0.11));
+    border: 1px solid rgba(255,255,255,0.11);
+  }
+  .ui-safe-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .ui-safe-lab { font-size: 13px; font-weight: 500; color: var(--ui-ink-3); }
+  .ui-safe-fig { font-size: 30px; font-weight: 600; letter-spacing: -0.03em; margin: 3px 0 12px; }
+  .ui-safe-bar { display: flex; height: 9px; border-radius: 999px; background: rgba(255,255,255,0.1); overflow: hidden; }
+  .ui-safe-bar i { display: block; height: 100%; }
+  .sb-1 { width: 46%; background: var(--ui-ink-3); }
+  .sb-2 { width: 26%; background: linear-gradient(90deg, var(--a1), var(--a2)); }
+
+  .ui-group {
+    margin-top: 14px; border-radius: 28px;
+    background: var(--ui-fill-1); border: 1px solid var(--ui-hair); overflow: hidden;
+  }
+  .ui-row { display: flex; align-items: center; gap: 12px; min-height: 66px; padding: 12px 16px; }
+  .ui-row + .ui-row { border-top: 1px solid var(--ui-hair); }
+  .ui-glyph {
+    width: 38px; height: 38px; flex: none; display: grid; place-items: center;
+    border-radius: 12px; font-size: 15px; font-weight: 640; letter-spacing: -0.02em;
+  }
+  .ui-rbody { min-width: 0; flex: 1; }
+  .ui-rname { font-size: 16.5px; font-weight: 540; letter-spacing: -0.012em; }
+  .ui-rmeta { margin-top: 2px; font-size: 12.5px; font-weight: 500; color: var(--ui-ink-3); }
+  .ui-rmeta.tick { color: #4be3a8; font-weight: 600; }
+  .ui-ramt { flex: none; font-size: 17px; font-weight: 620; letter-spacing: -0.028em; }
+  .ui-tick {
+    width: 26px; height: 26px; flex: none; display: grid; place-items: center;
+    border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.11);
+    font-size: 12px; color: transparent;
+  }
+  .ui-tick.on { background: #4be3a8; border-color: transparent; color: #06251a; font-weight: 700; }
+
+  .ui-nav {
+    position: absolute; left: 50%; transform: translateX(-50%); bottom: 14px;
+    width: 335px; height: 62px; padding: 6px;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    border-radius: 999px; background: rgba(20, 22, 32, 0.6);
+    backdrop-filter: blur(34px) saturate(190%);
+    -webkit-backdrop-filter: blur(34px) saturate(190%);
+    border: 1px solid rgba(255,255,255,0.11);
+  }
+  .ui-tab {
+    display: grid; place-items: center; border-radius: 999px;
+    font-size: 11px; font-weight: 600; color: var(--ui-ink-3);
+  }
+  .ui-tab[data-on="true"] {
+    color: #0a0c16; background: linear-gradient(120deg, var(--a1), var(--a2));
+  }
+
+
+  /* ------------------------------------------- screen gallery (mini phones) */
+  .gallery { margin-top: 52px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+  .gcol { display: grid; gap: 18px; justify-items: center; }
+  .mini {
+    position: relative; width: 242px; height: 496px; flex: none;
+    border-radius: 40px; padding: 8px;
+    background: linear-gradient(155deg, #23273a, #0c0e16 46%, #1b1f2e);
+    box-shadow: 0 32px 70px -32px rgba(0,0,0,0.95), 0 0 0 1px rgba(255,255,255,0.08);
+  }
+  .mini .screen { border-radius: 33px; }
+  .mini .notch { width: 70px; height: 20px; top: 8px; }
+  .mini .app-ui { transform: scale(0.6027); }
+  .gcap { text-align: center; max-width: 30ch; }
+  .gcap h4 { font-size: 17px; font-weight: 600; letter-spacing: -0.025em; }
+  .gcap p { color: var(--ink-2); font-size: 14px; line-height: 1.55; margin-top: 5px; }
+
+  /* --- spending screen --- */
+  .ui-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 4px; }
+  .ui-tile { padding: 16px; border-radius: 20px; background: var(--ui-fill-1); border: 1px solid var(--ui-hair); }
+  .ui-tile-k { font-size: 13px; color: var(--ui-ink-3); }
+  .ui-tile-v { font-size: 18px; font-weight: 640; letter-spacing: -0.02em; margin-top: 2px; }
+  .ui-digest {
+    margin-top: 12px; padding: 16px 18px; border-radius: 28px;
+    background: linear-gradient(160deg, rgba(138,162,255,0.13), rgba(185,139,255,0.11));
+    border: 1px solid rgba(255,255,255,0.11);
+  }
+  .ui-digest-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .ui-digest-k { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ui-ink-2); }
+  .ui-digest-v { font-size: 17px; font-weight: 680; }
+  .ui-digest-p { margin-top: 6px; font-size: 15px; line-height: 1.45; color: var(--ui-ink-2); }
+  .ui-digest-p b { color: var(--ui-ink); font-weight: 640; }
+  .ui-secline { display: flex; justify-content: space-between; align-items: baseline; margin: 18px 0 10px; }
+  .ui-secline h5 { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ui-ink-3); }
+  .ui-secline span { font-size: 12px; color: var(--ui-ink-3); }
+  .ui-accts { display: flex; gap: 12px; }
+  .ui-acct { flex: 0 0 auto; width: 168px; padding: 15px; border-radius: 20px; background: var(--ui-fill-1); border: 1px solid var(--ui-hair); }
+  .ui-acct-logo { width: 38px; height: 38px; border-radius: 11px; background: #0d5eb4; display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 800; letter-spacing: -0.03em; }
+  .ui-acct-n { margin-top: 12px; font-size: 16.5px; font-weight: 640; letter-spacing: -0.01em; }
+  .ui-acct-m { margin-top: 2px; font-size: 13px; color: var(--ui-ink-3); }
+  .ui-bd { padding: 18px; border-radius: 28px; background: var(--ui-fill-1); border: 1px solid var(--ui-hair); display: grid; gap: 14px; }
+  .ui-bd-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .ui-bd-k { font-size: 16.5px; font-weight: 600; }
+  .ui-bd-v { font-size: 13px; color: var(--ui-ink-2); }
+  .ui-bd-bar { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.07); margin-top: 7px; overflow: hidden; }
+  .ui-bd-bar i { display: block; height: 100%; border-radius: 999px; }
+
+  /* --- assistant screen --- */
+  .ui-aihead { display: flex; align-items: center; justify-content: space-between; padding: 16px 0 12px; border-bottom: 1px solid var(--ui-hair); }
+  .ui-aihead b { font-size: 17px; font-weight: 620; }
+  .ui-voice {
+    display: flex; align-items: center; gap: 10px; margin-top: 12px;
+    padding: 11px 15px; border-radius: 999px; background: rgba(255,255,255,0.07);
+    border: 1px solid var(--ui-hair); font-size: 13px; font-weight: 640; color: var(--ui-ink-2);
+  }
+  .ui-voice i { width: 10px; height: 10px; border-radius: 50%; background: var(--a2); }
+  .ui-voice s { margin-left: auto; text-decoration: none; color: #ff7591; font-weight: 680; }
+  .ui-thread { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .ui-bub { max-width: 84%; padding: 11px 14px; border-radius: 18px; font-size: 16px; line-height: 1.4; }
+  .ui-bub.me { align-self: flex-end; background: linear-gradient(120deg, var(--a1), var(--a2)); color: #0a0c16; font-weight: 500; border-bottom-right-radius: 6px; }
+  .ui-bub.ai { background: rgba(255,255,255,0.055); border: 1px solid var(--ui-hair); border-bottom-left-radius: 6px; }
+  .ui-bub.ai b { font-weight: 640; }
+  .ui-chat { flex: 1; display: flex; flex-direction: column; }
+  .ui-chat .ui-thread { flex: 1; }
+  .ui-bar { margin-top: auto; padding-bottom: 22px; display: flex; gap: 10px; align-items: center; }
+  .ui-bar-in { flex: 1; height: 46px; border-radius: 999px; background: rgba(255,255,255,0.07); display: flex; align-items: center; padding: 0 16px; font-size: 15px; color: var(--ui-ink-3); }
+  .ui-bar-b { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,0.07); color: var(--ui-ink-2); font-size: 16px; }
+  .ui-bar-b.send { background: linear-gradient(120deg, var(--a1), var(--a2)); color: #0a0c16; }
+
+  /* --- profile screen --- */
+  .ui-me { display: grid; justify-items: center; gap: 10px; padding: 10px 0 6px; }
+  .ui-face { width: 78px; height: 78px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(140deg, var(--a1), var(--a2)); color: #0a0c16; font-size: 30px; font-weight: 640; }
+  .ui-me b { font-size: 22px; font-weight: 620; letter-spacing: -0.02em; }
+  .ui-pension { margin-top: 4px; padding: 18px 20px; border-radius: 28px; background: var(--ui-fill-1); border: 1px solid var(--ui-hair); }
+  .ui-pension-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .ui-pension-k { font-size: 13px; color: var(--ui-ink-3); }
+  .ui-pension-tag { font-size: 11px; font-weight: 640; color: var(--a2); background: rgba(185,139,255,0.14); padding: 3px 9px; border-radius: 999px; }
+  .ui-pension-v { font-size: 30px; font-weight: 600; letter-spacing: -0.03em; margin: 4px 0 2px; }
+  .ui-pension-d { font-size: 13px; font-weight: 640; color: #4be3a8; }
+  .ui-pots { margin-top: 10px; border-radius: 28px; background: var(--ui-fill-1); border: 1px solid var(--ui-hair); overflow: hidden; }
+  .ui-pot { display: flex; align-items: center; gap: 12px; padding: 14px 17px; }
+  .ui-pot + .ui-pot { border-top: 1px solid var(--ui-hair); }
+  .ui-pot-n { font-size: 16.5px; font-weight: 640; }
+  .ui-pot-m { margin-top: 2px; font-size: 13px; color: var(--ui-ink-3); }
+  .ui-pot-v { margin-left: auto; font-size: 16.5px; font-weight: 680; }
+  .ui-li { display: flex; align-items: center; gap: 14px; padding: 16px 18px; }
+  .ui-li + .ui-li { border-top: 1px solid var(--ui-hair); }
+  .ui-li-k { font-size: 16.5px; font-weight: 600; }
+  .ui-li-s { margin-top: 2px; font-size: 13px; color: var(--ui-ink-3); line-height: 1.4; }
+  .ui-sw { margin-left: auto; flex: none; width: 50px; height: 30px; border-radius: 999px; background: linear-gradient(120deg, var(--a1), var(--a2)); position: relative; }
+  .ui-sw::after { content: ""; position: absolute; right: 3px; top: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; }
+  .ui-list { margin-top: 10px; border-radius: 28px; background: var(--ui-fill-1); border: 1px solid var(--ui-hair); overflow: hidden; }
+
+  @media (max-width: 1020px) {
+    .gallery { grid-template-columns: 1fr; gap: 46px; }
+  }
+
+
+
+  .try { display: flex; align-items: center; gap: 10px; margin-top: 22px;
+    font-size: 14px; font-weight: 560; color: var(--a2); }
+  .try-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--a2);
+    box-shadow: 0 0 0 0 rgba(185,139,255,0.6); animation: tryPulse 2.2s infinite; }
+  @keyframes tryPulse { 70% { box-shadow: 0 0 0 12px rgba(185,139,255,0); }
+    100% { box-shadow: 0 0 0 0 rgba(185,139,255,0); } }
+  #demoPhone .ui-tick { cursor: pointer; transition: background 0.3s var(--ease),
+    border-color 0.3s, transform 0.34s var(--spring), color 0.3s; }
+  #demoPhone .ui-tick:hover { transform: scale(1.14); border-color: var(--a2); }
+  #demoPhone .ui-row { transition: opacity 0.4s var(--ease); }
+  #demoPhone .ui-row[data-paid="true"] .ui-rname { color: var(--ui-ink-3); }
+  #demoPhone .ui-row[data-paid="true"] .ui-ramt { opacity: 0.34; }
+  #demoPhone .arc-fill { transition: stroke-dashoffset 0.85s var(--ease); }
+  /* A tilted phone renders taller than its 604px layout box, so it needs its
+     own wrapper with clearance - otherwise it collides with the sections
+     above and below it. */
+  .phone-wrap {
+    width: 100%;
+    display: grid; place-items: center;
+    perspective: 1500px; perspective-origin: 50% 50%;
+  }
+
+  /* ------------------------------------------------------ device chrome */
+  .device {
+    position: relative; width: 296px; height: 604px; border-radius: 46px; padding: 9px;
+    background: linear-gradient(155deg, #23273a, #0c0e16 46%, #1b1f2e);
+    box-shadow: 0 44px 90px -34px rgba(0,0,0,0.96), 0 0 0 1px rgba(255,255,255,0.09),
+      inset 0 1px 1px rgba(255,255,255,0.22);
+  }
+  .device::after {
+    content: ""; position: absolute; inset: 0; border-radius: 46px; pointer-events: none;
+    background: linear-gradient(128deg, rgba(255,255,255,0.15), transparent 34%, transparent 66%, rgba(255,255,255,0.07));
+  }
+  .screen {
+    position: relative; height: 100%; border-radius: 38px; overflow: hidden;
+    background: radial-gradient(120% 80% at 20% 0%, #131728 0%, #08090f 58%);
+    display: flex; flex-direction: column;
+  }
+  .notch { position: absolute; top: 9px; left: 50%; translate: -50% 0; width: 86px; height: 24px;
+    border-radius: 999px; background: #05060b; z-index: 5; }
+
+  /* live-match demo bits */
+  .mini-card { display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+    border-radius: var(--r-sm); background: rgba(12,14,22,0.72); border: 1px solid var(--hair); }
+  .mini-glyph { width: 32px; height: 32px; flex: none; display: grid; place-items: center;
+    border-radius: 10px; font-size: 13px; font-weight: 700; }
+  .mc-n { font-size: 14.5px; font-weight: 600; }
+  .mc-m { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+  .mc-a { margin-left: auto; font-size: 14.5px; font-weight: 600; }
+  .linkline { height: 30px; display: grid; place-items: center; }
+  .linkline .ld { stroke-dasharray: 4 5; animation: dash 1.1s linear infinite; }
+  @keyframes dash { to { stroke-dashoffset: -18; } }
+  .tickpill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px;
+    border-radius: 999px; background: rgba(75,227,168,0.14); color: var(--mint);
+    font-size: 12px; font-weight: 640; }
+</style>
+
+<canvas id="gl" aria-hidden="true"></canvas>
+<div class="veil" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+<div class="cur" id="cur" aria-hidden="true"></div>
+
+<nav class="nav" id="nav">
+  <a class="brand" href="#/"><img src="data:image/png;base64,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" alt="" />MoneyFlow</a>
+  <div class="nav-links" id="navlinks">
+    <a href="#/reconciliation">Reconciliation</a>
+    <a href="#/assistant">Assistant</a>
+    <a href="#/wealth">Wealth</a>
+    <a href="#/security">Security</a>
+  </div>
+  <div class="nav-cta"><a class="btn btn-key mag" href="/app">Open the app</a></div>
+  <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">
+    <i></i><i></i>
+  </button>
+</nav>
+<div class="sheet" id="sheet" aria-hidden="true">
+  <a href="#/reconciliation">Reconciliation</a>
+  <a href="#/assistant">Assistant</a>
+  <a href="#/wealth">Wealth</a>
+  <a href="#/security">Security</a>
+</div>
+
+<main id="app"></main>
+
+<footer>
+  <div class="shell foot">
+    <a class="brand" href="#/" style="font-size:15px"><img src="data:image/png;base64,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" alt="" style="width:25px;height:25px" />MoneyFlow</a>
+    <div class="foot-links">
+      <a href="#/reconciliation">Reconciliation</a>
+      <a href="#/assistant">Assistant</a>
+      <a href="#/wealth">Wealth</a>
+      <a href="#/security">Security</a>
+    </div>
+    <span>&copy; 2026 MoneyFlow. All rights reserved.</span>
+  </div>
+</footer>
+
+<div class="curtain" id="curtain" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+
+<!-- ==================================================== page: home ==== -->
+<template data-page="/">
+  <section class="page">
+    <div class="shell page-hero">
+      <h1 class="display">
+        <span class="rise"><span>Every pound</span></span><br />
+        <span class="rise"><span>accounted for.</span></span><br />
+        <span class="rise"><span class="soft">Before you spend it.</span></span>
+      </h1>
+      <p class="lede rv">
+        MoneyFlow reads your real bank feed, ticks off bills the moment the money
+        actually leaves, and tells you what&rsquo;s genuinely safe to spend &mdash;
+        then answers out loud when you ask.
+      </p>
+      <div class="row-cta rv">
+        <a class="btn btn-key btn-lg mag" href="#/reconciliation">See how it works</a>
+        <a class="btn btn-ghost btn-lg mag" href="#/assistant">Meet the assistant</a>
+      </div>
+    </div>
+
+    <div class="shell sec">
+      <div class="stats">
+        <div class="stat rv"><div class="v num" data-count="9">0</div><div class="k">Alert types</div></div>
+        <div class="stat rv"><div class="v v-word">Read-only</div><div class="k">Bank access</div></div>
+        <div class="stat rv"><div class="v num" data-count="0" data-prefix="&pound;">0</div><div class="k">Cost, forever</div></div>
+        <div class="stat rv"><div class="v num" data-count="1">0</div><div class="k">Tap to connect</div></div>
+      </div>
+
+      <div class="bento">
+        <div class="card w3 rv">
+          <span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span>
+          <h4>It waits for the money to move</h4>
+          <p>A bill isn&rsquo;t paid on its due date &mdash; it&rsquo;s paid when the debit clears.
+            MoneyFlow matches the payment on name and amount, then ticks it with the date it really went out.</p>
+        </div>
+        <div class="card w3 rv">
+          <span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9v6M10 5v14M14 8v8M18 10v4"/></svg></span>
+          <h4>Ask it anything, out loud</h4>
+          <p>A natural British voice answering from your actual transactions &mdash; and it reads
+            statements you photograph, pulling the figures out for you.</p>
+        </div>
+        <div class="card rv">
+          <span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>
+          <h4>Budgets that speak up</h4>
+          <p>Caps per category, and a nudge the moment you cross one.</p>
+        </div>
+        <div class="card rv">
+          <span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg></span>
+          <h4>Pension, tracked daily</h4>
+          <p>Anchored to your real value, moved by the index your plan follows.</p>
+        </div>
+        <div class="card rv">
+          <span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+          <h4>Nine reasons to interrupt</h4>
+          <p>Everything else stays silent. It checks once a day.</p>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="shell sec" style="padding-top:0">
+      <div class="split">
+        <div>
+          <h2 class="h2 rv">Not a screenshot.<br /><span class="grad">The actual app.</span></h2>
+          <p class="lede rv" style="margin-top:20px">
+            This is the real interface, running here in the page. Tick a bill and watch the
+            gauge retract and the balance count down &mdash; exactly what happens on your phone
+            the moment a payment clears at the bank.
+          </p>
+          <p class="try rv"><span class="try-dot"></span>Tap a circle on the right to try it</p>
+          <div class="row-cta rv">
+            <a class="btn btn-ghost mag" href="#/reconciliation">How the matching works</a>
+          </div>
+        </div>
+        <figure class="art rv" style="display:grid;place-items:center;background:none;border:none;box-shadow:none;padding:0">
+          <div class="device" id="demoPhone" data-live="true">
+          <div class="notch"></div>
+          <div class="screen">
+            <div class="app-ui">
+              <div class="ui-pad">
+                <div class="ui-top">
+                  <img class="ui-logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAMAAAD04JH5AAAB/lBMVEWrlduRcNw2IJQhC26Pb+RcNtQ3IppyS+M3IprHsOyVb+/Ks/Ksjujar+1nJ92RbepkUtd5a7QlIT5dNd84I51rT896UOzdzPJILbJaNdapoLjcze9IMK2ulOjs2vqqbbJOM7ZrFHFNL6zSx+AeDnVpU7gcDnNZWWC9ofAAVQBqagBqAAA/P/8AAACqh/mSaPhySO63l/jQt/lXNstFK7PFqPmcdPiFWfguG46he/k7JKTaxfk2IZpnRNl6U/FlO+jl1PpNMrphPNj///+9oPgkFHoAAP9/f//hzfq6f/9cM+U/P79/P78FAntOLsWqqv+qVf+QaPLOtvRrR9hTKdB7VtI3N3Dax/SphvW3mPObdfO/v/9WN8r/f/8rGYp/P/+ohu9ySOv/AP9VVarFqvSOZvBZM9NVVf+DWfBbRLZ5Uu1VAKpwRey3mPGDWfI2HaebdvF/f39YOcdzV822ptCMaNezmOdDKrDAnv+rivKyk++niOcjEntILbKYdufi0vQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANVTHvAAAAgHRSTlMhHx4K71JkYqBik6VUHRBeEAcE4tHsnKBgrQlm5OTsBZMDFyHs+2IEmAMCAgQA+vr7+vr7+vr6+vr6+vr6+vv6+/r6Afr4AQL7BPkEBAX5AwPR0pEMDATU0dLTBNMCSgSS1AED1K1JA6n70AOtqdH6rAKR+xITMdL+tI40SYtLzj3bJlIAAA5cSURBVHjaxZuJXxPJEscnELkPuRXxPtZ39EzuZJJMIAkkAQwgb0EE0RXXddFV4KHi8Vb/9Vd9Th8zAd0F6+NGNxy/71R3V1dVdyz0Y6w6CS83byJk/Rj5KrxcmpiZmbj5IwAOQH7y0tcZsCsTZw+wDfJvL12Zofb1rAGqywj1TxRmZn4MwHKVyhcaDQZw5QwBav3w0t8L8mCNM/dA9Sq8dPcWGgVqjbMFqM4jNNS9WvDtTAEOQP5q92oCm09AEB6cAUAdxt7q/jXBTUJonAHANqy793fTiUQ6iODUAZa34ek/zaaxmQCFwikDLO8g9Pl1PM3NJGicJgD4HvV9jH+Iz87qCGcDgIb7NuLMwnxwegC16sHghg3GCGZ1BMZwagDbqMemFtcQVILTAthBQ657EoJT80B1aNPWAAIJTg2gjiJRnWDWIEicHgCqIfRlXxuFgJm4enrLsA7JR6THbT0PThMANkAIRRG6GA0CjrB6untBvQ5pwODHFgSrp70bVofgZSN8Kq6efj5QtyItRuEMAOZFTDQWQ/osAN6hQTs0IKQTv1qhpdvfFZAGXRGU/aAYDwOoLm9R9erW1t9BsYIimYwPIBEwJ6gA/MnfvqV/bx38Rf0XKHI/05JABsDyk93dEw8eFB48mJi4dBO/d/DX/L+G9TGBG0LgA5CqsfcBFAwNXrh9xQzVvxKMh+47jhNA8EEQCABcNfYmGn66SipHaCB8P8JOHT13GEBGAYhGxWq4zAD6kdWbKMjJGiteZy4dfCfBzgr63aGmERzmcrf5YmAA88haLaj5Ih+HK19voq3v2Y5XUI/jBBDEo7liKnfIAB4SgKuoL5Ew6gZeQc9c+o7AUHuCerLZrAJAEOLRYj6fSj3uo4NAAJZRXzqRNggaMkH9GwGeoPFs1iAAgEwR5FN/IvQLIcAA28gyMiW/eiQ28RMpM75FvzMbAODaGfz4qdSNZ/PoIwOoVq3L6XACyjDx9psmgtBXCTJ2JoX1y3+iZ9X60AYFWEafjOJNraExxJX+byAA/VgsFkRQJvpTbddrEKXebWCAas2Sd6cQgsJM4+QEVD+m+gDr2+Ui9n/5AnpGpn7k40fLWkav0+oWbdTQlKPQfUICph8rqS5wMi55/lTyT7TOgx9u1X5uWbvJ1n2i5cj1jUFwd6n+tesveOtmu163YAmqWUI4QaP7BJvTE3SO66s+yIyR8S9P3ag1pe+3yGrg0scR9B67MyyCvicIYj4A1y/fIBPAB4jY8XQ8erhbLu8eRuOYocUgNHonWweEAXSuUql4MXMQPKZ/ARhR3XekBSFxLLW3t5fP5+FlN5oICMrccCXTMiAsEn0foCQGgeinykmsv40nIA+t1i/x3b2UsPxe+XIiwIg6r6W2Wugnk0kA8DQAxyPyQj9iibG0PnqSPkHYnS0kWlkoAdUPIvCw80H/Gvo3BKAvG3b8tYWoD6yxlG75fLTQEqEvmGARXUgyAHkYuD584Rp8zzz6gvfEDw8j1R0CMIU1l5aWkkkf4TgndKP+Wrg+JfCdkI2V6dsX4aGhb0Czog99wIIBjog4taUl4YTLM60JjJAk6bNRYATZGHvv4vV6bZnoE4BPDOBRUjUGsTeWCHICD5e9CNV1fRzlJALhA/bOIwhAUCa4DCAdBsAR9srpRrA6sbuWEhCofsp3pu8Dr1LB//voBmo+Q+82eWb6IRyAWjmVjAsfpBVxYpdlgkXUQcfOJPCwVbyRG+gVbMCbIjOMHwNQzIFFC+ajM5vF6eS8ro8R5FGoMADPG0DPoEzZdEWBoAFUiJ+E5eeI3bpdCNSfBYOE9j0jaEMdeZppqQiVpFciBDGsf4DO35cqlPgvHGC6Ihv5ueLcHDw/Jtg1ALA2N1hJsBzbib5EIJ7DK5XoPDyPFqvVoedKds4BRgBgGhsnmE7msDwByN2a0vXjsvXBWRToF4tFhYAheNkSsVgnurdTXX+eoXmZAYAtNo1BMUYsmZPtVnE2wR8d5wxx1T7B1tqRyxkEOPSUnCwl6ERPdurN52qB4gNQbWGqPvihGE9w/QB7+P4O+TadIJV0HLoRYX1eJgUDqFbM6Va8nJgN0oelhJfTbSLPnCD0D0kWhAEkfZqaUoIwAPhNxKP0tzK7nNDGPm77Frdv0+/mAPDqORkK4DhUf9xPjnWAp4p+Cv8iyRhBNBGqTxAOywJ2L18+hAKAp8KDELJZmea7IBQgWlb08xJBOlSeWoZkdeVd7zBj2y7IyPqdWn3ghgBEK75+Pt/W1pX3vTCWbqkvmeuSjoTQvwdpeilrusAEyMbyko3CFwVBkRO0kOWWYQSw6gdBo+6XaaoLJIBSlC6YVFEGaG82gcBHuJ029cmE4i8SAzWs/wKdV9NzE4CXcNlkEUrXPJ7FeDqDB5oDJMgSAvhzWwNww43p13HW8IcGwBeCARDLK5khHgIoIUiYpwi5XZnAbWkgMghdWqgTBuQaSQboYQBvOEBKBTjiG22eIRACTT3DntbQd90v5Pe/4IWaPgauDsAqBx1AIyhLALT7luHmShhC3wdQ10HGAHCyenLOAPBmn8qLcSgr8rrJ+hGkAMhVIjbb/Q8sUA4A7/KkHIIJ/Ad/Hw2LdKctnxIEU2Kht0DIRHjK6gNooSBTEgA4YHMHlH07khK+Nro26FyERk9rADsq9CUAzQUxCcBhDijLlpySU962o5Q/ExyZQIyqALCj79AQCgHgC9HzBABpJ2eJupKVTg2HEkRtWV0lyCj6MkBJAvB0gGTKSIsfSQAQD9pGU/5EOLQVeZnA3l+DUwqofbcPNADJBZ4KkHEdU18FwARH0mLwbEVeELj2/joZ/2V2ay0QwFMB4Me8pQCAdaX0eoXaulL+MJSB2kRw3XHSeQBl6z1pAQDAdExbB15FA3CdoMpEA0BN1N5FAehEOHQNJ7jONbRdI1XjXcgie6EF8AL95uecFCCWJB6IcQAoVkpLQQDtWvnbrCGZIFd2XE1+9w5aqWH3X33NTsSq99BvOOeWADxas8kAmbHkSQBQbYAT0C26CJlfRmxwzm7xDpl+Q8h6yLpt3bAf/TYtCPAY4FpZB1BGAJfVGMh7FHAG8EoOyzhJKHt0Wmc9SAofo3Zy9vH5YXqWF/HzMkCM6usAdkkUsxXPN3UViMXQkfcJirQgmCL/GG1j+pbou5oAtFegAkRtTxTTksXGhoP7QAqBSFqLXVy/zz8Y1QFEr6YiA2xkWEtHSDOA9pBOWNuoikD26Q6k6FMfGB4oBwI4SSEtW7AH8Ci0d+UVhDx+fFgjqAb64mQSu0AATCv6hMAHKCV1bWJP11EtkOAVlKNdHAC/gjx+E5+TDUpnowoAJiCdStE98SdhrBILsqfDoQdiA5CmdHTBSBRHR7s6sHyTRH9+UUAQ3JUBlNYB9E58AMNKLT2AnYC/st7W1kbmCZHH4a/HVu/MMIAFQqD1LiqxizwUG/LUXg636oo3FweoN9Zf1dg59dC+335hAK8JQLIi9CUA778M4GWQOgZo4QE2FM2adE4+9NyV+i8SwEIyKfRTfs4BAIsaQEmx4wGUiwfv7mccqfvAAeq4fz29wFP+sgJwT6kNZXG8aXwTQP0ZNIDUE2IJIOmXHD6BCqBqE3vzDQCw/tTCUwKAIaAVnwZQ4UPw1JfPSvrOm59ODvBEHJQrLvhAPLCQUno3ZQNAf3SWt92//i0e+N3RXWATgPPoXCqndhGZEwTAyyB1DHCyU/rlrboB4PoAa+gx7Z8ZAEkBkC0Z4gRg+AQeqNProz6AStBDAHLBBD5AgDoG+Mfxz9+PfuruhvP3YADb3WcAOoEC8CZIHX7RCQC2kPUrOT6ZBwC9AwOdKg6Qo7NAW4sCwHGcoBx/8wQf1aEXL1atbQKgEkBcogAkX8mboxAIIBV5m8df3P7EDnrh+v64Xv7juCQBFHUflMkRGi/NzAoPAFovw3kUeU1zTwnAr77pcbkAMHxgAmg9BqhxW0VCyH0+b4jUz1IB/GT9OcSBxzmZQGpmywCKOuvCbLQAgAuzg7affALAH1mpAcEnpAqgEcA1hkVeG8rNBWEtAFYQyX0EgQSQ5T1yQiAD6IOgA7iqPACEBiI4/NoXGw6eBu8RbgYKF5TEvxQAbRAEwKbLxl3rgG+EDT8cvm7a0pZHPSA6EFkJRQVQCSQAUx7/4o3g3bAGw++33KkP3jMAIix3JTHA/3I6Qd4AsA11fBYTOAdq9X/1SNfz6N0TBoAJSkpfVPOAMhGXOMB+kDoGCBn/HiX1Id/KAWIl9fIKAPyseEAZhQsMoCdIHd+zC57/nX60Ez8jAGLq/RnndwNAIqC3mZD1JVAfTmaD5oDY9hQCATA9rRAEAfgEUM6xWzSaNosuD4OWYRW9cczs7zMDkMpQShAIwAiO0HVxj8iOG9d94bZp8EdH3hjbrs0AaAV0LAB3QQedAgDQJ8v7d8pCAF6qt9M4wEXQXzAIAgEowmg78y/s5R/1TyPRDtO/QgGy2jTAAFh/YXpaRigxgLm5OXMUOkhBjQHqVctQx5v86j8D5oAM4CgACwsmQXYcA5CLADpAF9eHIViBxCY9q6ofA6ARRASASpD9AwDuzBkEoN985V9mg9SyL23eqewNura2wrc9ZSISgBGTADxwA7XPGQTFrvZaTQKA7AqSS/U+ZQKu7k0GBiJWPsnTIFIHgKUR2QmUAO4NoOacQdCBJOdaNL+blD6SiW+MNXoPqsGheNy4p/kFEq9zCwsjI74HKME4fHs7HwNB0MUikAyA75dNdveurnKAVbipVAv5EFnn+Ev5rur+F5BponMjS0sUgTM87UQ7NdxjvnOLI9wa7XrcjsT8kwDg8wz4dfItsf7+lh9jQ+fXzq+tRdbW1s5HImu0PIKo9vPAz8wGiPldbtRsh2NYeJE6OgLg/3tAylCwQa47AAAAAElFTkSuQmCC" alt="" />
+                  <div class="ui-actions"><span class="ui-gb">&#10022;</span><span class="ui-gb">&#9788;</span></div>
+                </div>
+
+                <div class="ui-month"><span>&#8249;</span><b>This month</b><span>&#8250;</span></div>
+
+                <div class="ui-gauge">
+                  <svg width="260" height="178" viewBox="0 0 260 178" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="gaugeGrad" x1="0" y1="1" x2="1" y2="0">
+                        <stop offset="0%" stop-color="#8aa2ff" /><stop offset="100%" stop-color="#b98bff" />
+                      </linearGradient>
+                    </defs>
+                    <path class="arc-track" d="M 39.93 170 A 104 104 0 1 1 220.07 170" fill="none"
+                      stroke-width="11" stroke-linecap="round" />
+                    <path class="arc-fill" d="M 39.93 170 A 104 104 0 1 1 220.07 170" fill="none"
+                      stroke-width="11" stroke-linecap="round" />
+                  </svg>
+                  <div class="ui-gauge-mid">
+                    <div class="ui-gauge-lab">Left to pay</div>
+                    <div class="ui-figure num">&pound;1,284<i>.19</i></div>
+                    <div class="ui-pace num">&pound;107 a day for 12 days</div>
+                  </div>
+                </div>
+
+                <div class="ui-duo">
+                  <div>
+                    <div class="ui-duo-k">Cint salary</div>
+                    <div class="ui-duo-v num">&pound;5,230</div>
+                  </div>
+                  <span class="ui-rule"></span>
+                  <div>
+                    <div class="ui-duo-k">Left over</div>
+                    <div class="ui-duo-v num up">&pound;1,706</div>
+                  </div>
+                </div>
+
+                <div class="ui-safe">
+                  <div class="ui-safe-top">
+                    <span class="ui-safe-lab">Safe to spend</span>
+                    <span class="ui-safe-lab num">&pound;61/day</span>
+                  </div>
+                  <div class="ui-safe-fig num">&pound;742.60</div>
+                  <div class="ui-safe-bar"><i class="sb-1"></i><i class="sb-2"></i></div>
+                </div>
+
+                <div class="ui-group">
+                  <div class="ui-row" data-bill>
+                    <span class="ui-glyph" style="background:rgba(75,227,168,0.16);color:#4be3a8">E</span>
+                    <div class="ui-rbody">
+                      <div class="ui-rname">Everyday Loans</div>
+                      <div class="ui-rmeta tick">&#10003; Auto-ticked &middot; 5 Aug</div>
+                    </div>
+                    <span class="ui-ramt num">&pound;360.00</span>
+                    <button class="ui-tick on" data-tick aria-label="Toggle paid">&#10003;</button>
+                  </div>
+                  <div class="ui-row" data-bill>
+                    <span class="ui-glyph" style="background:rgba(138,162,255,0.16);color:#8aa2ff">D</span>
+                    <div class="ui-rbody">
+                      <div class="ui-rname">David Lloyd</div>
+                      <div class="ui-rmeta">Due 1st</div>
+                    </div>
+                    <span class="ui-ramt num">&pound;142.00</span>
+                    <button class="ui-tick" data-tick aria-label="Toggle paid"></button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ui-nav">
+                <span class="ui-tab" data-on="true">Home</span>
+                <span class="ui-tab">Calendar</span>
+                <span class="ui-tab">Spending</span>
+                <span class="ui-tab">Profile</span>
+              </div>
+            </div>
+          </div>
+        </figure>
+      </div>
+    </div>
+
+    <div class="shell statement rv">
+      <p>Most money apps tell you what you <b>spent</b>. This one tells you what you can
+        <b>safely spend next</b>.</p>
+    </div>
+
+    <div class="shell rv" style="margin-top:20px">
+      <div class="closer">
+        <h3>Stop guessing what&rsquo;s left in the account.</h3>
+        <p>Add it to your home screen and it behaves like any other app on the phone &mdash;
+          notifications, offline, the lot.</p>
+        <a class="btn btn-key btn-lg mag" href="/app">Open MoneyFlow</a>
+      </div>
+    </div>
+
+    <div class="shell nextup rv">
+      <a href="#/reconciliation">
+        <span class="nx-k">Next</span>
+        <span class="nx-t">Reconciliation &rarr;</span>
+      </a>
+    </div>
+  </section>
+</template>
+
+<!-- ============================================ page: reconciliation ==== -->
+<template data-page="/reconciliation">
+  <section class="page">
+    <div class="shell page-hero">
+      <h1 class="display">
+        <span class="rise"><span>A bill isn&rsquo;t paid</span></span><br />
+        <span class="rise"><span>when it&rsquo;s due.</span></span>
+      </h1>
+      <p class="lede rv">
+        It&rsquo;s paid when the money leaves. Most apps tick a bill off on its due date
+        and hope. MoneyFlow waits for the actual debit to appear in your feed.
+      </p>
+    </div>
+
+    <div class="shell sec">
+      <div class="split">
+        <div>
+          <h2 class="h2 rv">Matched on the facts,<br /><span class="grad">never guessed.</span></h2>
+          <div class="feat-list">
+            <div class="feat rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span>
+              <div><h4>Name and amount must agree</h4>
+                <p>Both have to line up before anything is ticked. Salary landing in your account never triggers it.</p></div></div>
+            <div class="feat rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
+              <div><h4>Messy feeds survive it</h4>
+                <p>&ldquo;Vodaphone&rdquo; in your list still matches VODAFONE on the statement. Real bank descriptions are ugly.</p></div></div>
+            <div class="feat rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></span>
+              <div><h4>Your correction sticks</h4>
+                <p>Un-tick something and it stays un-ticked. The app never argues with you twice.</p></div></div>
+          </div>
+        </div>
+
+        <figure class="art rv">
+          <figcaption class="art-lab"><span>Live match</span><span>11 Aug</span></figcaption>
+          <div class="mini-card">
+            <span class="mini-glyph" style="background:rgba(138,162,255,0.16);color:#8aa2ff">E</span>
+            <div><div class="mc-n">Everyday Loans</div><div class="mc-m">Planned bill &middot; due 1st</div></div>
+            <span class="mc-a num">&pound;360.00</span>
+          </div>
+          <div class="linkline" aria-hidden="true"><svg width="100%" height="30" viewBox="0 0 300 30" preserveAspectRatio="none"><path class="ld" d="M150 0 L150 30" stroke="#8aa2ff" stroke-width="2" fill="none" /></svg></div>
+          <div class="mini-card">
+            <span class="mini-glyph" style="background:rgba(255,255,255,0.07);color:#9ba2bd">H</span>
+            <div><div class="mc-n">EVERYDAY LNS</div><div class="mc-m">Halifax &middot; debit &middot; 5 Aug</div></div>
+            <span class="mc-a num">&minus;&pound;360.00</span>
+          </div>
+          <div style="display:flex;justify-content:center;margin-top:14px">
+            <span class="tickpill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Marked paid automatically</span>
+          </div>
+        </figure>
+      </div>
+    </div>
+
+    <div class="shell sec" style="padding-top:0">
+      <div class="split flip">
+        <figure class="art rv" style="display:grid;place-items:center;background:none;border:none;box-shadow:none;padding:0">
+          <div class="device" data-live="true">
+          <div class="notch"></div>
+          <div class="screen">
+            <div class="app-ui">
+              <div class="ui-pad">
+                <div class="ui-top">
+                  <img class="ui-logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAMAAAD04JH5AAAB/lBMVEWrlduRcNw2IJQhC26Pb+RcNtQ3IppyS+M3IprHsOyVb+/Ks/Ksjujar+1nJ92RbepkUtd5a7QlIT5dNd84I51rT896UOzdzPJILbJaNdapoLjcze9IMK2ulOjs2vqqbbJOM7ZrFHFNL6zSx+AeDnVpU7gcDnNZWWC9ofAAVQBqagBqAAA/P/8AAACqh/mSaPhySO63l/jQt/lXNstFK7PFqPmcdPiFWfguG46he/k7JKTaxfk2IZpnRNl6U/FlO+jl1PpNMrphPNj///+9oPgkFHoAAP9/f//hzfq6f/9cM+U/P79/P78FAntOLsWqqv+qVf+QaPLOtvRrR9hTKdB7VtI3N3Dax/SphvW3mPObdfO/v/9WN8r/f/8rGYp/P/+ohu9ySOv/AP9VVarFqvSOZvBZM9NVVf+DWfBbRLZ5Uu1VAKpwRey3mPGDWfI2HaebdvF/f39YOcdzV822ptCMaNezmOdDKrDAnv+rivKyk++niOcjEntILbKYdufi0vQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANVTHvAAAAgHRSTlMhHx4K71JkYqBik6VUHRBeEAcE4tHsnKBgrQlm5OTsBZMDFyHs+2IEmAMCAgQA+vr7+vr7+vr6+vr6+vr6+vv6+/r6Afr4AQL7BPkEBAX5AwPR0pEMDATU0dLTBNMCSgSS1AED1K1JA6n70AOtqdH6rAKR+xITMdL+tI40SYtLzj3bJlIAAA5cSURBVHjaxZuJXxPJEscnELkPuRXxPtZ39EzuZJJMIAkkAQwgb0EE0RXXddFV4KHi8Vb/9Vd9Th8zAd0F6+NGNxy/71R3V1dVdyz0Y6w6CS83byJk/Rj5KrxcmpiZmbj5IwAOQH7y0tcZsCsTZw+wDfJvL12Zofb1rAGqywj1TxRmZn4MwHKVyhcaDQZw5QwBav3w0t8L8mCNM/dA9Sq8dPcWGgVqjbMFqM4jNNS9WvDtTAEOQP5q92oCm09AEB6cAUAdxt7q/jXBTUJonAHANqy793fTiUQ6iODUAZa34ek/zaaxmQCFwikDLO8g9Pl1PM3NJGicJgD4HvV9jH+Iz87qCGcDgIb7NuLMwnxwegC16sHghg3GCGZ1BMZwagDbqMemFtcQVILTAthBQ657EoJT80B1aNPWAAIJTg2gjiJRnWDWIEicHgCqIfRlXxuFgJm4enrLsA7JR6THbT0PThMANkAIRRG6GA0CjrB6untBvQ5pwODHFgSrp70bVofgZSN8Kq6efj5QtyItRuEMAOZFTDQWQ/osAN6hQTs0IKQTv1qhpdvfFZAGXRGU/aAYDwOoLm9R9erW1t9BsYIimYwPIBEwJ6gA/MnfvqV/bx38Rf0XKHI/05JABsDyk93dEw8eFB48mJi4dBO/d/DX/L+G9TGBG0LgA5CqsfcBFAwNXrh9xQzVvxKMh+47jhNA8EEQCABcNfYmGn66SipHaCB8P8JOHT13GEBGAYhGxWq4zAD6kdWbKMjJGiteZy4dfCfBzgr63aGmERzmcrf5YmAA88haLaj5Ih+HK19voq3v2Y5XUI/jBBDEo7liKnfIAB4SgKuoL5Ew6gZeQc9c+o7AUHuCerLZrAJAEOLRYj6fSj3uo4NAAJZRXzqRNggaMkH9GwGeoPFs1iAAgEwR5FN/IvQLIcAA28gyMiW/eiQ28RMpM75FvzMbAODaGfz4qdSNZ/PoIwOoVq3L6XACyjDx9psmgtBXCTJ2JoX1y3+iZ9X60AYFWEafjOJNraExxJX+byAA/VgsFkRQJvpTbddrEKXebWCAas2Sd6cQgsJM4+QEVD+m+gDr2+Ui9n/5AnpGpn7k40fLWkav0+oWbdTQlKPQfUICph8rqS5wMi55/lTyT7TOgx9u1X5uWbvJ1n2i5cj1jUFwd6n+tesveOtmu163YAmqWUI4QaP7BJvTE3SO66s+yIyR8S9P3ag1pe+3yGrg0scR9B67MyyCvicIYj4A1y/fIBPAB4jY8XQ8erhbLu8eRuOYocUgNHonWweEAXSuUql4MXMQPKZ/ARhR3XekBSFxLLW3t5fP5+FlN5oICMrccCXTMiAsEn0foCQGgeinykmsv40nIA+t1i/x3b2UsPxe+XIiwIg6r6W2Wugnk0kA8DQAxyPyQj9iibG0PnqSPkHYnS0kWlkoAdUPIvCw80H/Gvo3BKAvG3b8tYWoD6yxlG75fLTQEqEvmGARXUgyAHkYuD584Rp8zzz6gvfEDw8j1R0CMIU1l5aWkkkf4TgndKP+Wrg+JfCdkI2V6dsX4aGhb0Czog99wIIBjog4taUl4YTLM60JjJAk6bNRYATZGHvv4vV6bZnoE4BPDOBRUjUGsTeWCHICD5e9CNV1fRzlJALhA/bOIwhAUCa4DCAdBsAR9srpRrA6sbuWEhCofsp3pu8Dr1LB//voBmo+Q+82eWb6IRyAWjmVjAsfpBVxYpdlgkXUQcfOJPCwVbyRG+gVbMCbIjOMHwNQzIFFC+ajM5vF6eS8ro8R5FGoMADPG0DPoEzZdEWBoAFUiJ+E5eeI3bpdCNSfBYOE9j0jaEMdeZppqQiVpFciBDGsf4DO35cqlPgvHGC6Ihv5ueLcHDw/Jtg1ALA2N1hJsBzbib5EIJ7DK5XoPDyPFqvVoedKds4BRgBgGhsnmE7msDwByN2a0vXjsvXBWRToF4tFhYAheNkSsVgnurdTXX+eoXmZAYAtNo1BMUYsmZPtVnE2wR8d5wxx1T7B1tqRyxkEOPSUnCwl6ERPdurN52qB4gNQbWGqPvihGE9w/QB7+P4O+TadIJV0HLoRYX1eJgUDqFbM6Va8nJgN0oelhJfTbSLPnCD0D0kWhAEkfZqaUoIwAPhNxKP0tzK7nNDGPm77Frdv0+/mAPDqORkK4DhUf9xPjnWAp4p+Cv8iyRhBNBGqTxAOywJ2L18+hAKAp8KDELJZmea7IBQgWlb08xJBOlSeWoZkdeVd7zBj2y7IyPqdWn3ghgBEK75+Pt/W1pX3vTCWbqkvmeuSjoTQvwdpeilrusAEyMbyko3CFwVBkRO0kOWWYQSw6gdBo+6XaaoLJIBSlC6YVFEGaG82gcBHuJ029cmE4i8SAzWs/wKdV9NzE4CXcNlkEUrXPJ7FeDqDB5oDJMgSAvhzWwNww43p13HW8IcGwBeCARDLK5khHgIoIUiYpwi5XZnAbWkgMghdWqgTBuQaSQboYQBvOEBKBTjiG22eIRACTT3DntbQd90v5Pe/4IWaPgauDsAqBx1AIyhLALT7luHmShhC3wdQ10HGAHCyenLOAPBmn8qLcSgr8rrJ+hGkAMhVIjbb/Q8sUA4A7/KkHIIJ/Ad/Hw2LdKctnxIEU2Kht0DIRHjK6gNooSBTEgA4YHMHlH07khK+Nro26FyERk9rADsq9CUAzQUxCcBhDijLlpySU962o5Q/ExyZQIyqALCj79AQCgHgC9HzBABpJ2eJupKVTg2HEkRtWV0lyCj6MkBJAvB0gGTKSIsfSQAQD9pGU/5EOLQVeZnA3l+DUwqofbcPNADJBZ4KkHEdU18FwARH0mLwbEVeELj2/joZ/2V2ay0QwFMB4Me8pQCAdaX0eoXaulL+MJSB2kRw3XHSeQBl6z1pAQDAdExbB15FA3CdoMpEA0BN1N5FAehEOHQNJ7jONbRdI1XjXcgie6EF8AL95uecFCCWJB6IcQAoVkpLQQDtWvnbrCGZIFd2XE1+9w5aqWH3X33NTsSq99BvOOeWADxas8kAmbHkSQBQbYAT0C26CJlfRmxwzm7xDpl+Q8h6yLpt3bAf/TYtCPAY4FpZB1BGAJfVGMh7FHAG8EoOyzhJKHt0Wmc9SAofo3Zy9vH5YXqWF/HzMkCM6usAdkkUsxXPN3UViMXQkfcJirQgmCL/GG1j+pbou5oAtFegAkRtTxTTksXGhoP7QAqBSFqLXVy/zz8Y1QFEr6YiA2xkWEtHSDOA9pBOWNuoikD26Q6k6FMfGB4oBwI4SSEtW7AH8Ci0d+UVhDx+fFgjqAb64mQSu0AATCv6hMAHKCV1bWJP11EtkOAVlKNdHAC/gjx+E5+TDUpnowoAJiCdStE98SdhrBILsqfDoQdiA5CmdHTBSBRHR7s6sHyTRH9+UUAQ3JUBlNYB9E58AMNKLT2AnYC/st7W1kbmCZHH4a/HVu/MMIAFQqD1LiqxizwUG/LUXg636oo3FweoN9Zf1dg59dC+335hAK8JQLIi9CUA778M4GWQOgZo4QE2FM2adE4+9NyV+i8SwEIyKfRTfs4BAIsaQEmx4wGUiwfv7mccqfvAAeq4fz29wFP+sgJwT6kNZXG8aXwTQP0ZNIDUE2IJIOmXHD6BCqBqE3vzDQCw/tTCUwKAIaAVnwZQ4UPw1JfPSvrOm59ODvBEHJQrLvhAPLCQUno3ZQNAf3SWt92//i0e+N3RXWATgPPoXCqndhGZEwTAyyB1DHCyU/rlrboB4PoAa+gx7Z8ZAEkBkC0Z4gRg+AQeqNProz6AStBDAHLBBD5AgDoG+Mfxz9+PfuruhvP3YADb3WcAOoEC8CZIHX7RCQC2kPUrOT6ZBwC9AwOdKg6Qo7NAW4sCwHGcoBx/8wQf1aEXL1atbQKgEkBcogAkX8mboxAIIBV5m8df3P7EDnrh+v64Xv7juCQBFHUflMkRGi/NzAoPAFovw3kUeU1zTwnAr77pcbkAMHxgAmg9BqhxW0VCyH0+b4jUz1IB/GT9OcSBxzmZQGpmywCKOuvCbLQAgAuzg7affALAH1mpAcEnpAqgEcA1hkVeG8rNBWEtAFYQyX0EgQSQ5T1yQiAD6IOgA7iqPACEBiI4/NoXGw6eBu8RbgYKF5TEvxQAbRAEwKbLxl3rgG+EDT8cvm7a0pZHPSA6EFkJRQVQCSQAUx7/4o3g3bAGw++33KkP3jMAIix3JTHA/3I6Qd4AsA11fBYTOAdq9X/1SNfz6N0TBoAJSkpfVPOAMhGXOMB+kDoGCBn/HiX1Id/KAWIl9fIKAPyseEAZhQsMoCdIHd+zC57/nX60Ez8jAGLq/RnndwNAIqC3mZD1JVAfTmaD5oDY9hQCATA9rRAEAfgEUM6xWzSaNosuD4OWYRW9cczs7zMDkMpQShAIwAiO0HVxj8iOG9d94bZp8EdH3hjbrs0AaAV0LAB3QQedAgDQJ8v7d8pCAF6qt9M4wEXQXzAIAgEowmg78y/s5R/1TyPRDtO/QgGy2jTAAFh/YXpaRigxgLm5OXMUOkhBjQHqVctQx5v86j8D5oAM4CgACwsmQXYcA5CLADpAF9eHIViBxCY9q6ofA6ARRASASpD9AwDuzBkEoN985V9mg9SyL23eqewNura2wrc9ZSISgBGTADxwA7XPGQTFrvZaTQKA7AqSS/U+ZQKu7k0GBiJWPsnTIFIHgKUR2QmUAO4NoOacQdCBJOdaNL+blD6SiW+MNXoPqsGheNy4p/kFEq9zCwsjI74HKME4fHs7HwNB0MUikAyA75dNdveurnKAVbipVAv5EFnn+Ev5rur+F5BponMjS0sUgTM87UQ7NdxjvnOLI9wa7XrcjsT8kwDg8wz4dfItsf7+lh9jQ+fXzq+tRdbW1s5HImu0PIKo9vPAz8wGiPldbtRsh2NYeJE6OgLg/3tAylCwQa47AAAAAElFTkSuQmCC" alt="" />
+                  <div class="ui-actions"><span class="ui-gb">&#10022;</span><span class="ui-gb">&#9788;</span></div>
+                </div>
+
+                <div class="ui-month"><span>&#8249;</span><b>This month</b><span>&#8250;</span></div>
+
+                <div class="ui-gauge">
+                  <svg width="260" height="178" viewBox="0 0 260 178" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="gaugeGrad" x1="0" y1="1" x2="1" y2="0">
+                        <stop offset="0%" stop-color="#8aa2ff" /><stop offset="100%" stop-color="#b98bff" />
+                      </linearGradient>
+                    </defs>
+                    <path class="arc-track" d="M 39.93 170 A 104 104 0 1 1 220.07 170" fill="none"
+                      stroke-width="11" stroke-linecap="round" />
+                    <path class="arc-fill" d="M 39.93 170 A 104 104 0 1 1 220.07 170" fill="none"
+                      stroke-width="11" stroke-linecap="round" />
+                  </svg>
+                  <div class="ui-gauge-mid">
+                    <div class="ui-gauge-lab">Left to pay</div>
+                    <div class="ui-figure num">&pound;1,284<i>.19</i></div>
+                    <div class="ui-pace num">&pound;107 a day for 12 days</div>
+                  </div>
+                </div>
+
+                <div class="ui-duo">
+                  <div>
+                    <div class="ui-duo-k">Cint salary</div>
+                    <div class="ui-duo-v num">&pound;5,230</div>
+                  </div>
+                  <span class="ui-rule"></span>
+                  <div>
+                    <div class="ui-duo-k">Left over</div>
+                    <div class="ui-duo-v num up">&pound;1,706</div>
+                  </div>
+                </div>
+
+                <div class="ui-safe">
+                  <div class="ui-safe-top">
+                    <span class="ui-safe-lab">Safe to spend</span>
+                    <span class="ui-safe-lab num">&pound;61/day</span>
+                  </div>
+                  <div class="ui-safe-fig num">&pound;742.60</div>
+                  <div class="ui-safe-bar"><i class="sb-1"></i><i class="sb-2"></i></div>
+                </div>
+
+                <div class="ui-group">
+                  <div class="ui-row">
+                    <span class="ui-glyph" style="background:rgba(75,227,168,0.16);color:#4be3a8">E</span>
+                    <div class="ui-rbody">
+                      <div class="ui-rname">Everyday Loans</div>
+                      <div class="ui-rmeta tick">&#10003; Auto-ticked &middot; 5 Aug</div>
+                    </div>
+                    <span class="ui-ramt num">&pound;360.00</span>
+                    <span class="ui-tick on">&#10003;</span>
+                  </div>
+                  <div class="ui-row">
+                    <span class="ui-glyph" style="background:rgba(138,162,255,0.16);color:#8aa2ff">D</span>
+                    <div class="ui-rbody">
+                      <div class="ui-rname">David Lloyd</div>
+                      <div class="ui-rmeta">Due 1st</div>
+                    </div>
+                    <span class="ui-ramt num">&pound;142.00</span>
+                    <span class="ui-tick"></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ui-nav">
+                <span class="ui-tab" data-on="true">Home</span>
+                <span class="ui-tab">Calendar</span>
+                <span class="ui-tab">Spending</span>
+                <span class="ui-tab">Profile</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        </figure>
+        <div>
+          <h2 class="h2 rv">You open it to check,<br /><span class="grad">not to do data entry.</span></h2>
+          <p class="lede rv" style="margin-top:20px">
+            The gauge retracts as bills clear. Ticked rows carry the date the payment
+            actually left. Safe-to-spend moves only when real money moves.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="shell rv" style="margin-top:20px">
+      <div class="closer">
+        <h3>Stop guessing what&rsquo;s left in the account.</h3>
+        <p>Add it to your home screen and it behaves like any other app on the phone &mdash;
+          notifications, offline, the lot.</p>
+        <a class="btn btn-key btn-lg mag" href="/app">Open MoneyFlow</a>
+      </div>
+    </div>
+
+    <div class="shell nextup rv">
+      <a href="#/assistant"><span class="nx-k">Next</span><span class="nx-t">Assistant &rarr;</span></a>
+    </div>
+  </section>
+</template>
+
+<!-- ================================================= page: assistant ==== -->
+<template data-page="/assistant">
+  <section class="page">
+    <div class="shell page-hero">
+      <h1 class="display">
+        <span class="rise"><span>It knows your</span></span><br />
+        <span class="rise"><span>spending.</span></span>
+        <span class="rise"><span class="soft">So just ask.</span></span>
+      </h1>
+      <p class="lede rv">
+        Every question you&rsquo;d otherwise build a spreadsheet for, answered from your
+        real transactions. Type it, speak it, or photograph the letter it arrived in.
+      </p>
+    </div>
+
+    <div class="shell sec">
+      <div class="split">
+        <figure class="art rv" style="display:grid;place-items:center;background:none;border:none;box-shadow:none;padding:0">
+          <div class="device">
+              <div class="notch"></div>
+              <div class="screen">
+                <div class="app-ui">
+                  <div class="ui-pad ui-chat" style="padding-top:46px;padding-bottom:0">
+                <div class="ui-aihead"><b>&#10022;&nbsp; Ask MoneyFlow</b><span class="ui-gb" style="width:32px;height:32px;font-size:13px">&#10005;</span></div>
+                <div class="ui-voice"><i></i>Listening&hellip;<s>Stop</s></div>
+                <div class="ui-thread">
+                  <div class="ui-bub me">How much did I spend on eating out?</div>
+                  <div class="ui-bub ai">&pound;188 so far this month &mdash; <b>&pound;38 over</b> your &pound;150 budget. Nando&rsquo;s and Deliveroo are most of it.</div>
+                  <div class="ui-bub me">What&rsquo;s due this week?</div>
+                  <div class="ui-bub ai">Two bills: <b>David Lloyd &pound;142</b> on the 1st and <b>Vodafone &pound;40</b> on the 3rd.</div>
+                </div>
+                <div class="ui-bar">
+                  <div class="ui-bar-b">&#9741;</div>
+                  <div class="ui-bar-in">Ask, attach, or tell me&hellip;</div>
+                  <div class="ui-bar-b send">&#10148;</div>
+                </div>
+              </div>
+                </div>
+              </div>
+            </div>
+        </figure>
+        <div>
+          <div class="feat-list" style="margin-top:0">
+            <div class="feat rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9v6M10 5v14M14 8v8M18 10v4"/></svg></span>
+              <div><h4>Answers out loud</h4>
+                <p>A natural British voice, not a robot reading a table. Ask on the walk home and listen to the reply.</p></div></div>
+            <div class="feat rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.49"/></svg></span>
+              <div><h4>Reads what you send it</h4>
+                <p>Photograph a loan statement or drop in a PDF payslip. It pulls out the balance, the payment, the APR &mdash; and offers to file them.</p></div></div>
+            <div class="feat rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+              <div><h4>Does the admin too</h4>
+                <p>&ldquo;Add my council tax at &pound;180 on the 5th.&rdquo; It&rsquo;s in your ledger before you&rsquo;ve locked the phone.</p></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bento">
+        <div class="card w3 rv"><h4>&ldquo;How much am I spending on subscriptions?&rdquo;</h4>
+          <p>Nine recurring payments totalling &pound;2,278 a month &mdash; and Netflix went from
+            &pound;10.99 to &pound;15.99 in July.</p></div>
+        <div class="card w3 rv"><h4>&ldquo;What&rsquo;s due this week?&rdquo;</h4>
+          <p>Two bills: David Lloyd &pound;142 on the 1st, Vodafone &pound;40 on the 3rd.</p></div>
+      </div>
+    </div>
+
+    <div class="shell rv" style="margin-top:20px">
+      <div class="closer">
+        <h3>Stop guessing what&rsquo;s left in the account.</h3>
+        <p>Add it to your home screen and it behaves like any other app on the phone &mdash;
+          notifications, offline, the lot.</p>
+        <a class="btn btn-key btn-lg mag" href="/app">Open MoneyFlow</a>
+      </div>
+    </div>
+
+    <div class="shell nextup rv">
+      <a href="#/wealth"><span class="nx-k">Next</span><span class="nx-t">Wealth &rarr;</span></a>
+    </div>
+  </section>
+</template>
+
+<!-- ===================================================== page: wealth ==== -->
+<template data-page="/wealth">
+  <section class="page">
+    <div class="shell page-hero">
+      <h1 class="display">
+        <span class="rise"><span>Bills are</span></span><br />
+        <span class="rise"><span>the start.</span></span>
+        <span class="rise"><span class="soft">Not the whole of it.</span></span>
+      </h1>
+      <p class="lede rv">
+        Spending, savings and a pension that moves with the market &mdash; without a
+        single provider API, because none exists.
+      </p>
+    </div>
+
+    <div class="shell sec">
+      <div class="split">
+        <div>
+          <h2 class="h2 rv">Anchored to the truth,<br /><span class="grad">moved by the market.</span></h2>
+          <p class="lede rv" style="margin-top:20px">
+            You enter the real value from your provider once. MoneyFlow captures the index
+            price at that moment and re-prices your pot each day against the exact index your
+            plan follows &mdash; MSCI ACWI, in pounds. Re-enter it monthly and the drift resets to zero.
+          </p>
+          <div class="feat-list">
+            <div class="feat rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg></span>
+              <div><h4>The right index, in the right currency</h4>
+                <p>A London-listed ACWI tracker, so there&rsquo;s no dollar-to-pound noise in the estimate.</p></div></div>
+            <div class="feat rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg></span>
+              <div><h4>Several pots, one total</h4>
+                <p>Name each one, add more as you go, and see them summed with a six-month curve.</p></div></div>
+          </div>
+        </div>
+        <figure class="art rv" style="display:grid;place-items:center;background:none;border:none;box-shadow:none;padding:0">
+          <div class="device">
+              <div class="notch"></div>
+              <div class="screen">
+                <div class="app-ui">
+                  <div class="ui-pad">
+                <div class="ui-top">
+                  <img class="ui-logo" src="data:image/png;base64,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" alt="" />
+                  <div class="ui-actions"><span class="ui-gb">&#10022;</span><span class="ui-gb">&#9788;</span></div>
+                </div>
+                <div class="ui-me"><div class="ui-face">R</div><b>Rohit.K</b></div>
+                <div class="ui-secline"><h5>Pensions &amp; investments</h5></div>
+                <div class="ui-pension">
+                  <div class="ui-pension-top"><span class="ui-pension-k">Total &middot; estimated</span><span class="ui-pension-tag">2 pots</span></div>
+                  <div class="ui-pension-v num">&asymp; &pound;63,770</div>
+                  <div class="ui-pension-d num">&#9650; 12.8% over 6 months</div>
+                </div>
+                <div class="ui-pots">
+                  <div class="ui-pot">
+                    <div><div class="ui-pot-n">PensionBee</div><div class="ui-pot-m">Global (MSCI ACWI)</div></div>
+                    <span class="ui-pot-v num">&pound;59,564</span>
+                  </div>
+                  <div class="ui-pot">
+                    <div><div class="ui-pot-n">Workplace</div><div class="ui-pot-m">Developed (World)</div></div>
+                    <span class="ui-pot-v num">&pound;4,206</span>
+                  </div>
+                </div>
+                <div class="ui-secline"><h5>Notifications</h5></div>
+                <div class="ui-list">
+                  <div class="ui-li">
+                    <div><div class="ui-li-k">Due-date reminders</div><div class="ui-li-s">A bill due soon pings you, even when the app is closed.</div></div>
+                    <span class="ui-sw"></span>
+                  </div>
+                  <div class="ui-li">
+                    <div><div class="ui-li-k">Auto-tick bills</div><div class="ui-li-s">Marks a bill paid once its payment has left your bank.</div></div>
+                    <span class="ui-sw"></span>
+                  </div>
+                </div>
+              </div>
+                  <div class="ui-nav"><span class="ui-tab">Home</span><span class="ui-tab">Calendar</span><span class="ui-tab">Spending</span><span class="ui-tab" data-on="true">Profile</span></div>
+                </div>
+              </div>
+            </div>
+        </figure>
+      </div>
+
+      <div class="bento">
+        <div class="card w3 rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg></span><h4>Savings goals</h4>
+          <p>Name it, target it, watch the bar fill &mdash; it turns green when you get there.</p></div>
+        <div class="card w3 rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></span><h4>Contract income</h4>
+          <p>Log your hours and see the forecast, deliberately kept out of your spendable
+            balance until the payment actually lands.</p></div>
+      </div>
+    </div>
+
+    <div class="shell rv" style="margin-top:20px">
+      <div class="closer">
+        <h3>Stop guessing what&rsquo;s left in the account.</h3>
+        <p>Add it to your home screen and it behaves like any other app on the phone &mdash;
+          notifications, offline, the lot.</p>
+        <a class="btn btn-key btn-lg mag" href="/app">Open MoneyFlow</a>
+      </div>
+    </div>
+
+    <div class="shell nextup rv">
+      <a href="#/security"><span class="nx-k">Next</span><span class="nx-t">Security &rarr;</span></a>
+    </div>
+  </section>
+</template>
+
+<!-- =================================================== page: security ==== -->
+<template data-page="/security">
+  <section class="page">
+    <div class="shell page-hero">
+      <h1 class="display">
+        <span class="rise"><span>It can see.</span></span><br />
+        <span class="rise"><span class="soft">It can never move money.</span></span>
+      </h1>
+      <p class="lede rv">
+        The connection runs through Open Banking, authorised on your bank&rsquo;s own screen,
+        with read-only access. There is no payment permission to misuse &mdash; it doesn&rsquo;t exist.
+      </p>
+    </div>
+
+    <div class="shell sec">
+      <div class="bento">
+        <div class="card w3 rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span><h4>Read-only, by design</h4>
+          <p>MoneyFlow requests account and transaction scope. Not payments. Even if someone
+            had the token, there is no instruction it could send to move a penny.</p></div>
+        <div class="card w3 rv"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8.5-8 9.5C7.5 20.5 4 17 4 12V6l8-3Z"/></svg></span><h4>Your own database</h4>
+          <p>Your data sits in your own Supabase project behind row-level security, not in a
+            shared analytics pipeline being resold to advertisers.</p></div>
+        <div class="card rv"><h4>Authorised at the bank</h4>
+          <p>You approve on Halifax&rsquo;s screen. Your credentials never touch the app.</p></div>
+        <div class="card rv"><h4>Revoke any time</h4>
+          <p>Disconnect in the app, or from your bank. Access ends immediately.</p></div>
+        <div class="card rv"><h4>No ads, no upsells</h4>
+          <p>Nothing to monetise means nothing to harvest. It&rsquo;s free because it&rsquo;s personal.</p></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat rv"><div class="v v-word">Read-only</div><div class="k">Bank scope</div></div>
+        <div class="stat rv"><div class="v num" data-count="0" data-prefix="&pound;">0</div><div class="k">Cost, forever</div></div>
+        <div class="stat rv"><div class="v v-word">Yours</div><div class="k">Where data lives</div></div>
+        <div class="stat rv"><div class="v num" data-count="1">0</div><div class="k">Tap to revoke</div></div>
+      </div>
+    </div>
+
+    <div class="shell rv" style="margin-top:20px">
+      <div class="closer">
+        <h3>Stop guessing what&rsquo;s left in the account.</h3>
+        <p>Add it to your home screen and it behaves like any other app on the phone &mdash;
+          notifications, offline, the lot.</p>
+        <a class="btn btn-key btn-lg mag" href="/app">Open MoneyFlow</a>
+      </div>
+    </div>
+
+    <div class="shell nextup rv">
+      <a href="#/"><span class="nx-k">Back to</span><span class="nx-t">Home &rarr;</span></a>
+    </div>
+  </section>
+</template>
+
+<script>
+(function () {
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ================================================ raymarched WebGL orb */
+  var VERT = "attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}";
+  var FRAG = [
+    "precision highp float;",
+    "uniform vec2 r;uniform float t;uniform vec2 m;",
+    "mat2 rot(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}",
+    "float map(vec3 p){",
+    "  p.xz*=rot(t*0.16);p.xy*=rot(t*0.11);",
+    "  float d=length(p)-1.16;",
+    "  d+=0.17*sin(2.4*p.x+t*0.8)*sin(2.4*p.y+t*0.7)*sin(2.4*p.z+t*0.95);",
+    "  d+=0.045*sin(6.0*p.y+t*1.4);",
+    "  return d*0.58;",
+    "}",
+    "vec3 nrm(vec3 p){vec2 e=vec2(0.0016,0.);return normalize(vec3(",
+    "  map(p+e.xyy)-map(p-e.xyy),map(p+e.yxy)-map(p-e.yxy),map(p+e.yyx)-map(p-e.yyx)));}",
+    "vec3 pal(float x){",
+"  vec3 ir=0.5+0.5*cos(6.28318*(vec3(0.62,0.54,0.80)*x+vec3(0.12,0.30,0.58)));",
+"  vec3 brand=mix(vec3(0.541,0.635,1.0),vec3(0.725,0.545,1.0),clamp(x,0.0,1.0));",
+"  return mix(brand,ir,0.55);",
+"}",
+    "void main(){",
+    "  vec2 uv=(gl_FragCoord.xy*2.0-r)/min(r.x,r.y);",
+"  float wide=step(760.0,r.x);",
+"  uv.x-=0.62*wide; uv.y-=0.12*wide;",
+    "  vec3 ro=vec3(0.,0.,3.55);",
+    "  vec3 rd=normalize(vec3(uv+m*0.10,-1.65));",
+    "  float d=0.;vec3 p=ro;float hit=0.;",
+    "  for(int i=0;i<70;i++){",
+    "    p=ro+rd*d;float s=map(p);",
+    "    if(s<0.0012){hit=1.;break;}",
+    "    d+=s;if(d>7.0)break;",
+    "  }",
+    "  vec3 col=vec3(0.);float a=0.;",
+    "  if(hit>0.5){",
+    "    vec3 n=nrm(p);vec3 v=normalize(ro-p);",
+    "    float fr=pow(1.0-max(dot(n,v),0.),2.5);",
+    "    vec3 l=normalize(vec3(0.55,0.85,0.75));",
+    "    float df=max(dot(n,l),0.);",
+    "    float sp=pow(max(dot(reflect(-l,n),v),0.),46.);",
+    "    vec3 base=pal(dot(n,vec3(0.38,0.5,0.32))*0.55+t*0.025);",
+    "    col=base*(0.16+0.46*df)+fr*vec3(0.60,0.56,1.0)*1.25+sp*0.45;",
+    "    col+=pal(fr+t*0.04)*fr*0.5;",
+    "    a=1.0;",
+    "  }",
+    "  float g=exp(-d*0.5)*0.5;",
+    "  col+=g*vec3(0.42,0.38,0.90);",
+    "  a=max(a,g*1.6);",
+    "  col=pow(max(col,0.0),vec3(0.88));",
+    "  gl_FragColor=vec4(col,clamp(a,0.,1.));",
+    "}"
+  ].join("\n");
+
+  var cv = document.getElementById("gl");
+  var gl = null, prog = null, uni = {}, glOk = false;
+  try { gl = cv.getContext("webgl", { alpha: true, antialias: false, premultipliedAlpha: false }); } catch (e) {}
+
+  function sh(type, src) {
+    var s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.warn(gl.getShaderInfoLog(s)); return null; }
+    return s;
+  }
+  if (gl) {
+    var vs = sh(gl.VERTEX_SHADER, VERT), fs = sh(gl.FRAGMENT_SHADER, FRAG);
+    if (vs && fs) {
+      prog = gl.createProgram();
+      gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+      if (gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+        gl.useProgram(prog);
+        var buf = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+        var loc = gl.getAttribLocation(prog, "p");
+        gl.enableVertexAttribArray(loc);
+        gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+        uni.r = gl.getUniformLocation(prog, "r");
+        uni.t = gl.getUniformLocation(prog, "t");
+        uni.m = gl.getUniformLocation(prog, "m");
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        glOk = true;
+      }
+    }
+  }
+
+  var mouse = { x: 0, y: 0 }, sm = { x: 0, y: 0 }, t0 = 0;
+  function sizeGL() {
+    if (!glOk) return;
+    var dpr = Math.min(devicePixelRatio || 1, 1.6);
+    var w = Math.floor(innerWidth * dpr), h = Math.floor(innerHeight * dpr);
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; gl.viewport(0, 0, w, h); }
+  }
+  function frame(ts) {
+    if (!glOk) return;
+    if (!t0) t0 = ts;
+    sizeGL();
+    sm.x += (mouse.x - sm.x) * 0.05;
+    sm.y += (mouse.y - sm.y) * 0.05;
+    gl.uniform2f(uni.r, cv.width, cv.height);
+    gl.uniform1f(uni.t, (ts - t0) / 1000);
+    gl.uniform2f(uni.m, sm.x, sm.y);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    requestAnimationFrame(frame);
+  }
+  if (glOk) {
+    sizeGL();
+    cv.classList.add("on");
+    requestAnimationFrame(frame);
+    addEventListener("resize", sizeGL);
+    if (!reduce) addEventListener("mousemove", function (e) {
+      mouse.x = (e.clientX / innerWidth) * 2 - 1;
+      mouse.y = 1 - (e.clientY / innerHeight) * 2;
+    }, { passive: true });
+  } else {
+    // no WebGL: a soft static wash keeps the hero from looking empty
+    cv.style.background = "radial-gradient(46% 40% at 50% 34%, rgba(150,140,255,0.28), transparent 70%)";
+    cv.classList.add("on");
+  }
+
+
+  /* ------------------------------------------- interactive demo phone */
+  // Ticking a bill marks it paid: the gauge retracts and "left to pay" falls.
+  // Safe-to-spend deliberately does NOT move - the money already left the
+  // account, which is exactly how the real app behaves.
+  var ARC = 435.6;
+  function bindDemo() {
+    var phone = document.getElementById("demoPhone");
+    if (!phone) return;
+    var rows = [].slice.call(phone.querySelectorAll("[data-bill]"));
+    var arc = phone.querySelector(".arc-fill");
+    var fig = phone.querySelector(".ui-figure");
+    var pace = phone.querySelector(".ui-pace");
+    // bills on screen, plus the rest of the month's list further down
+    var amounts = [360, 142, 40];
+    var rest = 742.19;
+    var total = rest + amounts.reduce(function (a, b) { return a + b; }, 0);
+    var paid = [true, false, false];
+    var shown = null;
+
+    function money(n) {
+      return "\u00A3" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function render(animate) {
+      var left = rest;
+      for (var i = 0; i < amounts.length; i++) if (!paid[i]) left += amounts[i];
+      rows.forEach(function (r, i) {
+        r.dataset.paid = paid[i] ? "true" : "false";
+        var t = r.querySelector("[data-tick]");
+        t.classList.toggle("on", paid[i]);
+        t.innerHTML = paid[i] ? "&#10003;" : "";
+        var meta = r.querySelector(".ui-rmeta");
+        if (meta && meta.dataset.orig === undefined) meta.dataset.orig = meta.innerHTML;
+        if (meta) {
+          meta.classList.toggle("tick", paid[i]);
+          meta.innerHTML = paid[i] ? "&#10003; Auto-ticked &middot; 5 Aug" : meta.dataset.orig.replace(/^&#10003;.*$/, "Due 1st");
+        }
+      });
+      arc.style.strokeDashoffset = (ARC * (1 - left / total)).toFixed(1);
+      var whole = Math.floor(left), pence = Math.round((left - whole) * 100);
+      var target = left;
+      if (!animate) {
+        fig.innerHTML = money(target).replace(/\.(\d\d)$/, "<i>.$1</i>");
+      } else {
+        var from = shown === null ? target : shown, t0 = performance.now(), dur = 620;
+        (function tick(now) {
+          var q = Math.min((now - t0) / dur, 1);
+          var v = from + (target - from) * (1 - Math.pow(1 - q, 3));
+          fig.innerHTML = money(v).replace(/\.(\d\d)$/, "<i>.$1</i>");
+          if (q < 1) requestAnimationFrame(tick);
+          else fig.innerHTML = money(target).replace(/\.(\d\d)$/, "<i>.$1</i>");
+        })(t0);
+        setTimeout(function () {
+          fig.innerHTML = money(target).replace(/\.(\d\d)$/, "<i>.$1</i>");
+        }, dur + 300);
+      }
+      shown = target;
+      var unpaid = paid.filter(function (x) { return !x; }).length;
+      if (pace) pace.textContent = unpaid === 0
+        ? "Everything on screen is settled"
+        : money(left / 12).replace(/\.\d\d$/, "") + " a day for 12 days";
+    }
+
+    rows.forEach(function (r, i) {
+      var t = r.querySelector("[data-tick]");
+      if (!t) return;
+      t.addEventListener("click", function () {
+        paid[i] = !paid[i];
+        render(true);
+      });
+    });
+    render(false);
+  }
+
+  /* ============================================================== router */
+  var app = document.getElementById("app");
+  var curtain = document.getElementById("curtain");
+  var links = document.getElementById("navlinks");
+  var pages = {};
+  document.querySelectorAll("template[data-page]").forEach(function (tpl) {
+    pages[tpl.getAttribute("data-page")] = tpl;
+  });
+
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      e.target.classList.add("in");
+      countUp(e.target);
+      io.unobserve(e.target);
+    });
+  }, { threshold: 0.15, rootMargin: "0px 0px -6% 0px" });
+
+  function countUp(scope) {
+    var n = scope.querySelector ? scope.querySelector("[data-count]") : null;
+    if (!n || n.dataset.done) return;
+    n.dataset.done = "1";
+    var to = +n.dataset.count, pre = n.dataset.prefix || "", suf = n.dataset.suffix || "";
+    var dur = 1000, fin = function () { n.innerHTML = pre + to + suf; };
+    if (reduce || to === 0 || document.visibilityState !== "visible") return fin();
+    var s0 = performance.now();
+    (function tick(now) {
+      var p = Math.min((now - s0) / dur, 1);
+      n.innerHTML = pre + Math.round(to * (1 - Math.pow(1 - p, 3))) + suf;
+      if (p < 1) requestAnimationFrame(tick); else fin();
+    })(s0);
+    setTimeout(fin, dur + 500);
+  }
+
+  function path() {
+    var h = location.hash.replace(/^#/, "");
+    return pages[h] ? h : "/";
+  }
+
+  function paint(route) {
+    var tpl = pages[route] || pages["/"];
+    app.innerHTML = "";
+    app.appendChild(tpl.content.cloneNode(true));
+    document.body.dataset.route = route === "/" ? "home" : route.slice(1);
+
+    document.querySelectorAll('#navlinks a, #sheet a').forEach(function (a) {
+      a.dataset.on = a.getAttribute("href") === "#" + route ? "true" : "false";
+    });
+    if (typeof setMenu === "function") setMenu(false);
+
+    app.querySelectorAll(".rv").forEach(function (el) { io.observe(el); });
+    // hero words rise once the page is in
+    var rises = app.querySelectorAll(".page-hero .rise");
+    rises.forEach(function (el, i) {
+      el.querySelector("span").style.transitionDelay = (0.06 + i * 0.09) + "s";
+    });
+    // Force a style flush, then reveal. Deliberately NOT rAF: frames are paused
+    // in a background tab, which would leave the headline invisible for good.
+    void app.offsetWidth;
+    rises.forEach(function (el) { el.classList.add("go"); });
+    setTimeout(function () { rises.forEach(function (el) { el.classList.add("go"); }); }, 400);
+    // anything already on screen reveals immediately
+    setTimeout(function () {
+      app.querySelectorAll(".rv:not(.in)").forEach(function (el) {
+        var r = el.getBoundingClientRect();
+        if (r.top < innerHeight && r.bottom > 0) { el.classList.add("in"); countUp(el); }
+      });
+    }, 60);
+    cv.style.opacity = "";
+    bindCards();
+    bindDemo();
+    fitPhones();
+  }
+
+  var routing = false;
+  function go(route, push) {
+    if (routing) return;
+    var cur = path();
+    if (route === cur && push) { scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" }); return; }
+    routing = true;
+    if (push) history.pushState({}, "", "#" + route);
+
+    if (reduce) { paint(route); scrollTo(0, 0); routing = false; return; }
+    curtain.classList.remove("out");
+    curtain.classList.add("in");
+    setTimeout(function () {
+      paint(route);
+      scrollTo(0, 0);
+      curtain.classList.remove("in");
+      curtain.classList.add("out");
+      setTimeout(function () { routing = false; }, 560);
+    }, 480);
+  }
+
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest('a[href^="#/"]');
+    if (!a) return;
+    e.preventDefault();
+    go(a.getAttribute("href").slice(1), true);
+  });
+  addEventListener("popstate", function () { go(path(), false); });
+  addEventListener("hashchange", function () { if (!routing) go(path(), false); });
+
+  /* =========================================================== niceties */
+  var burger = document.getElementById("burger");
+  var sheet = document.getElementById("sheet");
+  function setMenu(open) {
+    sheet.classList.toggle("open", open);
+    burger.setAttribute("aria-expanded", open ? "true" : "false");
+    sheet.setAttribute("aria-hidden", open ? "false" : "true");
+  }
+  burger.addEventListener("click", function () {
+    setMenu(sheet.classList.contains("open") === false);
+  });
+  sheet.addEventListener("click", function (e) { if (e.target.tagName === "A") setMenu(false); });
+
+  var nav = document.getElementById("nav");
+  addEventListener("scroll", function () {
+    nav.dataset.stuck = scrollY > 20 ? "true" : "false";
+    var home = document.body.dataset.route === "home";
+    var base = home ? 1 : 0.24;
+    var f = Math.max(home ? 0.1 : 0.06, base - scrollY / (innerHeight * 0.85) * base);
+    cv.style.opacity = f.toFixed(3);
+  }, { passive: true });
+
+  // spotlight follow on cards
+  function bindCards() {
+    app.querySelectorAll(".card").forEach(function (c) {
+      c.addEventListener("pointermove", function (e) {
+        var r = c.getBoundingClientRect();
+        c.style.setProperty("--mx", (e.clientX - r.left) + "px");
+        c.style.setProperty("--my", (e.clientY - r.top) + "px");
+      });
+    });
+  }
+
+  // Phones: fit to width, and lean toward the cursor in real 3D. Scale and
+  // rotation are composed in one place so they can't fight each other.
+  var phones = [];
+  var finePointer = matchMedia("(pointer: fine)").matches && !reduce;
+
+  function applyPhone(ph) {
+    var t = "";
+    if (ph.scale < 1) t += "scale(" + ph.scale.toFixed(4) + ") ";
+    if (finePointer) t += "rotateY(" + ph.ry.toFixed(2) + "deg) rotateX(" + ph.rx.toFixed(2) + "deg)";
+    ph.el.style.transform = t.trim();
+  }
+
+  var TILT_PAD = 46; // clearance so the tilted frame never touches its neighbours
+  function fitPhones() {
+    phones = [];
+    document.querySelectorAll(".device").forEach(function (dev) {
+      var wrap = dev.parentElement;
+      if (!wrap.classList.contains("phone-wrap")) {
+        var w = document.createElement("div");
+        w.className = "phone-wrap";
+        dev.parentNode.insertBefore(w, dev);
+        w.appendChild(dev);
+        wrap = w;
+      }
+      // the .art container clips by default, which cut off the phone's shadow
+      if (wrap.parentElement) wrap.parentElement.style.overflow = "visible";
+      var avail = (wrap.parentElement && wrap.parentElement.clientWidth) || innerWidth;
+      var sc = Math.min(1, (avail - 8) / 296);
+      // Centre the rotation so the spill is symmetric, then reserve room for it.
+      dev.style.transformStyle = "preserve-3d";
+      dev.style.transformOrigin = "50% 50%";
+      dev.style.willChange = "transform";
+      wrap.style.height = Math.round(604 * sc + TILT_PAD * 2) + "px";
+      var ph = { el: dev, scale: sc, ry: finePointer ? -13 : 0, rx: finePointer ? 5 : 0, ty: -13, tx: 5 };
+      phones.push(ph);
+      applyPhone(ph);
+    });
+  }
+  addEventListener("resize", fitPhones, { passive: true });
+
+  if (finePointer) {
+    var tilting = 0;
+    function tiltStep() {
+      tilting = 0;
+      var moving = false;
+      for (var i = 0; i < phones.length; i++) {
+        var ph = phones[i];
+        ph.ry += (ph.ty - ph.ry) * 0.09;
+        ph.rx += (ph.tx - ph.rx) * 0.09;
+        applyPhone(ph);
+        if (Math.abs(ph.ty - ph.ry) > 0.05 || Math.abs(ph.tx - ph.rx) > 0.05) moving = true;
+      }
+      if (moving && !tilting) tilting = requestAnimationFrame(tiltStep);
+    }
+    addEventListener("mousemove", function (e) {
+      for (var i = 0; i < phones.length; i++) {
+        var ph = phones[i];
+        var r = ph.el.getBoundingClientRect();
+        if (!r.width) continue;
+        var dx = (e.clientX - (r.left + r.width / 2)) / Math.max(r.width, 1);
+        var dy = (e.clientY - (r.top + r.height / 2)) / Math.max(r.height, 1);
+        dx = Math.max(-1.6, Math.min(1.6, dx));
+        dy = Math.max(-1.6, Math.min(1.6, dy));
+        ph.ty = -13 + dx * 15;
+        ph.tx = 5 - dy * 10;
+      }
+      tiltStep();
+    }, { passive: true });
+  }
+
+  // magnetic buttons + cursor (pointer devices only)
+  var cur = document.getElementById("cur");
+  if (matchMedia("(pointer: fine)").matches && !reduce) {
+    var cx = 0, cy = 0, tx = 0, ty = 0;
+    addEventListener("mousemove", function (e) {
+      tx = e.clientX; ty = e.clientY; cur.classList.add("on");
+      var m = e.target.closest && e.target.closest(".mag");
+      cur.classList.toggle("big", !!m);
+    }, { passive: true });
+    (function loop() {
+      cx += (tx - cx) * 0.18; cy += (ty - cy) * 0.18;
+      cur.style.transform = "translate(" + cx.toFixed(1) + "px," + cy.toFixed(1) + "px)";
+      requestAnimationFrame(loop);
+    })();
+
+    document.addEventListener("mousemove", function (e) {
+      document.querySelectorAll(".mag").forEach(function (b) {
+        var r = b.getBoundingClientRect();
+        var dx = e.clientX - (r.left + r.width / 2);
+        var dy = e.clientY - (r.top + r.height / 2);
+        var dist = Math.hypot(dx, dy);
+        if (dist < 110) b.style.transform = "translate(" + dx * 0.22 + "px," + dy * 0.28 + "px)";
+        else b.style.transform = "";
+      });
+    }, { passive: true });
+  }
+
+  // boot
+  paint(path());
+})();
+</script>
+
+</body>
+</html>

@@ -10,6 +10,15 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA || 'dev',
   },
+  // "/" is the marketing site; the app itself lives at /app. beforeFiles so the
+  // rewrite wins regardless of route resolution order.
+  async rewrites() {
+    return {
+      beforeFiles: [{ source: '/', destination: '/landing.html' }],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
 };
 
 export default nextConfig;
