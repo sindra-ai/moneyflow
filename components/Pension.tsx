@@ -19,6 +19,14 @@ const PROXIES = [
 ];
 const proxyLabel = (sym: string) => PROXIES.find((p) => p.symbol === sym)?.label ?? 'the market';
 
+/** How long since this pot was last anchored to a real figure. The proxy only
+ *  approximates the fund, so the estimate drifts further the older this gets. */
+function staleDays(date: string): number {
+  const then = new Date(date + 'T00:00:00').getTime();
+  if (!Number.isFinite(then)) return 0;
+  return Math.max(0, Math.floor((Date.now() - then) / 86400000));
+}
+
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 function prettyDate(iso: string): string {
   const [y, m, d] = (iso || '').split('-').map(Number);
@@ -173,7 +181,7 @@ export function Pension() {
           <span className="pension-lab">Total · estimated</span>
           <span className="pension-proxy-tag">{pots.length} pot{pots.length === 1 ? '' : 's'}</span>
         </div>
-        <div className="pension-fig n">≈ {money(total)}</div>
+        <div className="pension-fig n">≈ {money(Math.round(total))}</div>
         {pots.length > 0 && <PensionChart pots={pots} />}
       </div>
 
@@ -187,10 +195,17 @@ export function Pension() {
             <button className="pot" key={p.id} onClick={() => openEdit(p)}>
               <div className="pot-main">
                 <div className="pot-name">{p.name}</div>
-                <div className="pot-meta">{proxyLabel(p.symbol)} · set {prettyDate(p.date)}</div>
+                <div className="pot-meta">
+                  {proxyLabel(p.symbol)} · set {prettyDate(p.date)}
+                </div>
+                {staleDays(p.date) >= 7 && (
+                  <div className="pot-stale">
+                    {staleDays(p.date)} days old · tap to update from your provider
+                  </div>
+                )}
               </div>
               <div className="pot-right">
-                <div className="pot-val n">≈ {money(est)}</div>
+                <div className="pot-val n">≈ {money(Math.round(est))}</div>
                 {moved && Math.abs(delta) >= 0.5 && (
                   <div className={`pot-delta n ${up ? 'up' : 'down'}`}>
                     <TrendUp size={11} style={{ transform: up ? 'none' : 'scaleY(-1)' }} />

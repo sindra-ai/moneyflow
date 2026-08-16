@@ -4053,3 +4053,5 @@ input {
 .cp-note.bad { color: var(--bad); }
 .cp-note.ok { color: var(--good); }
 .cp-row { display: flex; gap: 9px; margin-top: 2px; }
+
+.pot-stale { font: var(--t-meta); color: #ffb84d; margin-top: 3px; }

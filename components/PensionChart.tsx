@@ -73,7 +73,9 @@ export function PensionChart({ pots }: { pots: Pot[] }) {
   return (
     <div className="pchart">
       <div className="pchart-head">
-        <span className="pchart-lab">6-month performance</span>
+        {/* This line is the tracker index, not the pot. Say so: the pot may be
+            months old while the index chart always runs a full six. */}
+        <span className="pchart-lab">Index, last 6 months</span>
         <span className={`pchart-pct n ${up ? 'up' : 'down'}`}>
           {up ? '▲' : '▼'} {Math.abs(change * 100).toFixed(1)}%
         </span>
