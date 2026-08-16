@@ -326,6 +326,39 @@
   .closer h3 { font-size: clamp(28px, 4.2vw, 50px); font-weight: 600; letter-spacing: -0.042em;
     line-height: 1.04; text-wrap: balance; }
   .closer p { color: var(--ink-2); max-width: 44ch; }
+  .closer-cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+
+  /* Shared overlay: the desktop notice and the access form both live here. */
+  .dlg { position: fixed; inset: 0; z-index: 90; display: none; place-items: center;
+    padding: 22px; background: rgba(4, 5, 10, 0.72); backdrop-filter: blur(9px); }
+  .dlg[data-open="true"] { display: grid; }
+  .dlg-card { width: min(100%, 460px); max-height: 88svh; overflow-y: auto;
+    border-radius: 26px; border: 1px solid var(--edge); background: #0d0f18;
+    padding: 30px 28px; display: grid; gap: 14px;
+    box-shadow: 0 40px 120px -30px rgba(0, 0, 0, 0.9);
+    animation: sheetIn 0.34s var(--ease) both; }
+  @keyframes sheetIn { from { opacity: 0; transform: translateY(14px) scale(0.98); } }
+  .dlg-card h4 { font-size: 23px; font-weight: 600; letter-spacing: -0.032em; line-height: 1.15; }
+  .dlg-card > p { color: var(--ink-2); font-size: 14.5px; line-height: 1.6; }
+  .dlg-x { position: absolute; top: 18px; right: 18px; width: 38px; height: 38px;
+    display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--edge);
+    background: var(--fill-2); color: var(--ink-2); cursor: pointer; font-size: 15px; }
+  .dlg-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .dlg-row .btn { flex: 1 1 auto; justify-content: center; }
+  .sf { display: grid; gap: 6px; }
+  .sf span { font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3); }
+  .sf input, .sf textarea { width: 100%; padding: 13px 14px; border-radius: 13px;
+    border: 1px solid var(--edge); background: var(--fill-1); color: var(--ink);
+    font: inherit; font-size: 15px; resize: none; }
+  .sf input:focus, .sf textarea:focus { outline: none; border-color: rgba(185,139,255,0.6);
+    background: var(--fill-2); }
+  .sf input::placeholder, .sf textarea::placeholder { color: var(--ink-3); }
+  .dlg-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .dlg-err { font-size: 13.5px; color: var(--rose); }
+  .dlg-ok { display: grid; gap: 12px; justify-items: center; text-align: center; padding: 6px 0; }
+  .dlg-ok i { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 50%;
+    background: rgba(75,227,168,0.14); color: var(--mint); font-style: normal; font-size: 20px; }
+  @media (prefers-reduced-motion: reduce) { .dlg-card { animation: none; } }
   .closer::after {
     content: ""; position: absolute; width: 560px; height: 560px; border-radius: 50%;
     top: -290px; left: 50%; translate: -50% 0; pointer-events: none; filter: blur(20px);
@@ -808,7 +841,7 @@
     <a href="#/wealth">Wealth</a>
     <a href="#/security">Security</a>
   </div>
-  <div class="nav-cta"><a class="btn btn-key mag" href="#/">Open the app</a></div>
+  <div class="nav-cta"><a class="btn btn-key mag" href="/app" data-app>Open the app</a></div>
   <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">
     <i></i><i></i>
   </button>
@@ -834,6 +867,33 @@
     <span>&copy; 2026 MoneyFlow. All rights reserved.</span>
   </div>
 </footer>
+
+<div class="dlg" id="deskSheet" data-open="false" role="dialog" aria-modal="true" aria-labelledby="deskTitle">
+  <div class="dlg-card" style="position:relative">
+    <button class="dlg-x" type="button" data-close aria-label="Close">&#10005;</button>
+    <h4 id="deskTitle">MoneyFlow is built for your phone</h4>
+    <p>It is a home screen app: the layout, the reminders and the offline mode all assume a phone.
+      Open <b>mymoneyflow.co</b> on your mobile and add it to your home screen.</p>
+    <div class="dlg-row">
+      <a class="btn btn-key" href="/app" data-go>Open it anyway</a>
+      <button class="btn btn-ghost" type="button" data-ask>Request access</button>
+    </div>
+  </div>
+</div>
+
+<div class="dlg" id="askSheet" data-open="false" role="dialog" aria-modal="true" aria-labelledby="askTitle">
+  <form class="dlg-card" id="askForm" style="position:relative" novalidate>
+    <button class="dlg-x" type="button" data-close aria-label="Close">&#10005;</button>
+    <h4 id="askTitle">Request access</h4>
+    <p>MoneyFlow is invite-only. Leave your details and you will hear back by email.</p>
+    <label class="sf"><span>Name</span><input name="name" autocomplete="name" placeholder="Your name" /></label>
+    <label class="sf"><span>Email</span><input name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@email.com" /></label>
+    <label class="sf"><span>Why</span><textarea name="reason" rows="3" placeholder="Optional"></textarea></label>
+    <input class="dlg-hp" name="company" tabindex="-1" autocomplete="off" aria-hidden="true" />
+    <p class="dlg-err" id="askErr" hidden></p>
+    <div class="dlg-row"><button class="btn btn-key" type="submit" id="askGo">Send request</button></div>
+  </form>
+</div>
 
 <div class="curtain" id="curtain" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
 
@@ -1132,7 +1192,10 @@ Ticks off bills the moment the money actually leaves,
         <h3>Your money, finally in focus.</h3>
         <p>Add it to your home screen and it runs like any other app on your phone,
           with notifications and offline access.</p>
-        <a class="btn btn-key btn-lg mag" href="#/">Open MoneyFlow</a>
+        <div class="closer-cta">
+          <a class="btn btn-key btn-lg mag" href="/app" data-app>Open MoneyFlow</a>
+          <button class="btn btn-ghost btn-lg" type="button" data-ask>Request access</button>
+        </div>
       </div>
     </div>
 
@@ -1318,7 +1381,10 @@ It&rsquo;s paid when the money leaves. So MoneyFlow waits for the
         <h3>Your money, finally in focus.</h3>
         <p>Add it to your home screen and it runs like any other app on your phone,
           with notifications and offline access.</p>
-        <a class="btn btn-key btn-lg mag" href="#/">Open MoneyFlow</a>
+        <div class="closer-cta">
+          <a class="btn btn-key btn-lg mag" href="/app" data-app>Open MoneyFlow</a>
+          <button class="btn btn-ghost btn-lg" type="button" data-ask>Request access</button>
+        </div>
       </div>
     </div>
 
@@ -1398,7 +1464,10 @@ Answered from your real transactions. Type it, say it out loud,
         <h3>Your money, finally in focus.</h3>
         <p>Add it to your home screen and it runs like any other app on your phone,
           with notifications and offline access.</p>
-        <a class="btn btn-key btn-lg mag" href="#/">Open MoneyFlow</a>
+        <div class="closer-cta">
+          <a class="btn btn-key btn-lg mag" href="/app" data-app>Open MoneyFlow</a>
+          <button class="btn btn-ghost btn-lg" type="button" data-ask>Request access</button>
+        </div>
       </div>
     </div>
 
@@ -1520,7 +1589,10 @@ Spending, savings, and a pension that moves with the market
         <h3>Your money, finally in focus.</h3>
         <p>Add it to your home screen and it runs like any other app on your phone,
           with notifications and offline access.</p>
-        <a class="btn btn-key btn-lg mag" href="#/">Open MoneyFlow</a>
+        <div class="closer-cta">
+          <a class="btn btn-key btn-lg mag" href="/app" data-app>Open MoneyFlow</a>
+          <button class="btn btn-ghost btn-lg" type="button" data-ask>Request access</button>
+        </div>
       </div>
     </div>
 
@@ -1573,7 +1645,10 @@ Open Banking, authorised on your bank&rsquo;s own screen.
         <h3>Your money, finally in focus.</h3>
         <p>Add it to your home screen and it runs like any other app on your phone,
           with notifications and offline access.</p>
-        <a class="btn btn-key btn-lg mag" href="#/">Open MoneyFlow</a>
+        <div class="closer-cta">
+          <a class="btn btn-key btn-lg mag" href="/app" data-app>Open MoneyFlow</a>
+          <button class="btn btn-ghost btn-lg" type="button" data-ask>Request access</button>
+        </div>
       </div>
     </div>
 
@@ -2249,6 +2324,92 @@ Open Banking, authorised on your bank&rsquo;s own screen.
 
   // boot
   paint(path());
+})();
+</script>
+
+<script>
+/* Desktop notice + access requests. The app is a home screen app, so a desktop
+   visitor gets told that before being dropped into a login screen. */
+(function () {
+  var desk = document.getElementById("deskSheet");
+  var ask = document.getElementById("askSheet");
+  var form = document.getElementById("askForm");
+  var err = document.getElementById("askErr");
+  var go = document.getElementById("askGo");
+  if (!desk || !ask || !form) return;
+  var lastFocus = null;
+
+  function phone() {
+    return (
+      matchMedia("(pointer: coarse)").matches ||
+      innerWidth < 820 ||
+      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    );
+  }
+  function open(sheet) {
+    lastFocus = document.activeElement;
+    sheet.dataset.open = "true";
+    document.body.style.overflow = "hidden";
+    var f = sheet.querySelector("input, a.btn, button.btn");
+    if (f) f.focus();
+  }
+  function close(sheet) {
+    sheet.dataset.open = "false";
+    if (desk.dataset.open === "false" && ask.dataset.open === "false") document.body.style.overflow = "";
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  function closeAll() { close(desk); close(ask); }
+
+  document.addEventListener("click", function (e) {
+    var el = e.target.closest ? e.target.closest("[data-app],[data-ask],[data-close],[data-go]") : null;
+    if (!el) return;
+    if (el.hasAttribute("data-close")) { e.preventDefault(); closeAll(); return; }
+    if (el.hasAttribute("data-ask")) { e.preventDefault(); close(desk); open(ask); return; }
+    if (el.hasAttribute("data-go")) return;          // let the link through
+    if (el.hasAttribute("data-app") && !phone()) { e.preventDefault(); open(desk); }
+  });
+
+  document.querySelectorAll(".dlg").forEach(function (sheet) {
+    sheet.addEventListener("click", function (e) { if (e.target === sheet) close(sheet); });
+  });
+  addEventListener("keydown", function (e) { if (e.key === "Escape") closeAll(); });
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var d = new FormData(form);
+    var name = (d.get("name") || "").trim();
+    var email = (d.get("email") || "").trim();
+    function fail(m) { err.textContent = m; err.hidden = false; }
+    err.hidden = true;
+    if (name.length < 2) return fail("Please add your name.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("That email address looks wrong.");
+
+    go.disabled = true;
+    go.textContent = "Sending…";
+    fetch("/api/access-request", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: name, email: email,
+        reason: (d.get("reason") || "").trim(),
+        company: d.get("company") || "",
+        source: "site"
+      })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.j.ok) throw new Error(res.j.error || "Could not send that.");
+        form.innerHTML =
+          '<button class="dlg-x" type="button" data-close aria-label="Close">&#10005;</button>' +
+          '<div class="dlg-ok"><i>&#10003;</i><h4>Request sent</h4>' +
+          "<p>Thanks. You will hear back by email if an account is set up for you.</p></div>";
+      })
+      .catch(function (e2) {
+        go.disabled = false;
+        go.textContent = "Send request";
+        fail(e2.message || "Could not send that. Try again.");
+      });
+  });
 })();
 </script>
 

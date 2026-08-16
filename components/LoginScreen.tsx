@@ -11,6 +11,9 @@ export default function LoginScreen() {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
+
+  if (asking) return <RequestAccess onBack={() => setAsking(false)} />;
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const passwordValid = password.length >= 6;
@@ -119,9 +122,133 @@ export default function LoginScreen() {
         </button>
 
         <p className="login-foot">
-          <span className="login-dot" />
-          Private app &middot; invite-only
+          Private app &middot;
+          <button type="button" className="login-ask" onClick={() => setAsking(true)}>
+            request access
+          </button>
         </p>
+      </form>
+    </div>
+  );
+}
+
+function RequestAccess({ onBack }: { onBack: () => void }) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [reason, setReason] = useState('');
+  const [company, setCompany] = useState(''); // honeypot
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const canSubmit = name.trim().length >= 2 && emailValid && !busy;
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/access-request', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name, email, reason, company, source: 'login' }),
+      });
+      const json = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !json.ok) setError(json.error || 'Could not send that. Try again.');
+      else setSent(true);
+    } catch {
+      setError('No connection. Try again.');
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div className="login">
+      <div className="login-bg" aria-hidden="true">
+        <i className="lb-a" />
+        <i className="lb-b" />
+      </div>
+
+      <form className="login-card" onSubmit={submit}>
+        <div className="login-brand">
+          <Logo size={44} />
+          <span>MoneyFlow</span>
+        </div>
+
+        {sent ? (
+          <>
+            <h1 className="login-h">Request sent</h1>
+            <div className="ask-done">
+              <span className="tick">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+              </span>
+              <p>Thanks. You&apos;ll hear back by email if an account is set up for you.</p>
+            </div>
+            <button className="login-go" type="button" onClick={onBack}>
+              Back to log in
+            </button>
+          </>
+        ) : (
+          <>
+            <h1 className="login-h">Request access</h1>
+            <p className="login-sub">MoneyFlow is invite-only. Tell us who you are.</p>
+
+            <label className="lf">
+              <span className="lf-k">Name</span>
+              <span className="lf-in">
+                <input value={name} placeholder="Your name" autoComplete="name"
+                  onChange={(e) => setName(e.target.value)} />
+              </span>
+            </label>
+
+            <label className="lf">
+              <span className="lf-k">Email</span>
+              <span className="lf-in">
+                <input type="email" inputMode="email" autoComplete="email" value={email}
+                  placeholder="you@email.com" onChange={(e) => setEmail(e.target.value)} />
+              </span>
+            </label>
+
+            <label className="lf">
+              <span className="lf-k">Why</span>
+              <span className="lf-in">
+                <input value={reason} placeholder="Optional"
+                  onChange={(e) => setReason(e.target.value)} />
+              </span>
+            </label>
+
+            {/* Left empty by people, filled by bots. */}
+            <input className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true"
+              value={company} onChange={(e) => setCompany(e.target.value)} />
+
+            {error && (
+              <div className="login-err" role="alert">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7.5v5M12 16h.01" />
+                </svg>
+                {error}
+              </div>
+            )}
+
+            <button className="login-go" type="submit" disabled={!canSubmit} data-busy={busy}>
+              {busy ? <span className="login-spin" aria-hidden="true" /> : null}
+              {busy ? 'Sending…' : 'Send request'}
+            </button>
+
+            <p className="login-foot">
+              <button type="button" className="login-ask" onClick={onBack}>
+                Back to log in
+              </button>
+            </p>
+          </>
+        )}
       </form>
     </div>
   );

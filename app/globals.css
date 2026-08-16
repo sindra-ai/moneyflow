@@ -3914,25 +3914,60 @@ input {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 7px;
   margin-top: 20px;
   font: var(--t-meta);
   color: var(--ink-3);
 }
-.login-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--good);
-  box-shadow: 0 0 0 0 rgba(75, 227, 168, 0.55);
-  animation: loginPulse 2.6s infinite;
+.login-ask {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(255, 255, 255, 0.28);
+  cursor: pointer;
 }
-@keyframes loginPulse {
-  70% { box-shadow: 0 0 0 8px rgba(75, 227, 168, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(75, 227, 168, 0); }
+.login-ask:hover { color: var(--ink); }
+
+/* Request access: the same card, swapped in place of the sign-in fields. */
+.ask-note {
+  margin: -2px 0 14px;
+  font: var(--t-meta);
+  color: var(--ink-3);
+  line-height: 1.5;
+}
+.ask-done {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
+  padding: 12px 0 4px;
+}
+.ask-done .tick {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--good);
+  background: rgba(75, 227, 168, 0.14);
+}
+.ask-done p { font: var(--t-meta); color: var(--ink-2); line-height: 1.55; max-width: 30ch; }
+
+/* Honeypot: off-screen, never announced, never tabbed to. */
+.hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .login-bg i, .login-dot { animation: none; }
+  .login-bg i { animation: none; }
   .login-card { animation: none; }
 }
