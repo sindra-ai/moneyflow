@@ -77,6 +77,13 @@
 
 <script>
   document.documentElement.classList.add("js");
+(function () {
+  // Runs before first paint so a chosen theme never flashes the other one.
+  try {
+    var t = localStorage.getItem("mf-theme");
+    if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+})();
   (function () {
     if (/[?&](code|error)=/.test(location.search)) {
       location.replace("/app" + location.search + location.hash);
@@ -106,6 +113,14 @@
     --fill-2: rgba(255, 255, 255, 0.062);
     --fill-3: rgba(255, 255, 255, 0.1);
     --glass: rgba(16, 18, 27, 0.6);
+    --on-accent: #08090f;
+    --amb-1: rgba(138, 162, 255, 0.30);
+    --amb-2: rgba(185, 139, 255, 0.28);
+    --amb-3: rgba(120, 140, 255, 0.22);
+    --amb-4: rgba(255, 255, 255, 0.055);
+    --gl-op: 1;
+    --gl-op-sub: 0.24;
+    --grain-op: 0.05;
     --r-lg: 28px;
     --r-md: 20px;
     --r-sm: 14px;
@@ -119,6 +134,74 @@
     --shell: 1200px;
     --page-top: 152px;
     color-scheme: dark;
+  }
+
+  /* Light theme. The bare :root above is the dark default, so light is opt-in
+     either by system preference or by the toggle; an explicit choice always
+     wins over the system, which is why the media query is guarded. */
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --ground: #f6f7fc;
+      --a1: #5b6ef5;
+      --a2: #9a5cf0;
+      --mint: #0f9d6a;
+      --rose: #d94566;
+      --ink: #0f111b;
+      --ink-2: #545a70;
+      --ink-3: #838aa1;
+      --hair: rgba(12, 16, 38, 0.09);
+      --edge: rgba(12, 16, 38, 0.14);
+      --fill-1: rgba(12, 16, 38, 0.032);
+      --fill-2: rgba(12, 16, 38, 0.06);
+      --fill-3: rgba(12, 16, 38, 0.1);
+      --glass: rgba(255, 255, 255, 0.72);
+      --on-accent: #ffffff;
+      --amb-1: rgba(108, 128, 255, 0.3);
+      --amb-2: rgba(170, 116, 255, 0.28);
+      --amb-3: rgba(126, 150, 255, 0.22);
+    --amb-4: rgba(255, 255, 255, 0);
+      --amb-4: rgba(255, 255, 255, 0);
+      --gl-op: 0;
+      --gl-op-sub: 0;
+      --grain-op: 0;
+      color-scheme: light;
+    }
+  }
+  :root[data-theme="light"] {
+    --ground: #f6f7fc;
+    --a1: #5b6ef5;
+    --a2: #9a5cf0;
+    --mint: #0f9d6a;
+    --rose: #d94566;
+    --ink: #0f111b;
+    --ink-2: #545a70;
+    --ink-3: #838aa1;
+    --hair: rgba(12, 16, 38, 0.09);
+    --edge: rgba(12, 16, 38, 0.14);
+    --fill-1: rgba(12, 16, 38, 0.032);
+    --fill-2: rgba(12, 16, 38, 0.06);
+    --fill-3: rgba(12, 16, 38, 0.1);
+    --glass: rgba(255, 255, 255, 0.72);
+    --on-accent: #ffffff;
+    --amb-1: rgba(108, 128, 255, 0.3);
+    --amb-2: rgba(170, 116, 255, 0.28);
+    --amb-3: rgba(126, 150, 255, 0.22);
+    --amb-4: rgba(255, 255, 255, 0);
+    --gl-op: 0;
+    --gl-op-sub: 0;
+    --grain-op: 0;
+    color-scheme: light;
+  }
+
+  /* A flat ground reads as a dead screen. Three very soft washes, fixed to the
+     viewport, give the page depth without becoming a pattern. */
+  .amb {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(46% 34% at 78% 18%, var(--amb-4), transparent 72%),
+      radial-gradient(64% 50% at 16% 8%, var(--amb-1), transparent 70%),
+      radial-gradient(58% 46% at 88% 24%, var(--amb-2), transparent 72%),
+      radial-gradient(80% 52% at 44% 96%, var(--amb-3), transparent 74%);
   }
 
   * { box-sizing: border-box; }
@@ -158,8 +241,8 @@
     pointer-events: none;
   }
   #gl.on { opacity: 1; }
-  body[data-route="home"] #gl { opacity: 1; }
-  body:not([data-route="home"]) #gl { opacity: 0.24; }
+  body[data-route="home"] #gl { opacity: var(--gl-op); }
+  body:not([data-route="home"]) #gl { opacity: var(--gl-op-sub); }
 
   .veil {
     position: fixed; inset: 0; z-index: 1; pointer-events: none;
@@ -205,7 +288,7 @@
   }
   .nav-links a:hover { color: var(--ink); background: var(--fill-1); }
   .nav-links a[data-on="true"] { color: var(--ink); background: var(--fill-2); }
-  .nav-cta { margin-left: auto; }
+  .nav-cta { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 
   .burger { display: none; width: 40px; height: 40px; padding: 0; border-radius: 50%;
     background: var(--fill-2); border: 1px solid var(--edge); flex: none;
@@ -244,7 +327,7 @@
     transition: transform 0.35s var(--spring), box-shadow 0.35s var(--ease), background 0.25s;
     white-space: nowrap; will-change: transform;
   }
-  .btn-key { background: linear-gradient(120deg, var(--a1), var(--a2)); color: #08090f;
+  .btn-key { background: linear-gradient(120deg, var(--a1), var(--a2)); color: var(--on-accent);
     box-shadow: 0 14px 36px -16px rgba(150, 132, 255, 0.9); }
   .btn-key:hover { box-shadow: 0 20px 48px -14px rgba(150, 132, 255, 1); }
   .btn-ghost { background: var(--fill-2); border: 1px solid var(--edge); }
@@ -388,7 +471,7 @@
     padding: 22px; background: rgba(4, 5, 10, 0.72); backdrop-filter: blur(9px); }
   .dlg[data-open="true"] { display: grid; }
   .dlg-card { width: min(100%, 460px); max-height: 88svh; overflow-y: auto;
-    border-radius: 26px; border: 1px solid var(--edge); background: #0d0f18;
+    border-radius: 26px; border: 1px solid var(--edge); background: var(--ground);
     padding: 30px 28px; display: grid; gap: 14px;
     box-shadow: 0 40px 120px -30px rgba(0, 0, 0, 0.9);
     animation: sheetIn 0.34s var(--ease) both; }
@@ -453,7 +536,7 @@
   .cur.big { width: 54px; height: 54px; margin: -27px 0 0 -27px; background: rgba(160, 150, 255, 0.14); }
 
   /* grain */
-  .grain { position: fixed; inset: 0; z-index: 3; pointer-events: none; opacity: 0.05;
+  .grain { position: fixed; inset: 0; z-index: 3; pointer-events: none; opacity: var(--grain-op);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
   @media (max-width: 1020px) {
@@ -463,15 +546,17 @@
     .bento .card, .bento .card.w3 { grid-column: span 1; }
     .stats { grid-template-columns: repeat(2, 1fr); }
     /* narrow screens put copy over the orb, so let type win */
-    body[data-route="home"] #gl { opacity: 0.5; }
-    body:not([data-route="home"]) #gl { opacity: 0.16; }
+    body[data-route="home"] #gl { opacity: calc(var(--gl-op) * 0.5); }
+    body:not([data-route="home"]) #gl { opacity: calc(var(--gl-op-sub) * 0.67); }
     .veil { background:
-      radial-gradient(90% 46% at 62% 26%, transparent 0%, rgba(5,6,11,0.55) 62%, var(--ground) 100%),
-      linear-gradient(180deg, rgba(5,6,11,0.45) 0%, transparent 26%, rgba(5,6,11,0.7) 76%, var(--ground) 100%); }
+      radial-gradient(90% 46% at 62% 26%, transparent 0%, color-mix(in srgb, var(--ground) 55%, transparent) 62%, var(--ground) 100%),
+      linear-gradient(180deg, color-mix(in srgb, var(--ground) 45%, transparent) 0%, transparent 26%, color-mix(in srgb, var(--ground) 70%, transparent) 76%, var(--ground) 100%); }
     .nav-links { display: none; }
     .nav { column-gap: 10px; row-gap: 0; }
     .burger { display: flex; }
     .sheet { display: flex; }
+    /* the toggle lives in the dropdown on phones; in the bar it wraps the nav */
+    .nav-cta .themer { display: none; }
     .cur { display: none; }
   }
   @media (max-width: 560px) {
@@ -769,6 +854,142 @@
     text-transform: none;
   }
   .play:hover { background: var(--fill-3); }
+
+  /* ------------------------------------------------- core feature cards */
+  .f3-wrap { padding: 104px 0 20px; text-align: center; }
+  .f3-eyebrow {
+    font-size: 12px; font-weight: 640; text-transform: uppercase; letter-spacing: 0.1em;
+    background: linear-gradient(90deg, var(--a1), var(--a2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    margin-bottom: 16px;
+  }
+  .f3-title {
+    font-size: clamp(28px, 4vw, 44px); font-weight: 600; letter-spacing: -0.04em;
+    line-height: 1.06; color: var(--ink); margin-bottom: 12px; text-wrap: balance;
+  }
+  .f3-sub { color: var(--ink-2); font-size: 17px; line-height: 1.5; margin-bottom: 46px; }
+  .f3-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  @media (max-width: 900px) { .f3-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px) { .f3-grid { grid-template-columns: 1fr; } }
+
+  .f3-card {
+    position: relative; overflow: hidden; height: 340px;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    border-radius: var(--r-lg); text-align: left;
+    background: var(--fill-1); border: 1px solid var(--hair);
+    box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.7);
+  }
+  /* The wash sits behind the contents, fading into the card's own fill. */
+  .f3-card::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+  }
+  .f3-card-1::before { background: radial-gradient(circle at 50% -8%, rgba(138,162,255,0.72) 0%, rgba(185,139,255,0.34) 34%, transparent 66%); }
+  .f3-card-2::before { background: radial-gradient(circle at 50% -8%, rgba(185,139,255,0.68) 0%, rgba(138,162,255,0.34) 34%, transparent 66%); }
+  .f3-card-3::before { background: radial-gradient(circle at 50% -8%, rgba(75,227,168,0.46) 0%, rgba(138,162,255,0.4) 34%, transparent 66%); }
+  .f3-card h3 {
+    position: relative; z-index: 2; padding: 24px;
+    font-size: 17px; font-weight: 620; letter-spacing: -0.02em; color: var(--ink);
+  }
+  .f3-vis { position: absolute; inset: 0 0 66px; z-index: 1; }
+
+  /* card 1: a question, answered */
+  .f3-ask {
+    position: absolute; top: 26px; left: 22px; right: 22px;
+    background: var(--glass); backdrop-filter: blur(14px);
+    border: 1px solid var(--edge); border-radius: 14px; padding: 15px 16px;
+    font-size: 13px; line-height: 1.6; color: var(--ink-2);
+    box-shadow: 0 12px 30px -12px rgba(0,0,0,0.5);
+  }
+  .f3-hi {
+    font-weight: 620;
+    background: linear-gradient(90deg, var(--a1), var(--a2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .f3-pill {
+    position: absolute; top: 178px; left: 30px;
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 15px; border-radius: 999px;
+    background: var(--glass); border: 1px solid var(--edge);
+    font-size: 12.5px; font-weight: 620; color: var(--ink);
+    box-shadow: 0 10px 24px -10px rgba(0,0,0,0.6);
+  }
+  .f3-pill s { color: var(--a2); font-size: 14px; text-decoration: none; }
+  .f3-cursor { position: absolute; top: 202px; left: 104px; z-index: 3;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45)); }
+
+  /* card 2: accounts, connected */
+  .f3-rows { position: absolute; top: 34px; left: 22px; right: 22px; display: grid; gap: 9px; }
+  .f3-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 13px; border-radius: 12px;
+    background: var(--glass); border: 1px solid var(--edge);
+    font-size: 12.5px; color: var(--ink-2);
+  }
+  .f3-row b { color: var(--ink); font-weight: 560; }
+  .f3-sw { width: 30px; height: 17px; border-radius: 999px; background: var(--fill-3);
+    position: relative; flex: none; }
+  .f3-sw i { position: absolute; top: 2.5px; left: 2.5px; width: 12px; height: 12px;
+    border-radius: 50%; background: var(--ink-3); }
+  .f3-row[data-on="true"] .f3-sw { background: linear-gradient(120deg, var(--a1), var(--a2)); }
+  .f3-row[data-on="true"] .f3-sw i { left: auto; right: 2.5px; background: #fff; }
+  .f3-row[data-on="true"] b { color: var(--mint); }
+
+  /* card 3: find any payment */
+  .f3-mesh {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(var(--hair) 1px, transparent 1px),
+      linear-gradient(90deg, var(--hair) 1px, transparent 1px);
+    background-size: 17px 17px;
+    -webkit-mask-image: radial-gradient(circle at center top, #000 0%, transparent 78%);
+    mask-image: radial-gradient(circle at center top, #000 0%, transparent 78%);
+  }
+  .f3-stack { position: absolute; top: 40px; left: 50%; translate: -50% 0; width: 176px; }
+  .f3-txn {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 13px; border-radius: 13px; margin-bottom: 8px;
+    background: var(--glass); border: 1px solid var(--edge);
+    font-size: 12px; color: var(--ink-2);
+    box-shadow: 0 10px 24px -14px rgba(0,0,0,0.7);
+  }
+  .f3-txn b { color: var(--ink); font-weight: 560; }
+  .f3-txn:nth-child(1) { transform: scale(0.9); opacity: 0.5; }
+  .f3-txn:nth-child(2) { transform: scale(0.95); opacity: 0.78; }
+  .f3-find {
+    position: absolute; top: 208px; left: 50%; translate: -50% 0;
+    display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+    padding: 8px 17px; border-radius: 999px;
+    background: var(--glass); border: 1px solid var(--edge);
+    font-size: 12.5px; font-weight: 560; color: var(--ink);
+    box-shadow: 0 12px 26px -12px rgba(0,0,0,0.6);
+  }
+
+
+  /* ------------------------------------------------------- theme toggle */
+  .themer {
+    width: 38px; height: 38px; flex: none;
+    display: grid; place-items: center;
+    border-radius: 50%; border: 1px solid var(--edge);
+    background: var(--fill-2); color: var(--ink-2); cursor: pointer;
+    transition: background 0.25s var(--ease), color 0.25s var(--ease);
+  }
+  .themer:hover { background: var(--fill-3); color: var(--ink); }
+  .sheet-theme {
+    display: flex; align-items: center; gap: 10px;
+    padding: 15px 18px; border-radius: 18px; border: 0;
+    background: none; color: var(--ink-2); font: inherit;
+    font-size: 16.5px; font-weight: 560; cursor: pointer; text-align: left;
+  }
+  .sheet-theme:hover { background: var(--fill-2); color: var(--ink); }
+  /* Show the icon for the mode you would switch TO, never the current one. */
+  .th-sun { display: none; }
+  .th-moon { display: block; }
+  :root[data-theme="light"] .th-sun { display: block; }
+  :root[data-theme="light"] .th-moon { display: none; }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) .th-sun { display: block; }
+    :root:not([data-theme="dark"]) .th-moon { display: none; }
+  }
   .play-auto { color: var(--ink-2); }
   .play-auto i { width: 6px; height: 6px; border-radius: 50%; background: var(--mint);
     box-shadow: 0 0 0 0 rgba(75, 227, 168, 0.5); animation: playPulse 2.2s infinite; }
@@ -891,6 +1112,7 @@
     font-size: 12px; font-weight: 640; }
 </style>
 
+<div class="amb" aria-hidden="true"></div>
 <canvas id="gl" aria-hidden="true"></canvas>
 <div class="veil" aria-hidden="true"></div>
 <div class="grain" aria-hidden="true"></div>
@@ -904,11 +1126,12 @@
     <a href="#/wealth">Wealth</a>
     <a href="#/security">Security</a>
   </div>
-  <div class="nav-cta"><a class="btn btn-key mag" href="/app" data-app>Open the app</a></div>
+  <div class="nav-cta"><button class="themer" data-theme-toggle aria-label="Switch between light and dark"><svg class="th-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.2M12 19.2v2.2M4.2 12H2M22 12h-2.2M6.3 6.3 4.8 4.8M19.2 19.2l-1.5-1.5M17.7 6.3l1.5-1.5M4.8 19.2l1.5-1.5"/></svg><svg class="th-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.2A8.4 8.4 0 1 1 9.8 4a6.6 6.6 0 0 0 10.2 10.2Z"/></svg></button><a class="btn btn-key mag" href="/app" data-app>Open the app</a></div>
   <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">
     <i></i><i></i>
   </button>
   <div class="sheet" id="sheet" aria-hidden="true">
+  <button class="sheet-theme" data-theme-toggle><svg class="th-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.2M12 19.2v2.2M4.2 12H2M22 12h-2.2M6.3 6.3 4.8 4.8M19.2 19.2l-1.5-1.5M17.7 6.3l1.5-1.5M4.8 19.2l1.5-1.5"/></svg><svg class="th-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.2A8.4 8.4 0 1 1 9.8 4a6.6 6.6 0 0 0 10.2 10.2Z"/></svg><span data-theme-label>Light mode</span></button>
   <a href="#/reconciliation">Reconciliation</a>
   <a href="#/assistant">Assistant</a>
   <a href="#/wealth">Wealth</a>
@@ -1248,6 +1471,56 @@ Ticks off bills the moment the money actually leaves,
     <div class="shell statement rv">
       <p>Most money apps tell you what you <b>spent</b>. This one tells you what you can
         <b>safely spend next</b>.</p>
+    </div>
+
+    <div class="shell f3-wrap rv">
+      <div class="f3-eyebrow">Core features</div>
+      <h2 class="f3-title">Three things it does well.</h2>
+      <p class="f3-sub">Ask it anything, connect your accounts,<br />and find any payment in seconds.</p>
+
+      <div class="f3-grid">
+        <div class="f3-card f3-card-1">
+          <div class="f3-vis">
+            <div class="f3-ask">
+              How much did I spend on <span class="f3-hi">eating out</span> this month, and
+              am I <span class="f3-hi">over budget</span>?
+            </div>
+            <span class="f3-pill"><s>&#10022;</s>&pound;164, &pound;34 over</span>
+            <svg class="f3-cursor" width="22" height="22" viewBox="0 0 24 24" fill="var(--ink)" stroke="var(--ground)" stroke-width="1.4">
+              <path d="M4 2L20 11L11 13L9 22L4 2Z" />
+            </svg>
+          </div>
+          <h3>Ask it anything</h3>
+        </div>
+
+        <div class="f3-card f3-card-2">
+          <div class="f3-vis">
+            <div class="f3-rows">
+              <div class="f3-row" data-on="true"><span>Current account</span><b>Connected</b><span class="f3-sw"><i></i></span></div>
+              <div class="f3-row" data-on="true"><span>Savings</span><b>Connected</b><span class="f3-sw"><i></i></span></div>
+              <div class="f3-row"><span>Credit card</span><b>Not linked</b><span class="f3-sw"><i></i></span></div>
+              <div class="f3-row"><span>Joint account</span><b>Not linked</b><span class="f3-sw"><i></i></span></div>
+            </div>
+          </div>
+          <h3>Your accounts, read only</h3>
+        </div>
+
+        <div class="f3-card f3-card-3">
+          <div class="f3-vis">
+            <div class="f3-mesh"></div>
+            <div class="f3-stack">
+              <div class="f3-txn"><b>Pulse Gym</b><span>&minus;&pound;48.00</span></div>
+              <div class="f3-txn"><b>Loop Mobile</b><span>&minus;&pound;24.00</span></div>
+              <div class="f3-txn"><b>Harbour Loans</b><span>&minus;&pound;310.00</span></div>
+            </div>
+            <span class="f3-find">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              Search every payment
+            </span>
+          </div>
+          <h3>Find it in seconds</h3>
+        </div>
+      </div>
     </div>
 
     <div class="shell rv" style="margin-top:20px">
@@ -2477,6 +2750,37 @@ Open Banking, authorised on your bank&rsquo;s own screen.
         fail(e2.message || "Could not send that. Try again.");
       });
   });
+})();
+</script>
+
+<script>
+/* Theme toggle. No stored choice means follow the system, which is why the
+   attribute is only ever set once the user actually picks. */
+(function () {
+  var root = document.documentElement;
+  function current() {
+    return root.getAttribute("data-theme") ||
+      (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  }
+  function sync() {
+    var next = current() === "light" ? "dark" : "light";
+    document.querySelectorAll("[data-theme-label]").forEach(function (el) {
+      el.textContent = next === "light" ? "Light mode" : "Dark mode";
+    });
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute("content", current() === "light" ? "#f6f7fc" : "#05060b");
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-theme-toggle]");
+    if (!b) return;
+    e.preventDefault();
+    var next = current() === "light" ? "dark" : "light";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("mf-theme", next); } catch (err) {}
+    sync();
+  });
+  matchMedia("(prefers-color-scheme: light)").addEventListener("change", sync);
+  sync();
 })();
 </script>
 
