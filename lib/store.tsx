@@ -393,12 +393,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return () => mq.removeEventListener("change", update);
   }, []);
 
-  const resolvedTheme: "dark" | "light" =
-    store.settings.theme === "system"
-      ? systemDark
-        ? "dark"
-        : "light"
-      : store.settings.theme;
+  // "System" also honours a theme picked on the marketing site: that is still
+  // an explicit choice by the same person, and without it a visitor who chose
+  // light on mymoneyflow.co lands on a dark login because their OS is dark.
+  const resolvedTheme: "dark" | "light" = (() => {
+    if (store.settings.theme !== "system") return store.settings.theme;
+    if (typeof window !== "undefined") {
+      const site = window.localStorage.getItem("mf-theme");
+      if (site === "dark" || site === "light") return site;
+    }
+    return systemDark ? "dark" : "light";
+  })();
 
   // Reflect theme on <html>.
   useEffect(() => {
