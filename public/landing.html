@@ -121,6 +121,9 @@
     --gl-op: 1;
     --gl-op-sub: 0.24;
     --grain-op: 0.05;
+    --vid-op: 1;
+    --veil-top: rgba(5, 6, 11, 0.45);
+    --veil-side: rgba(5, 6, 11, 0.74);
     --r-lg: 28px;
     --r-md: 20px;
     --r-sm: 14px;
@@ -164,6 +167,9 @@
       --gl-op: 0;
       --gl-op-sub: 0;
       --grain-op: 0;
+      --vid-op: 0.85;
+      --veil-top: rgba(246, 247, 252, 0.55);
+      --veil-side: rgba(246, 247, 252, 0.8);
       color-scheme: light;
     }
   }
@@ -190,6 +196,9 @@
     --gl-op: 0;
     --gl-op-sub: 0;
     --grain-op: 0;
+    --vid-op: 0.85;
+    --veil-top: rgba(246, 247, 252, 0.55);
+    --veil-side: rgba(246, 247, 252, 0.8);
     color-scheme: light;
   }
 
@@ -247,9 +256,9 @@
   .veil {
     position: fixed; inset: 0; z-index: 1; pointer-events: none;
     background:
-      linear-gradient(90deg, var(--ground) 4%, rgba(5, 6, 11, 0.82) 26%, transparent 58%),
-      radial-gradient(120% 70% at 50% 0%, transparent 34%, rgba(5, 6, 11, 0.5) 74%, var(--ground) 100%),
-      linear-gradient(180deg, transparent 58%, var(--ground) 97%);
+      linear-gradient(90deg, var(--ground) 2%, var(--veil-side) 30%, transparent 62%),
+      radial-gradient(120% 70% at 50% 0%, transparent 40%, var(--veil-top) 78%, var(--ground) 100%),
+      linear-gradient(180deg, transparent 62%, var(--ground) 97%);
   }
 
   /* ------------------------------------------------------------------ nav */
@@ -855,6 +864,17 @@
   }
   .play:hover { background: var(--fill-3); }
 
+
+  /* -------------------------------------------------- hero background video */
+  .herovid {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    width: 100%; height: 100%; object-fit: cover;
+    opacity: 0; transition: opacity 1.2s var(--ease);
+  }
+  /* Only the home route runs it, and it replaces the orb rather than stacking. */
+  body[data-route="home"] .herovid { opacity: var(--vid-op); }
+  body[data-route="home"] #gl { opacity: 0; }
+
   /* ------------------------------------------------- core feature cards */
   .f3-wrap { padding: 104px 0 20px; text-align: center; }
   .f3-eyebrow {
@@ -1113,6 +1133,8 @@
 </style>
 
 <div class="amb" aria-hidden="true"></div>
+<video class="herovid" id="herovid" aria-hidden="true" muted playsinline loop
+       preload="none" poster="/hero-poster.jpg" data-src="/hero.mp4"></video>
 <canvas id="gl" aria-hidden="true"></canvas>
 <div class="veil" aria-hidden="true"></div>
 <div class="grain" aria-hidden="true"></div>
@@ -2781,6 +2803,27 @@ Open Banking, authorised on your bank&rsquo;s own screen.
   });
   matchMedia("(prefers-color-scheme: light)").addEventListener("change", sync);
   sync();
+})();
+</script>
+
+<script>
+/* Hero video. Muted and inline, or no browser will autoplay it. The file is
+   4MB, so phones and reduced-motion get the poster frame instead and never
+   fetch it. */
+(function () {
+  var v = document.getElementById("herovid");
+  if (!v) return;
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var small = innerWidth < 820 || matchMedia("(pointer: coarse)").matches;
+  if (reduce || small) {
+    v.style.background = "center/cover no-repeat url('/hero-poster.jpg')";
+    return;
+  }
+  v.src = v.dataset.src;
+  v.muted = true;            // belt and braces: the attribute alone is not
+  v.defaultMuted = true;     // always honoured after a dynamic src
+  var go = v.play();
+  if (go && go.catch) go.catch(function () {});
 })();
 </script>
 
