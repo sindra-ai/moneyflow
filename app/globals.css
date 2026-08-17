@@ -3798,6 +3798,9 @@ input {
   letter-spacing: -0.02em;
 }
 .login-brand img { filter: drop-shadow(0 6px 18px rgba(150, 132, 255, 0.5)); }
+/* It is a link back to the site now, so it must not read as body text. */
+.login-brand { color: inherit; text-decoration: none; cursor: pointer; }
+.login-brand:hover { opacity: 0.82; }
 
 .login-h {
   font: var(--t-title);

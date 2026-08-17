@@ -45,7 +45,12 @@ const THEME_BOOT = `(function(){try{
 var raw=localStorage.getItem('moneyflow:v1');
 var mode=raw?(JSON.parse(raw).settings||{}).theme:'system';
 if(mode!=='dark'&&mode!=='light'){
-  mode=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+  // Before signing in there are no app settings, so carry over the choice made
+  // on the marketing site; otherwise the login screen contradicts the page the
+  // visitor just came from.
+  var site=localStorage.getItem('mf-theme');
+  mode=(site==='dark'||site==='light')?site
+    :(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
 }
 document.documentElement.dataset.theme=mode;
 var m=document.querySelector('meta[name="theme-color"]');

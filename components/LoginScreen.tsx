@@ -38,10 +38,10 @@ export default function LoginScreen() {
       </div>
 
       <form className="login-card" onSubmit={submit}>
-        <div className="login-brand">
+        <a className="login-brand" href="/" aria-label="Back to moneyflow.co">
           <Logo size={44} />
           <span>MoneyFlow</span>
-        </div>
+        </a>
 
         <h1 className="login-h">Welcome back</h1>
         <p className="login-sub">Pick up exactly where you left off, on any device.</p>
@@ -172,10 +172,10 @@ function RequestAccess({ onBack }: { onBack: () => void }) {
       </div>
 
       <form className="login-card" onSubmit={submit}>
-        <div className="login-brand">
+        <a className="login-brand" href="/" aria-label="Back to moneyflow.co">
           <Logo size={44} />
           <span>MoneyFlow</span>
-        </div>
+        </a>
 
         {sent ? (
           <>
