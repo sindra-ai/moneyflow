@@ -122,6 +122,11 @@
     --gl-op-sub: 0.24;
     --grain-op: 0.05;
     --vid-op: 1;
+    --vid-fade: 1;
+    --nav-bg: rgba(9, 10, 17, 0.72);
+    --nav-bg-open: rgba(9, 10, 17, 0.92);
+    --nav-shadow: #000;
+    --nav-ink: var(--ink-2);
     --veil-top: rgba(5, 6, 11, 0.45);
     --veil-side: rgba(5, 6, 11, 0.74);
     --r-lg: 28px;
@@ -168,6 +173,10 @@
       --gl-op-sub: 0;
       --grain-op: 0;
       --vid-op: 0.85;
+      --nav-bg: rgba(255, 255, 255, 0.8);
+      --nav-bg-open: rgba(255, 255, 255, 0.95);
+      --nav-shadow: rgba(12, 16, 38, 0.3);
+      --nav-ink: #3d445c;
       --veil-top: rgba(246, 247, 252, 0.55);
       --veil-side: rgba(246, 247, 252, 0.8);
       color-scheme: light;
@@ -197,6 +206,10 @@
     --gl-op-sub: 0;
     --grain-op: 0;
     --vid-op: 0.85;
+    --nav-bg: rgba(255, 255, 255, 0.8);
+    --nav-bg-open: rgba(255, 255, 255, 0.95);
+    --nav-shadow: rgba(12, 16, 38, 0.3);
+    --nav-ink: #3d445c;
     --veil-top: rgba(246, 247, 252, 0.55);
     --veil-side: rgba(246, 247, 252, 0.8);
     color-scheme: light;
@@ -275,11 +288,11 @@
     transition: background 0.5s var(--ease), border-color 0.5s var(--ease), box-shadow 0.5s var(--ease);
   }
   .nav[data-stuck="true"] {
-    background: rgba(9, 10, 17, 0.72);
-    border-color: var(--hair);
+    background: var(--nav-bg);
+    border-color: var(--edge);
     backdrop-filter: blur(28px) saturate(1.7);
     -webkit-backdrop-filter: blur(28px) saturate(1.7);
-    box-shadow: 0 20px 50px -30px #000;
+    box-shadow: 0 20px 50px -30px var(--nav-shadow);
   }
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: -0.02em; }
   .wm { font-weight: 600; }
@@ -292,7 +305,7 @@
   .nav-links { display: flex; gap: 4px; margin-left: 12px; }
   .nav-links a {
     position: relative; padding: 8px 14px; border-radius: var(--pill);
-    font-size: 14px; font-weight: 500; color: var(--ink-2);
+    font-size: 14px; font-weight: 500; color: var(--nav-ink);
     transition: color 0.25s, background 0.25s;
   }
   .nav-links a:hover { color: var(--ink); background: var(--fill-1); }
@@ -319,11 +332,11 @@
   }
   .nav[data-open="true"] {
     border-radius: 28px;
-    background: rgba(9, 10, 17, 0.92);
-    border-color: var(--hair);
+    background: var(--nav-bg-open);
+    border-color: var(--edge);
     backdrop-filter: blur(28px) saturate(1.7);
     -webkit-backdrop-filter: blur(28px) saturate(1.7);
-    box-shadow: 0 26px 60px -32px #000;
+    box-shadow: 0 26px 60px -32px var(--nav-shadow);
   }
   .sheet a { padding: 15px 18px; border-radius: 18px; font-size: 16.5px; font-weight: 560;
     color: var(--ink-2); transition: background 0.25s, color 0.25s; }
@@ -600,8 +613,13 @@
   .app-ui {
     --ui-ink: #f2f4fd; --ui-ink-2: #9ba2bd; --ui-ink-3: #656b85;
     --ui-fill-1: rgba(255, 255, 255, 0.038);
+    --ui-fill-2: rgba(255, 255, 255, 0.11);
     --ui-hair: rgba(255, 255, 255, 0.065);
     --ui-track: rgba(255, 255, 255, 0.08);
+    --ui-on-accent: var(--ui-on-accent);
+    --ui-key-bg: #fff;
+    --ui-screen: radial-gradient(120% 80% at 20% 0%, #131728 0%, #08090f 58%);
+    --ui-glass: var(--ui-glass);
     width: 375px; height: 791px; flex: none;
     transform: scale(0.74133);
     transform-origin: 0 0;
@@ -610,6 +628,34 @@
     display: flex; flex-direction: column;
   }
   .ui-pad { padding: 0 20px 104px; }
+
+  /* the mockup follows the page: a dark phone on a light page reads as a
+     screenshot of a different product */
+  :root[data-theme="light"] .app-ui {
+    --ui-ink: #0f111b; --ui-ink-2: #545a70; --ui-ink-3: #868ba0;
+    --ui-fill-1: rgba(12, 16, 38, 0.042);
+    --ui-fill-2: rgba(12, 16, 38, 0.085);
+    --ui-hair: rgba(12, 16, 38, 0.1);
+    --ui-track: rgba(12, 16, 38, 0.11);
+    --ui-on-accent: #ffffff;
+    --ui-key-bg: #14161f;
+    --ui-screen: radial-gradient(120% 80% at 20% 0%, #ffffff 0%, #f1f2f8 58%);
+    --ui-glass: rgba(255, 255, 255, 0.72);
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) .app-ui {
+      --ui-ink: #0f111b; --ui-ink-2: #545a70; --ui-ink-3: #868ba0;
+      --ui-fill-1: rgba(12, 16, 38, 0.042);
+      --ui-fill-2: rgba(12, 16, 38, 0.085);
+      --ui-hair: rgba(12, 16, 38, 0.1);
+      --ui-track: rgba(12, 16, 38, 0.11);
+      --ui-on-accent: #ffffff;
+      --ui-key-bg: #14161f;
+      --ui-screen: radial-gradient(120% 80% at 20% 0%, #ffffff 0%, #f1f2f8 58%);
+      --ui-glass: rgba(255, 255, 255, 0.72);
+    }
+  }
+
 
   .ui-top { height: 46px; margin-top: 46px; display: flex; align-items: center; justify-content: space-between; }
   .ui-logo { width: 34px; height: 34px; display: block; }
@@ -658,7 +704,7 @@
   .ui-safe {
     margin-top: 10px; padding: 16px 18px; border-radius: 28px;
     background: linear-gradient(160deg, rgba(138,162,255,0.13), rgba(185,139,255,0.11));
-    border: 1px solid rgba(255,255,255,0.11);
+    border: 1px solid var(--ui-fill-2);
   }
   .ui-safe-top { display: flex; justify-content: space-between; align-items: baseline; }
   .ui-safe-lab { font-size: 13px; font-weight: 500; color: var(--ui-ink-3); }
@@ -685,7 +731,7 @@
   .ui-ramt { flex: none; font-size: 17px; font-weight: 620; letter-spacing: -0.028em; }
   .ui-tick {
     width: 26px; height: 26px; flex: none; display: grid; place-items: center;
-    border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.11);
+    border-radius: 50%; border: 1.5px solid var(--ui-fill-2);
     font-size: 12px; color: transparent;
   }
   .ui-tick.on { background: #4be3a8; border-color: transparent; color: #06251a; font-weight: 700; }
@@ -694,17 +740,17 @@
     position: absolute; left: 50%; transform: translateX(-50%); bottom: 14px;
     width: 335px; height: 62px; padding: 6px;
     display: grid; grid-template-columns: repeat(4, 1fr);
-    border-radius: 999px; background: rgba(20, 22, 32, 0.6);
+    border-radius: 999px; background: var(--ui-glass);
     backdrop-filter: blur(34px) saturate(190%);
     -webkit-backdrop-filter: blur(34px) saturate(190%);
-    border: 1px solid rgba(255,255,255,0.11);
+    border: 1px solid var(--ui-fill-2);
   }
   .ui-tab {
     display: grid; place-items: center; border-radius: 999px;
     font-size: 11px; font-weight: 600; color: var(--ui-ink-3);
   }
   .ui-tab[data-on="true"] {
-    color: #0a0c16; background: linear-gradient(120deg, var(--a1), var(--a2));
+    color: var(--ui-on-accent); background: linear-gradient(120deg, var(--a1), var(--a2));
   }
 
 
@@ -732,7 +778,7 @@
   .ui-digest {
     margin-top: 12px; padding: 16px 18px; border-radius: 28px;
     background: linear-gradient(160deg, rgba(138,162,255,0.13), rgba(185,139,255,0.11));
-    border: 1px solid rgba(255,255,255,0.11);
+    border: 1px solid var(--ui-fill-2);
   }
   .ui-digest-top { display: flex; justify-content: space-between; align-items: baseline; }
   .ui-digest-k { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ui-ink-2); }
@@ -754,7 +800,7 @@
   .ui-bd-top { display: flex; justify-content: space-between; align-items: baseline; }
   .ui-bd-k { font-size: 16.5px; font-weight: 600; }
   .ui-bd-v { font-size: 13px; color: var(--ui-ink-2); }
-  .ui-bd-bar { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.07); margin-top: 7px; overflow: hidden; }
+  .ui-bd-bar { height: 8px; border-radius: 999px; background: var(--ui-fill-1); margin-top: 7px; overflow: hidden; }
   .ui-bd-bar i { display: block; height: 100%; border-radius: 999px; }
 
   /* --- assistant screen --- */
@@ -762,26 +808,27 @@
   .ui-aihead b { font-size: 17px; font-weight: 620; }
   .ui-voice {
     display: flex; align-items: center; gap: 10px; margin-top: 12px;
-    padding: 11px 15px; border-radius: 999px; background: rgba(255,255,255,0.07);
+    padding: 11px 15px; border-radius: 999px; background: var(--ui-fill-1);
     border: 1px solid var(--ui-hair); font-size: 13px; font-weight: 640; color: var(--ui-ink-2);
   }
   .ui-voice i { width: 10px; height: 10px; border-radius: 50%; background: var(--a2); }
   .ui-voice s { margin-left: auto; text-decoration: none; color: #ff7591; font-weight: 680; }
   .ui-thread { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
   .ui-bub { max-width: 84%; padding: 11px 14px; border-radius: 18px; font-size: 16px; line-height: 1.4; }
-  .ui-bub.me { align-self: flex-end; background: linear-gradient(120deg, var(--a1), var(--a2)); color: #0a0c16; font-weight: 500; border-bottom-right-radius: 6px; }
+  .ui-bub.me { align-self: flex-end; background: linear-gradient(120deg, var(--a1), var(--a2)); color: var(--ui-on-accent); font-weight: 500; border-bottom-right-radius: 6px; }
   .ui-bub.ai { background: rgba(255,255,255,0.055); border: 1px solid var(--ui-hair); border-bottom-left-radius: 6px; }
   .ui-bub.ai b { font-weight: 640; }
   .ui-chat { flex: 1; display: flex; flex-direction: column; }
   .ui-chat .ui-thread { flex: 1; }
   .ui-bar { margin-top: auto; padding-bottom: 22px; display: flex; gap: 10px; align-items: center; }
-  .ui-bar-in { flex: 1; height: 46px; border-radius: 999px; background: rgba(255,255,255,0.07); display: flex; align-items: center; padding: 0 16px; font-size: 15px; color: var(--ui-ink-3); }
-  .ui-bar-b { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,0.07); color: var(--ui-ink-2); font-size: 16px; }
-  .ui-bar-b.send { background: linear-gradient(120deg, var(--a1), var(--a2)); color: #0a0c16; }
+  .ui-bar-in { flex: 1; height: 46px; border-radius: 999px; background: var(--ui-fill-1); display: flex; align-items: center; padding: 0 16px; font-size: 15px; color: var(--ui-ink-3); }
+  .ui-bar-b { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: var(--ui-fill-1); color: var(--ui-ink-2); font-size: 16px; }
+  .ui-bar-b.send { background: linear-gradient(120deg, var(--a1), var(--a2)); color: var(--ui-on-accent); }
 
   /* --- profile screen --- */
   .ui-me { display: grid; justify-items: center; gap: 10px; padding: 10px 0 6px; }
-  .ui-face { width: 78px; height: 78px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(140deg, var(--a1), var(--a2)); color: #0a0c16; font-size: 30px; font-weight: 640; }
+  .ui-face { width: 78px; height: 78px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: linear-gradient(140deg, var(--a1), var(--a2)); color: var(--ui-on-accent); font-size: 30px; font-weight: 640; }
+  .ui-face svg { width: 100%; height: 100%; display: block; }
   .ui-me b { font-size: 22px; font-weight: 620; letter-spacing: -0.02em; }
   .ui-pension { margin-top: 4px; padding: 18px 20px; border-radius: 28px; background: var(--ui-fill-1); border: 1px solid var(--ui-hair); }
   .ui-pension-top { display: flex; justify-content: space-between; align-items: baseline; }
@@ -872,7 +919,7 @@
     opacity: 0; transition: opacity 1.2s var(--ease);
   }
   /* Only the home route runs it, and it replaces the orb rather than stacking. */
-  body[data-route="home"] .herovid { opacity: var(--vid-op); }
+  body[data-route="home"] .herovid { opacity: calc(var(--vid-op) * var(--vid-fade, 1)); }
   body[data-route="home"] #gl { opacity: 0; }
 
   /* ------------------------------------------------- core feature cards */
@@ -939,13 +986,17 @@
 
   /* card 2: accounts, connected */
   .f3-rows { position: absolute; top: 34px; left: 22px; right: 22px; display: grid; gap: 9px; }
+  /* Fixed status column: space-between sized it by content, so every row's
+     label landed at a different x and the column read as ragged. */
   .f3-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    display: grid; grid-template-columns: 1fr 76px 30px;
+    align-items: center; gap: 10px;
     padding: 10px 13px; border-radius: 12px;
     background: var(--glass); border: 1px solid var(--edge);
     font-size: 12.5px; color: var(--ink-2);
   }
-  .f3-row b { color: var(--ink); font-weight: 560; }
+  .f3-row > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .f3-row b { color: var(--ink); font-weight: 560; text-align: right; white-space: nowrap; }
   .f3-sw { width: 30px; height: 17px; border-radius: 999px; background: var(--fill-3);
     position: relative; flex: none; }
   .f3-sw i { position: absolute; top: 2.5px; left: 2.5px; width: 12px; height: 12px;
@@ -1051,7 +1102,7 @@
     justify-content: center; gap: 7px; border-radius: 14px; font-size: 13px; font-weight: 600;
     background: var(--ui-fill-1); border: 1px solid var(--ui-hair); color: var(--ui-ink-2);
     transition: transform 0.28s var(--spring), filter 0.3s; }
-  .ui-quick button.key { background: #fff; border-color: transparent; color: #0a0c16; }
+  .ui-quick button.key { background: var(--ui-key-bg); border-color: transparent; color: var(--ui-on-accent); }
   .ui-quick button.pay { background: linear-gradient(135deg, #a98bff, #7b5cff 55%, #6a49ff);
     border-color: transparent; color: #fff;
     box-shadow: 0 14px 30px -12px rgba(123, 92, 255, 0.75); }
@@ -1063,7 +1114,7 @@
     background: var(--ui-fill-1); border: 1px solid var(--ui-hair); }
   .ui-seg i { font-style: normal; font-size: 11px; font-weight: 600; color: var(--ui-ink-3);
     padding: 5px 11px; border-radius: 999px; }
-  .ui-seg i[data-on="true"] { background: linear-gradient(120deg, var(--a1), var(--a2)); color: #0a0c16; }
+  .ui-seg i[data-on="true"] { background: linear-gradient(120deg, var(--a1), var(--a2)); color: var(--ui-on-accent); }
   /* the screen scrolls itself as you move through the first step */
   .ui-scroller { transition: transform 0.45s var(--ease); will-change: transform; }
 
@@ -1106,11 +1157,11 @@
   }
   .device::after {
     content: ""; position: absolute; inset: 0; border-radius: 46px; pointer-events: none;
-    background: linear-gradient(128deg, rgba(255,255,255,0.15), transparent 34%, transparent 66%, rgba(255,255,255,0.07));
+    background: linear-gradient(128deg, rgba(255,255,255,0.15), transparent 34%, transparent 66%, var(--ui-fill-1));
   }
   .screen {
     position: relative; height: 100%; border-radius: 38px; overflow: hidden;
-    background: radial-gradient(120% 80% at 20% 0%, #131728 0%, #08090f 58%);
+    background: var(--ui-screen);
     display: flex; flex-direction: column;
   }
   .notch { position: absolute; top: 9px; left: 50%; translate: -50% 0; width: 86px; height: 24px;
@@ -1451,7 +1502,7 @@ Ticks off bills the moment the money actually leaves,
                   <img class="ui-logo" src="data:image/png;base64,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" alt="" />
                   <div class="ui-actions"><span class="ui-gb">&#10022;</span><span class="ui-gb">&#9788;</span></div>
                 </div>
-                <div class="ui-me"><div class="ui-face">S</div><b>Sam Rivera</b></div>
+                <div class="ui-me"><div class="ui-face"><svg viewBox="0 0 78 78" aria-hidden="true"><defs><clipPath id="avClip"><circle cx="39" cy="39" r="39"/></clipPath><linearGradient id="avBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#9db4ff"/><stop offset="100%" stop-color="#c79cff"/></linearGradient></defs><g clip-path="url(#avClip)"><rect width="78" height="78" fill="url(#avBg)"/><ellipse cx="39" cy="82" rx="26" ry="25" fill="#2a2e44"/><path d="M30 47h18v9a9 9 0 0 1-18 0z" fill="#e8b491"/><ellipse cx="39" cy="35" rx="13.5" ry="15" fill="#f4c8a6"/><path d="M25.5 36c-.6-10 5.6-16.5 13.5-16.5S53.1 26 52.5 36c-.3 4-1.6 4.6-1.9 2.6-.5-3.4-1.4-6.1-3-7.5-4 2.2-11.6 2.6-16.4.2-1.6 1.6-2.6 4.3-3.2 7.6-.4 2-1.9 1.2-2.5-2.9z" fill="#33263d"/><path d="M13 78c2-11 12-17 26-17s24 6 26 17z" fill="#3b4160"/></g></svg></div><b>Sam Rivera</b></div>
                 <div class="ui-secline"><h5>Pensions &amp; investments</h5></div>
                 <div class="ui-pension">
                   <div class="ui-pension-top"><span class="ui-pension-k">Total &middot; estimated</span><span class="ui-pension-tag">2 pots</span></div>
@@ -1619,7 +1670,7 @@ It&rsquo;s paid when the money leaves. So MoneyFlow waits for the
           </div>
 
           <div class="mini-card m-txn">
-            <span class="mini-glyph" style="background:rgba(255,255,255,0.07);color:#9ba2bd">N</span>
+            <span class="mini-glyph" style="background:var(--ui-fill-1);color:#9ba2bd">N</span>
             <div><div class="mc-n">HARBOUR LNS</div><div class="mc-m">Northbank &middot; debit &middot; 5 Aug</div></div>
             <span class="mc-a num">&minus;&pound;310.00</span>
           </div>
@@ -1875,7 +1926,7 @@ Spending, savings, and a pension that moves with the market
                   <img class="ui-logo" src="data:image/png;base64,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" alt="" />
                   <div class="ui-actions"><span class="ui-gb">&#10022;</span><span class="ui-gb">&#9788;</span></div>
                 </div>
-                <div class="ui-me"><div class="ui-face">S</div><b>Sam Rivera</b></div>
+                <div class="ui-me"><div class="ui-face"><svg viewBox="0 0 78 78" aria-hidden="true"><defs><clipPath id="avClip"><circle cx="39" cy="39" r="39"/></clipPath><linearGradient id="avBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#9db4ff"/><stop offset="100%" stop-color="#c79cff"/></linearGradient></defs><g clip-path="url(#avClip)"><rect width="78" height="78" fill="url(#avBg)"/><ellipse cx="39" cy="82" rx="26" ry="25" fill="#2a2e44"/><path d="M30 47h18v9a9 9 0 0 1-18 0z" fill="#e8b491"/><ellipse cx="39" cy="35" rx="13.5" ry="15" fill="#f4c8a6"/><path d="M25.5 36c-.6-10 5.6-16.5 13.5-16.5S53.1 26 52.5 36c-.3 4-1.6 4.6-1.9 2.6-.5-3.4-1.4-6.1-3-7.5-4 2.2-11.6 2.6-16.4.2-1.6 1.6-2.6 4.3-3.2 7.6-.4 2-1.9 1.2-2.5-2.9z" fill="#33263d"/><path d="M13 78c2-11 12-17 26-17s24 6 26 17z" fill="#3b4160"/></g></svg></div><b>Sam Rivera</b></div>
                 <div class="ui-secline"><h5>Pensions &amp; investments</h5></div>
                 <div class="ui-pension">
                   <div class="ui-pension-top"><span class="ui-pension-k">Total &middot; estimated</span><span class="ui-pension-tag">2 pots</span></div>
@@ -2824,6 +2875,23 @@ Open Banking, authorised on your bank&rsquo;s own screen.
   v.defaultMuted = true;     // always honoured after a dynamic src
   var go = v.play();
   if (go && go.catch) go.catch(function () {});
+
+  // It is a hero background, not a page background: fixed positioning would
+  // otherwise keep it behind every section on the route.
+  // Deliberately not rAF-throttled: a frame that never arrives (background
+  // tab) would leave the pending flag set and stop the fade for good. This is
+  // three operations on a passive listener.
+  var root = document.documentElement;
+  function fade() {
+    var f = 1 - scrollY / (innerHeight * 0.8);
+    f = f < 0 ? 0 : f > 1 ? 1 : f;
+    root.style.setProperty("--vid-fade", String(f));
+    if (f <= 0) { if (!v.paused) v.pause(); }
+    else if (v.paused) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+  }
+  addEventListener("scroll", fade, { passive: true });
+  addEventListener("resize", fade, { passive: true });
+  fade();
 })();
 </script>
 
